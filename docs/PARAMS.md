@@ -7,7 +7,7 @@ What every tunable number does, a sensible range, and what happens when you chan
 | Code file | Covers |
 |---|---|
 | `src/gen/params.ts` | World, Terrain, Climate, Biomes, Rivers, Starting nations |
-| `src/sim/params.ts` | Population through Emergence |
+| `src/sim/params.ts` | Population through Emergence (one `SIM` object, editable live in the Settings panel) |
 | `src/render/palette.ts` | Rendering |
 | `src/ui/config.ts` | Playback |
 
@@ -16,6 +16,8 @@ The values below are the **starting defaults**. Most are educated guesses meant 
 ---
 
 ## How to tune
+
+Quickest way: open **Settings** under the map and change numbers while it runs (changed values turn gold; *Reset to defaults* undoes everything). To keep a change, copy it into `src/sim/params.ts`.
 
 1. Pick a seed you know well and keep it fixed.
 2. Change **one** parameter at a time.
@@ -251,6 +253,7 @@ Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shadi
 | `LABEL_MIN_SIZE` / `LABEL_MAX_SIZE` | 11 / 40 | — | Label font size limits (pixels) | — | — |
 | `LABEL_SIZE_PER_SQRT_AREA` | 2.2 | 1–4 | How fast labels grow with nation size | Big nations shout | All labels similar size |
 | `LABEL_LETTER_SPACING` | 0.18 | 0–0.5 | Gap between letters (share of font size) | Airy, map-style lettering | Tight text |
+| `HIGHLIGHT_DIM` | 0.2 | 0–0.6 | How faded other nations get when you click an event | Others stay visible | Only the highlighted nations show |
 | `CAPITAL_RADIUS` | 3 | 2–6 | Capital dot size (pixels) | Bigger dots | Smaller dots |
 
 ---
@@ -263,6 +266,7 @@ Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shadi
 | `DEFAULT_SPEED` | 5 | — | Speed on load |
 | `SIM_YEARS` | 1000 | 200–5000 | Default length of a run |
 | `EVENT_LOG_MAX` | 300 | 50–2000 | Most lines kept in the on-screen event log |
+| `HIGHLIGHT_SECONDS` | 4 | 1–15 | How long nations stay highlighted after clicking an event |
 
 ---
 

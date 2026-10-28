@@ -22,7 +22,7 @@ npm install
 npm run dev
 ```
 
-Then open the link shown in the terminal (usually http://localhost:5173). Add `?seed=anything` to the address to get a different world, or `?style=painted` for the painted look. Press **Space** to play/pause, **→** to step a year, **C** to see the cells, **N** to hide/show nations, and hover to inspect a cell.
+Then open the link shown in the terminal (usually http://localhost:5173). Add `?seed=anything` to the address to get a different world, or `?style=painted` for the painted look. Press **Space** to play/pause, **→** to step a year, **C** to see the cells, **N** to hide/show nations, and hover to inspect a cell. Open **Settings** to tune the simulation live, click an event to highlight its nations, and use **Save / Load / Record** to keep a history or export a video.
 
 Run the tests with:
 
@@ -39,7 +39,7 @@ npm test
 - [x] M4a · Growth
 - [x] M4b · Rebellion and collapse
 - [x] M5 · War
-- [ ] M6 · Polish (speed controls, video export, save/load)
+- [x] M6 · Polish (speed controls, video export, save/load)
 
 ## Built with
 

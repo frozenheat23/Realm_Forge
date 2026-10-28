@@ -3,19 +3,7 @@ import type { Rng } from "../core/rng";
 import type { CellId, Nation, NationId, SimEvent, War, WorldState } from "../core/types";
 import { peaceEvent, warEvent } from "./events";
 import { moveCost } from "./helpers";
-import {
-  DEFENDER_BONUS,
-  FRONT_FLIPS_PER_YEAR,
-  MAX_WAR_YEARS,
-  MAX_WARS_PER_NATION,
-  PEACE_SCORE,
-  SCORE_PER_FLIP,
-  TRUCE_YEARS,
-  WAR_BASE_PROB,
-  WAR_MAX_PROB,
-  WAR_STRENGTH_EXP,
-  WEARINESS_PEACE,
-} from "./params";
+import { SIM } from "./params";
 
 /** One number per pair of nations, the same whichever order they're given in. */
 export function pairKey(a: NationId, b: NationId): number {
@@ -72,7 +60,7 @@ export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
     warCount.set(w.attacker, (warCount.get(w.attacker) ?? 0) + 1);
     warCount.set(w.defender, (warCount.get(w.defender) ?? 0) + 1);
   }
-  const busy = (id: NationId) => (warCount.get(id) ?? 0) >= MAX_WARS_PER_NATION;
+  const busy = (id: NationId) => (warCount.get(id) ?? 0) >= SIM.MAX_WARS_PER_NATION;
 
   for (const [a, b] of neighborPairs(state)) {
     if (atWar.has(pairKey(a, b)) || inTruce(state, a, b) || busy(a) || busy(b)) continue;
@@ -82,8 +70,8 @@ export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
     const [attacker, defender] = na.strength >= nb.strength ? [na, nb] : [nb, na];
     const ratio = attacker.strength / Math.max(defender.strength, 1e-6);
     const chance = Math.min(
-      WAR_MAX_PROB,
-      WAR_BASE_PROB * ratio ** WAR_STRENGTH_EXP * (1 - attacker.warWeariness),
+      SIM.WAR_MAX_PROB,
+      SIM.WAR_BASE_PROB * ratio ** SIM.WAR_STRENGTH_EXP * (1 - attacker.warWeariness),
     );
     if (!rng.chance(chance)) continue;
 
@@ -106,7 +94,7 @@ export function fightBattle(state: WorldState, war: War, rng: Rng): number {
   const attacker = state.nations.get(war.attacker)!;
   const defender = state.nations.get(war.defender)!;
   const a = attacker.strength;
-  const d = defender.strength * DEFENDER_BONUS;
+  const d = defender.strength * SIM.DEFENDER_BONUS;
   const attackerWins = rng.chance(a + d > 0 ? a / (a + d) : 0.5);
   const [winner, loser] = attackerWins ? [attacker, defender] : [defender, attacker];
 
@@ -115,18 +103,18 @@ export function fightBattle(state: WorldState, war: War, rng: Rng): number {
   const cost = (c: CellId) => (c === loser.capital ? Infinity : moveCost(state.cells[c]!));
   const targets = frontCells(state, loser.id, winner.id)
     .sort((x, y) => cost(x) - cost(y) || x - y)
-    .slice(0, FRONT_FLIPS_PER_YEAR);
+    .slice(0, SIM.FRONT_FLIPS_PER_YEAR);
   for (const c of targets) state.state.owner[c] = winner.id;
 
-  war.score += (attackerWins ? 1 : -1) * SCORE_PER_FLIP * targets.length;
+  war.score += (attackerWins ? 1 : -1) * SIM.SCORE_PER_FLIP * targets.length;
   return targets.length;
 }
 
 /** Why a war should end now, or null if it goes on. */
 function peaceReason(state: WorldState, war: War, attacker: Nation, defender: Nation): string | null {
-  if (Math.abs(war.score) >= PEACE_SCORE) return "decisive";
-  if (attacker.warWeariness >= WEARINESS_PEACE || defender.warWeariness >= WEARINESS_PEACE) return "exhausted";
-  if (state.year - war.startYear >= MAX_WAR_YEARS) return "too long";
+  if (Math.abs(war.score) >= SIM.PEACE_SCORE) return "decisive";
+  if (attacker.warWeariness >= SIM.WEARINESS_PEACE || defender.warWeariness >= SIM.WEARINESS_PEACE) return "exhausted";
+  if (state.year - war.startYear >= SIM.MAX_WAR_YEARS) return "too long";
   return null;
 }
 
@@ -146,12 +134,12 @@ export function fightWars(state: WorldState, rng: Rng): SimEvent[] {
       ongoing.push(war);
       continue;
     }
-    // Clear winner only if the score is at least a third of the way to PEACE_SCORE.
-    const clear = Math.abs(war.score) >= PEACE_SCORE / 3;
+    // Clear winner only if the score is at least a third of the way to SIM.PEACE_SCORE.
+    const clear = Math.abs(war.score) >= SIM.PEACE_SCORE / 3;
     const winner = !clear ? null : war.score > 0 ? attacker : defender;
-    const cells = Math.round(Math.abs(war.score) / SCORE_PER_FLIP);
+    const cells = Math.round(Math.abs(war.score) / SIM.SCORE_PER_FLIP);
     events.push(peaceEvent(state.year, attacker, defender, winner, cells));
-    state.truces.push({ a: attacker.id, b: defender.id, until: state.year + TRUCE_YEARS });
+    state.truces.push({ a: attacker.id, b: defender.id, until: state.year + SIM.TRUCE_YEARS });
   }
 
   state.wars = ongoing;

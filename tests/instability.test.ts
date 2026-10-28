@@ -3,13 +3,7 @@ import { createRng } from "../src/core/rng";
 import { generateWorld } from "../src/gen";
 import { collapses } from "../src/sim/collapse";
 import { emergence, emptyRegions } from "../src/sim/emergence";
-import {
-  ADMIN_CAP_BASE,
-  EMERGENCE_MIN_REGION,
-  MIN_AREA,
-  REBEL_MIN_CAPITAL_DIST,
-  STAB_RECOVERY,
-} from "../src/sim/params";
+import { SIM } from "../src/sim/params";
 import { rebel } from "../src/sim/rebellion";
 import { averageHopsToCapital, updateStability } from "../src/sim/stability";
 import { tick } from "../src/sim/tick";
@@ -19,11 +13,11 @@ describe("stability", () => {
   it("recovers slowly for a small nation at peace", () => {
     const state = makeState(row(3), [1, 1, 1], [makeNation(1, 0, { stability: 0.5, area: 3 })]);
     updateStability(state);
-    expect(state.nations.get(1)!.stability).toBeCloseTo(0.5 + STAB_RECOVERY);
+    expect(state.nations.get(1)!.stability).toBeCloseTo(0.5 + SIM.STAB_RECOVERY);
   });
 
   it("drops for a nation far past its admin cap", () => {
-    const state = makeState(row(3), [1, 1, 1], [makeNation(1, 0, { stability: 0.5, area: ADMIN_CAP_BASE + 100 })]);
+    const state = makeState(row(3), [1, 1, 1], [makeNation(1, 0, { stability: 0.5, area: SIM.ADMIN_CAP_BASE + 100 })]);
     updateStability(state);
     expect(state.nations.get(1)!.stability).toBeLessThan(0.5);
   });
@@ -44,7 +38,7 @@ describe("stability", () => {
 
 describe("rebellion", () => {
   it("breaks off a far province as a new nation with the old one as parent", () => {
-    const length = REBEL_MIN_CAPITAL_DIST + MIN_AREA + 2;
+    const length = SIM.REBEL_MIN_CAPITAL_DIST + SIM.MIN_AREA + 2;
     const owners = Array(length).fill(1);
     const state = makeState(row(length), owners, [makeNation(1, 0)]);
     const rebelNation = rebel(state, state.nations.get(1)!, [...owners.keys()], createRng("r"));
@@ -53,7 +47,7 @@ describe("rebellion", () => {
     expect(rebelNation!.parent).toBe(1);
     expect(state.state.owner[0]).toBe(1); // the capital stays loyal
     const rebelCells = [...state.state.owner].filter((o) => o === rebelNation!.id).length;
-    expect(rebelCells).toBeGreaterThanOrEqual(MIN_AREA);
+    expect(rebelCells).toBeGreaterThanOrEqual(SIM.MIN_AREA);
   });
 
   it("can't happen in a nation with no far provinces", () => {
@@ -98,7 +92,7 @@ describe("emergence", () => {
   });
 
   it("eventually founds a nation in a big empty region", () => {
-    const size = EMERGENCE_MIN_REGION + 5;
+    const size = SIM.EMERGENCE_MIN_REGION + 5;
     const state = makeState(row(size), Array(size).fill(0), []);
     for (let year = 1; year <= 2000 && state.nations.size === 0; year++) {
       state.year = year;

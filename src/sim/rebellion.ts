@@ -3,7 +3,7 @@ import type { Rng } from "../core/rng";
 import type { CellId, Nation, SimEvent, WorldState } from "../core/types";
 import { rebellionEvent } from "./events";
 import { cellsByNation, hopsFromCapital, livingNations } from "./helpers";
-import { MIN_AREA, REBEL_MAX_CELLS, REBEL_MIN_CAPITAL_DIST, REBEL_PROB, REBEL_START_STABILITY, REBEL_THRESHOLD } from "./params";
+import { SIM } from "./params";
 import { addNation, mostPopulous } from "./newNation";
 
 /** Grows a region outward from `seed` through `nation`'s cells, up to `max` cells, never taking the capital. */
@@ -32,13 +32,13 @@ export function floodFill(state: WorldState, nation: Nation, seed: CellId, max: 
 export function rebel(state: WorldState, nation: Nation, cells: CellId[], rng: Rng): Nation | null {
   const hops = hopsFromCapital(state, nation);
   // Rebels start far from the capital, or in land the capital can't even reach.
-  const candidates = cells.filter((c) => hops[c]! === -1 || hops[c]! >= REBEL_MIN_CAPITAL_DIST);
+  const candidates = cells.filter((c) => hops[c]! === -1 || hops[c]! >= SIM.REBEL_MIN_CAPITAL_DIST);
   if (candidates.length === 0) return null;
 
-  const region = floodFill(state, nation, rng.pick(candidates), REBEL_MAX_CELLS);
-  if (region.length < MIN_AREA) return null;
+  const region = floodFill(state, nation, rng.pick(candidates), SIM.REBEL_MAX_CELLS);
+  if (region.length < SIM.MIN_AREA) return null;
 
-  const rebelNation = addNation(state, rng.fork("name"), mostPopulous(state, region), REBEL_START_STABILITY, nation.id);
+  const rebelNation = addNation(state, rng.fork("name"), mostPopulous(state, region), SIM.REBEL_START_STABILITY, nation.id);
   for (const c of region) state.state.owner[c] = rebelNation.id;
   return rebelNation;
 }
@@ -48,9 +48,9 @@ export function rebellions(state: WorldState, rng: Rng): SimEvent[] {
   const groups = cellsByNation(state);
   // Only nations that existed at the start of this step can rebel (not this year's rebels).
   for (const nation of livingNations(state)) {
-    if (nation.stability >= REBEL_THRESHOLD) continue;
+    if (nation.stability >= SIM.REBEL_THRESHOLD) continue;
     const nationRng = rng.fork(`nation-${nation.id}`);
-    if (!nationRng.chance(REBEL_PROB)) continue;
+    if (!nationRng.chance(SIM.REBEL_PROB)) continue;
     const rebelNation = rebel(state, nation, groups.get(nation.id) ?? [], nationRng);
     if (rebelNation) events.push(rebellionEvent(state.year, rebelNation, nation));
   }

@@ -91,7 +91,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | M4a ✅ | Growth | Population and expansion work; nations spread across the map | §4.1–4.4 |
 | M4b ✅ | Instability | Stability, rebellion, collapse and emergence; empires break apart; event log | §4.3, §4.6–4.9, §6 |
 | M5 ✅ | War | Wars start, play out and end; a 1,000-year run tells a believable story | §4.5 |
-| M6 | Polish | Speed controls, settings panel, video export, save/load. Web Worker only if needed. | §5.5, §6 |
+| M6 ✅ | Polish | Speed controls, settings panel, video export, save/load. Web Worker only if needed. | §5.5, §6 |
 | Later | Backlog | See SPEC.md §8 | §8 |
 
 ---
@@ -145,3 +145,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-10-29 | M5: war added per SPEC §4.5. History no longer freezes: ~100–120 wars, ~20–30 rebellions per century; 55–75 nations alive; biggest ~150–180 cells |
 | 2026-10-29 | `WAR_MAX_PROB` cap on declaring war (ratio^exp had no ceiling); capitals are taken last on a front (capital losses fell from ~100 to ~12 per century) |
 | 2026-10-29 | Tuning still open: no great empires form (biggest ~180 cells). Try ↑ `ADMIN_CAP_BASE` or ↓ `DEFENDER_BONUS` during "further testing" |
+| 2026-10-29 | M6: sim params are one mutable `SIM` object (with `SIM_DEFAULTS`) so the Settings panel edits them live |
+| 2026-10-29 | Save = JSON snapshot without the map (rebuilt from seed); Load passes the file through `sessionStorage` and reloads with that seed |
+| 2026-10-29 | Year counter drawn on the canvas so videos include it; no Web Worker (tick ~4 ms) |
+| 2026-10-29 | Not done in M6: label fade in/out, neighbor-aware nation colors, hatching on war fronts |

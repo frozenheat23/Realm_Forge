@@ -2,16 +2,7 @@
 import type { Nation, WorldState } from "../core/types";
 import { clamp } from "../core/math";
 import { cellsByNation, hopsFromCapital } from "./helpers";
-import {
-  ADMIN_CAP_BASE,
-  CAPITAL_DIST_FREE,
-  CAPITAL_DIST_K,
-  OVEREXT_K,
-  STAB_RECOVERY,
-  WEARINESS_DECAY,
-  WEARINESS_GAIN,
-  WEARINESS_STAB_K,
-} from "./params";
+import { SIM } from "./params";
 
 /**
  * Average number of steps from the capital to the nation's cells.
@@ -37,20 +28,20 @@ export function updateStability(state: WorldState): void {
 
     // War weariness builds up during war and fades in peace.
     nation.warWeariness = clamp(
-      nation.warWeariness + (atWar.has(nation.id) ? WEARINESS_GAIN : -WEARINESS_DECAY),
+      nation.warWeariness + (atWar.has(nation.id) ? SIM.WEARINESS_GAIN : -SIM.WEARINESS_DECAY),
       0,
       1,
     );
 
-    const overextension = Math.max(0, nation.area - ADMIN_CAP_BASE) * OVEREXT_K;
+    const overextension = Math.max(0, nation.area - SIM.ADMIN_CAP_BASE) * SIM.OVEREXT_K;
     const avgHops = averageHopsToCapital(state, nation, groups.get(nation.id) ?? []);
-    const distancePenalty = Math.max(0, avgHops - CAPITAL_DIST_FREE) * CAPITAL_DIST_K;
+    const distancePenalty = Math.max(0, avgHops - SIM.CAPITAL_DIST_FREE) * SIM.CAPITAL_DIST_K;
 
     nation.stability = clamp(
       nation.stability +
-        STAB_RECOVERY -
+        SIM.STAB_RECOVERY -
         overextension -
-        nation.warWeariness * WEARINESS_STAB_K -
+        nation.warWeariness * SIM.WEARINESS_STAB_K -
         distancePenalty,
       0,
       1,

@@ -6,39 +6,57 @@
     <title>Realm Forge</title>
     <style>
       body { margin: 0; background: #14181f; color: #e8e2d4; font-family: Georgia, serif; }
-      #stage { position: relative; max-width: 1600px; margin: 0 auto; }
+      .wrap { max-width: 1600px; margin: 0 auto; }
       #map { display: block; width: 100%; height: auto; }
-      #year {
-        position: absolute; top: 12px; right: 18px; font-size: 34px; letter-spacing: 0.06em;
-        color: #fbf6e9; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7); pointer-events: none;
-      }
-      #bar { display: flex; gap: 6px; align-items: center; padding: 8px 12px; max-width: 1600px; margin: 0 auto; }
-      #bar button {
-        font: 13px system-ui, sans-serif; padding: 5px 12px; border-radius: 4px; cursor: pointer;
+      .bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 12px; }
+      .bar .spacer { flex: 1; }
+      button, .bar input[type="text"] {
+        font: 13px system-ui, sans-serif; padding: 5px 12px; border-radius: 4px;
         border: 1px solid #4a5160; background: #232a35; color: #e8e2d4;
       }
-      #bar button:hover { background: #2e3644; }
-      #bar button.active { background: #c9b26b; color: #1b1b1b; border-color: #c9b26b; }
+      button { cursor: pointer; }
+      button:hover { background: #2e3644; }
+      button.active { background: #c9b26b; color: #1b1b1b; border-color: #c9b26b; }
+      button.recording { background: #b8322b; border-color: #b8322b; }
+      .bar input[type="text"] { width: 140px; cursor: text; }
+      #info { padding: 0 12px 8px; font: 13px/1.4 system-ui, sans-serif; color: #b9b3a5; min-height: 1.4em; }
+
+      #settings { margin: 0 12px 8px; font: 13px system-ui, sans-serif; }
+      #settings summary { cursor: pointer; color: #c9b26b; padding: 4px 0; }
+      .settings-row { display: flex; gap: 16px; padding: 6px 0; }
+      .settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; margin: 6px 0; }
+      .settings-grid fieldset { border: 1px solid #2c3340; border-radius: 4px; }
+      .settings-grid legend { color: #c9b26b; padding: 0 4px; }
+      .param { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; font: 12px ui-monospace, monospace; }
+      .param input { width: 80px; background: #1b2029; color: #e8e2d4; border: 1px solid #3a4150; border-radius: 3px; }
+      .param input.changed { border-color: #c9b26b; color: #f3dd90; }
+
+      #log-filters { font: 12px system-ui, sans-serif; color: #b9b3a5; display: flex; flex-wrap: wrap; gap: 12px; padding: 4px 12px; border-top: 1px solid #2c3340; }
       #log {
-        max-width: 1600px; margin: 0 auto 16px; padding: 4px 12px; height: 180px; overflow-y: auto;
-        font: 13px/1.6 system-ui, sans-serif; color: #d8d2c4; border-top: 1px solid #2c3340;
+        margin-bottom: 16px; padding: 4px 12px; height: 180px; overflow-y: auto;
+        font: 13px/1.6 system-ui, sans-serif; color: #d8d2c4;
       }
+      #log .event { cursor: pointer; }
+      #log .event:hover { background: #1f2530; }
       #log .swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 7px; }
       #log .event-rebellion { color: #e8c37a; }
       #log .event-collapse, #log .event-annexed { color: #d99a8f; }
       #log .event-war { color: #ef8a80; }
       #log .event-peace { color: #9fc7a3; }
-      #info { padding: 0 12px 8px; font: 13px/1.4 system-ui, sans-serif; color: #b9b3a5; min-height: 1.4em; max-width: 1600px; margin: 0 auto; }
+      #log.hide-war .event-war, #log.hide-peace .event-peace, #log.hide-rebellion .event-rebellion,
+      #log.hide-founded .event-founded, #log.hide-collapse .event-collapse, #log.hide-annexed .event-annexed,
+      #log.hide-capital_moved .event-capital_moved { display: none; }
     </style>
   </head>
   <body>
-    <div id="stage">
+    <div class="wrap">
       <canvas id="map"></canvas>
-      <div id="year">Year 0</div>
+      <div id="bar" class="bar"></div>
+      <div id="info">Hover the map to inspect a cell · Space play/pause · → step · C cells · N nations · click an event to highlight it</div>
+      <details id="settings"><summary>Settings</summary></details>
+      <div id="log-filters"></div>
+      <div id="log"></div>
     </div>
-    <div id="bar"></div>
-    <div id="info">Hover the map to inspect a cell · Space play/pause · → step · C cells · N nations</div>
-    <div id="log"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

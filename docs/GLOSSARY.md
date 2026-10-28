@@ -66,3 +66,12 @@ New concepts as we meet them, with where they show up in our code.
 | **Pair key** | Turning two ids into one number that's the same in either order, so (3, 7) and (7, 3) match. | `pairKey()` in `war.ts` |
 | **Comparator** | A function telling `sort` which of two items comes first (negative, zero or positive). | `.sort((x, y) => cost(x) - cost(y) \|\| x - y)` in `war.ts` |
 | **`Infinity`** | A number bigger than every other number. Handy to push something to the end of a sort. | capital cost in `fightBattle()` |
+| **Serialization** | Turning live data (Maps, typed arrays) into plain text like JSON so it can be saved, and back again. | `toSnapshot()` / `fromSnapshot()` in `src/sim/snapshot.ts` |
+| **JSON** | A text format for data: objects `{}`, lists `[]`, numbers and strings. What our save files are. | Save / Load |
+| **Blob** | A chunk of file data in the browser (text, video…) that can be downloaded. | `downloadFile()` in `src/ui/files.ts` |
+| **Promise / `async` / `await`** | A value that arrives later (like a file the user picks). `await` pauses until it's ready. | `pickSnapshot()` and the Load button |
+| **`sessionStorage`** | Small storage that survives a page reload in the same tab. We park a loaded save there while the page reloads. | `LOAD_KEY` in `src/main.ts` |
+| **MediaRecorder** | Browser feature that records a live video stream (here, the canvas) to a file. | `createRecorder()` in `files.ts` |
+| **Event delegation** | One click listener on a parent instead of one per child; it checks which child was clicked. | event log in `src/ui/eventLog.ts` |
+| **Generic (`<T>`)** | A placeholder type filled in when used, e.g. `element<HTMLCanvasElement>("#map")`. | `element()` in `src/main.ts` |
+| **`keyof` / `typeof`** | TypeScript tools to get a type from a value: `keyof typeof SIM` = all parameter names. | `SimParamName` in `src/sim/params.ts` |

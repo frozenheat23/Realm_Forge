@@ -2,7 +2,7 @@
 import type { Nation, NationId, SimEvent, WorldState } from "../core/types";
 import { annexedEvent, capitalMovedEvent, collapseEvent } from "./events";
 import { cellsByNation, livingNations } from "./helpers";
-import { CAPITAL_LOSS_STAB_HIT, MIN_AREA } from "./params";
+import { SIM } from "./params";
 import { mostPopulous } from "./newNation";
 
 /**
@@ -58,11 +58,11 @@ export function collapses(state: WorldState): SimEvent[] {
 
     if (state.state.owner[nation.capital] !== nation.id) {
       nation.capital = mostPopulous(state, stillOurs);
-      nation.stability = Math.max(0, nation.stability - CAPITAL_LOSS_STAB_HIT);
+      nation.stability = Math.max(0, nation.stability - SIM.CAPITAL_LOSS_STAB_HIT);
       events.push(capitalMovedEvent(state.year, nation));
     }
 
-    if (stillOurs.length < MIN_AREA) {
+    if (stillOurs.length < SIM.MIN_AREA) {
       const winner = dissolve(state, nation, stillOurs);
       nation.alive = false;
       events.push(winner ? annexedEvent(state.year, nation, winner) : collapseEvent(state.year, nation));

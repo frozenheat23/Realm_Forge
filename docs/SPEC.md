@@ -291,12 +291,14 @@ Emit a `SimEvent` for: nation founded, war declared, peace signed, rebellion, co
 
 ## 6. UI and playback (`ui/`)
 
-- Play / pause, step one year, speed options from `SPEEDS`.
-- Large year counter in a corner.
-- Event log: scrolling, filterable by type, click an event to highlight its nations.
-- Seed input and a "New world" button.
-- Settings panel: edit parameters live and toggle layers.
-- Export: record the timelapse as WebM (`canvas.captureStream()` + `MediaRecorder`); save and load `WorldState` snapshots.
+- Play / pause, step one year, speed options from `SPEEDS` (Space, →). Stops at `SIM_YEARS`.
+- Year counter drawn on the map canvas itself (`render/hud.ts`) so it appears in videos.
+- Event log: scrolling, newest first, filter checkboxes per type, click an event to highlight its nations for `HIGHLIGHT_SECONDS` (others fade to `HIGHLIGHT_DIM`).
+- Seed box + **New world** (Enter works too) and **Random**. Both reload the page with `?seed=`.
+- **Settings** panel: every `SIM` parameter editable live (`ui/settings.ts`), layer toggles (nations, labels, cell outlines), reset to defaults. Generation numbers are not live; they need a new world.
+- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, per-cell owner/pop, nations, wars, truces, events. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
+- **Record** captures the canvas as WebM (`canvas.captureStream()` + `MediaRecorder`) and downloads it on stop.
+- Web Worker: not needed. A tick takes ~4 ms and a redraw ~15 ms at 1600×900.
 
 ---
 

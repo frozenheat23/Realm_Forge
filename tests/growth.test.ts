@@ -3,7 +3,7 @@ import { createRng } from "../src/core/rng";
 import { Biome } from "../src/core/types";
 import { generateWorld } from "../src/gen";
 import { expand } from "../src/sim/expansion";
-import { STRENGTH_POP_EXP } from "../src/sim/params";
+import { SIM } from "../src/sim/params";
 import { growPopulation } from "../src/sim/population";
 import { tick } from "../src/sim/tick";
 import { updateTotals } from "../src/sim/totals";
@@ -31,7 +31,7 @@ describe("updateTotals", () => {
     const nation = state.nations.get(1)!;
     expect(nation.area).toBe(2);
     expect(nation.pop).toBeCloseTo(1);
-    expect(nation.strength).toBeCloseTo(1 ** STRENGTH_POP_EXP * 1);
+    expect(nation.strength).toBeCloseTo(1 ** SIM.STRENGTH_POP_EXP * 1);
   });
 });
 

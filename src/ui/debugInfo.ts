@@ -6,6 +6,8 @@ import { BIOME_STATS } from "../gen/params";
 /** Calls `action` each time `key` is pressed (upper or lower case). */
 export function onKey(key: string, action: () => void): void {
   window.addEventListener("keydown", (event) => {
+    const el = event.target as HTMLElement;
+    if (el.tagName === "INPUT") return; // don't fire while typing in a box
     if (event.key.toLowerCase() === key) action();
   });
 }
@@ -15,7 +17,7 @@ export function showCellOnHover(
   canvas: HTMLCanvasElement,
   panel: HTMLElement,
   world: GeneratedWorld,
-  state: WorldState,
+  getState: () => WorldState,
 ): void {
   canvas.addEventListener("mousemove", (event) => {
     // The canvas may be shrunk to fit the window, so convert screen → map pixels.
@@ -28,6 +30,7 @@ export function showCellOnHover(
     const tags = [cell.coastal && "coastal", cell.mountain && "mountain", cell.river && "river"]
       .filter(Boolean)
       .join(", ");
+    const state = getState();
     const nation = state.nations.get(state.state.owner[cell.id]!);
     const ownerText = nation ? `${nation.name} (pop ${state.state.pop[cell.id]!.toFixed(2)})` : "unowned";
     panel.textContent =

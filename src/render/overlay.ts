@@ -1,10 +1,10 @@
 // Nation overlay (SPEC §5.2–5.3): tints land with its owner's color and draws borders.
 // Redrawn whenever ownership changes, so it's written for speed. Only reads the world.
 import type { GeneratedWorld } from "../gen";
-import type { WorldState } from "../core/types";
+import type { NationId, WorldState } from "../core/types";
 import { hexToRgb, scaleRgb, type Rgb } from "./color";
 import { pairKey } from "../sim/war";
-import { BORDER_ALPHA, BORDER_DARKEN, OVERLAY_ALPHA, WAR_FRONT_COLOR } from "./palette";
+import { BORDER_ALPHA, BORDER_DARKEN, HIGHLIGHT_DIM, OVERLAY_ALPHA, WAR_FRONT_COLOR } from "./palette";
 
 /** Packs a color and alpha into one 32-bit number, the way ImageData stores a pixel. */
 function packPixel(rgb: Rgb, alpha: number): number {
@@ -12,7 +12,13 @@ function packPixel(rgb: Rgb, alpha: number): number {
   return ((alpha << 24) | (Math.round(rgb[2]) << 16) | (Math.round(rgb[1]) << 8) | Math.round(rgb[0])) >>> 0;
 }
 
-export function renderNationOverlay(world: GeneratedWorld, displayCells: Int32Array, state: WorldState): ImageData {
+/** If `highlight` has nations in it, every other nation is drawn faded. */
+export function renderNationOverlay(
+  world: GeneratedWorld,
+  displayCells: Int32Array,
+  state: WorldState,
+  highlight: Set<NationId> = new Set(),
+): ImageData {
   const { width, height, cells } = world;
   const owner = state.state.owner;
   const image = new ImageData(width, height); // starts fully transparent
@@ -28,8 +34,9 @@ export function renderNationOverlay(world: GeneratedWorld, displayCells: Int32Ar
   const borderAlpha = Math.round(BORDER_ALPHA * 255);
   for (const nation of state.nations.values()) {
     const rgb = hexToRgb(nation.color);
-    fill[nation.id] = packPixel(rgb, fillAlpha);
-    border[nation.id] = packPixel(scaleRgb(rgb, 1 - BORDER_DARKEN), borderAlpha);
+    const fade = highlight.size > 0 && !highlight.has(nation.id) ? HIGHLIGHT_DIM : 1;
+    fill[nation.id] = packPixel(rgb, Math.round(fillAlpha * fade));
+    border[nation.id] = packPixel(scaleRgb(rgb, 1 - BORDER_DARKEN), Math.round(borderAlpha * fade));
   }
 
   // Borders between nations at war are drawn in red.

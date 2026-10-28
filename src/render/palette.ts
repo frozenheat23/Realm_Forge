@@ -102,6 +102,12 @@ export const BORDER_ALPHA = 0.85;
 export const BORDER_DARKEN = 0.4;
 /** Border color where two nations are at war (SPEC §5.3: highlight war fronts). */
 export const WAR_FRONT_COLOR = "#c8312b";
+/** When nations are highlighted (click an event), others keep this share of their opacity. */
+export const HIGHLIGHT_DIM = 0.2;
+/** Year counter drawn on the map (so it shows up in recorded videos). */
+export const YEAR_FONT = "34px Georgia, serif";
+export const YEAR_COLOR = "#fbf6e9";
+export const YEAR_SHADOW = "rgba(0, 0, 0, 0.7)";
 /** Smallest nation (in cells) that gets a name label. */
 export const LABEL_MIN_AREA = 10;
 export const LABEL_FONT = "Georgia, 'Times New Roman', serif";

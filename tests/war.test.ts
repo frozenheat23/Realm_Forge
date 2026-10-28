@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
-import { FRONT_FLIPS_PER_YEAR, MAX_WAR_YEARS, PEACE_SCORE, TRUCE_YEARS } from "../src/sim/params";
+import { SIM } from "../src/sim/params";
 import { declareWars, fightBattle, fightWars, frontCells, neighborPairs } from "../src/sim/war";
 import { makeNation, makeState, row } from "./tinyWorld";
 
@@ -46,20 +46,20 @@ describe("declareWars", () => {
 });
 
 describe("fightBattle", () => {
-  it("moves the front toward the loser, but no more than FRONT_FLIPS_PER_YEAR cells", () => {
+  it("moves the front toward the loser, but no more than SIM.FRONT_FLIPS_PER_YEAR cells", () => {
     const state = twoNations(1000, 1); // nation 1 is overwhelmingly stronger
     const war = { id: 1, attacker: 1, defender: 2, startYear: 0, score: 0 };
     state.wars.push(war);
     const flipped = fightBattle(state, war, createRng("b"));
     expect(flipped).toBeGreaterThan(0);
-    expect(flipped).toBeLessThanOrEqual(FRONT_FLIPS_PER_YEAR);
+    expect(flipped).toBeLessThanOrEqual(SIM.FRONT_FLIPS_PER_YEAR);
     expect(state.state.owner[5]).toBe(1);
     expect(war.score).toBeGreaterThan(0);
   });
 
   it("takes the capital last", () => {
     // Cell 0 (nation 1) touches four nation-2 cells; cell 1 is nation 2's capital.
-    // With more front cells than FRONT_FLIPS_PER_YEAR, the capital survives this year.
+    // With more front cells than SIM.FRONT_FLIPS_PER_YEAR, the capital survives this year.
     const spec = [
       { neighbors: [1, 2, 3, 4] },
       { neighbors: [0] },
@@ -72,7 +72,7 @@ describe("fightBattle", () => {
       makeNation(2, 1, { strength: 1 }),
     ]);
     const war = { id: 1, attacker: 1, defender: 2, startYear: 0, score: 0 };
-    expect(FRONT_FLIPS_PER_YEAR).toBeLessThan(4);
+    expect(SIM.FRONT_FLIPS_PER_YEAR).toBeLessThan(4);
     fightBattle(state, war, createRng("cap"));
     expect(state.state.owner[1]).toBe(2);
   });
@@ -83,16 +83,16 @@ describe("fightWars", () => {
     const state = twoNations();
     state.year = 5;
     // Well past the peace line, so one lost battle this year can't pull it back under.
-    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: PEACE_SCORE * 2 });
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: SIM.PEACE_SCORE * 2 });
     const events = fightWars(state, createRng("p"));
     expect(state.wars).toHaveLength(0);
     expect(events[0]!.type).toBe("peace");
-    expect(state.truces[0]!.until).toBe(5 + TRUCE_YEARS);
+    expect(state.truces[0]!.until).toBe(5 + SIM.TRUCE_YEARS);
   });
 
   it("ends a war that has gone on too long", () => {
     const state = twoNations();
-    state.year = MAX_WAR_YEARS + 1;
+    state.year = SIM.MAX_WAR_YEARS + 1;
     state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0 });
     fightWars(state, createRng("long"));
     expect(state.wars).toHaveLength(0);
