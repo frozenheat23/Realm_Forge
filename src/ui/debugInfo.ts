@@ -1,16 +1,22 @@
-// Debug helpers on screen: press C to toggle cell outlines, hover to inspect a cell.
+// Debug helpers on screen: key toggles, and hover to inspect a cell.
 import type { GeneratedWorld } from "../gen";
+import type { WorldState } from "../core/types";
 import { BIOME_STATS } from "../gen/params";
 
-/** Calls `onToggle` each time the C key is pressed. */
-export function onCellToggleKey(onToggle: () => void): void {
+/** Calls `action` each time `key` is pressed (upper or lower case). */
+export function onKey(key: string, action: () => void): void {
   window.addEventListener("keydown", (event) => {
-    if (event.key === "c" || event.key === "C") onToggle();
+    if (event.key.toLowerCase() === key) action();
   });
 }
 
 /** Shows details of the cell under the mouse in `panel`. */
-export function showCellOnHover(canvas: HTMLCanvasElement, panel: HTMLElement, world: GeneratedWorld): void {
+export function showCellOnHover(
+  canvas: HTMLCanvasElement,
+  panel: HTMLElement,
+  world: GeneratedWorld,
+  state: WorldState,
+): void {
   canvas.addEventListener("mousemove", (event) => {
     // The canvas may be shrunk to fit the window, so convert screen → map pixels.
     const rect = canvas.getBoundingClientRect();
@@ -22,8 +28,10 @@ export function showCellOnHover(canvas: HTMLCanvasElement, panel: HTMLElement, w
     const tags = [cell.coastal && "coastal", cell.mountain && "mountain", cell.river && "river"]
       .filter(Boolean)
       .join(", ");
+    const nation = state.nations.get(state.state.owner[cell.id]!);
+    const ownerText = nation ? `${nation.name} (pop ${state.state.pop[cell.id]!.toFixed(2)})` : "unowned";
     panel.textContent =
-      `Cell ${cell.id} · ${BIOME_STATS[cell.biome].name}` +
+      `${ownerText} · Cell ${cell.id} · ${BIOME_STATS[cell.biome].name}` +
       ` · ${cell.temp.toFixed(0)}°C · moisture ${cell.moisture.toFixed(2)}` +
       ` · elevation ${cell.elevation.toFixed(2)} · capacity ${cell.capacity.toFixed(2)}` +
       (tags ? ` · ${tags}` : "");

@@ -73,3 +73,20 @@ export const RIVER_SOURCE_MIN_H = 0.35;
 export const RIVER_MIN_LENGTH = 6;
 /** Chance each eligible cell actually starts a river (keeps rivers from carpeting the map). */
 export const RIVER_SOURCE_PROB = 0.08;
+
+// --- Starting nations ---
+export const START_NATIONS = 24;
+export const START_MIN_SPACING = 12;
+export const START_CORE_SIZE = 12;
+export const START_POP_FRACTION = 0.3;
+/** Stability every starting nation begins with (0..1). */
+export const START_STABILITY = 0.8;
+/** Nation colors: hue is spread around the color wheel; these fix how vivid and bright they are. */
+export const NATION_SATURATION = 0.7;
+export const NATION_LIGHTNESS = 0.52;
+
+// --- Names ---
+/** How many letters of context the name generator looks at (2 = pairs of letters). */
+export const NAME_ORDER = 2;
+export const NAME_MIN_LENGTH = 4;
+export const NAME_MAX_LENGTH = 9;

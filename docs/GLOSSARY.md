@@ -39,3 +39,12 @@ New concepts as we meet them, with where they show up in our code.
 | **`as const`** | Tells TypeScript the values are fixed, so `Biome.Desert` is exactly `8`, not any number. | `Biome` in `src/core/types.ts` |
 | **`Record<K, V>`** | A TypeScript type for "an object with a value of type V for every key K". | `BIOME_STATS`, `BIOME_COLORS` |
 | **Event listener** | Code that runs when something happens on the page (a key press, the mouse moving). | `src/ui/debugInfo.ts` |
+| **Markov chain** | A way to make new text: learn which letter tends to follow each pair of letters in examples, then build words one letter at a time using those odds. | `src/gen/names.ts` |
+| **`Map`** | A JavaScript lookup table from keys to values, e.g. nation id → nation. Like an object, but any key type and easy to loop over. | `WorldState.nations`, `NameChain` |
+| **`Set`** | A collection with no duplicates; great for "have we used this already?". | `takenNames` in `src/gen/nations.ts` |
+| **Greedy algorithm** | Take the best option available right now, again and again, without undoing earlier choices. | `placeCapitals()` |
+| **HSL color** | Describing a color by hue (position on the color wheel), saturation (vividness) and lightness. Easy to spread colors evenly. | `hslToHex()` |
+| **Golden angle** | ~137.5°. Stepping round a circle by it never lands close to an earlier step, so every nation color stays distinct. | `GOLDEN_ANGLE` in `nations.ts` |
+| **Alpha (transparency)** | The 4th color number: 0 = invisible, 255 = solid. Our nation tint is about half see-through so terrain shows. | `OVERLAY_ALPHA`, `src/render/overlay.ts` |
+| **Off-screen canvas** | A canvas never shown on the page. We draw slow layers there once, then copy them to the screen quickly. | `offscreen()` in `src/main.ts` |
+| **Destructuring** | Unpacking values by name or position: `const { world, state } = generateWorld(seed)`. | `src/main.ts` |

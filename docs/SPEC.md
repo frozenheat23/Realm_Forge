@@ -163,10 +163,10 @@ Look up each land cell's biome from temperature × moisture (Whittaker-style cha
 `capacity = biomeBase × (river ? RIVER_CAP_MULT : 1) × (coastal ? COAST_CAP_MULT : 1) × (mountain ? MOUNTAIN_CAP_MULT : 1)`
 
 ### 3.8 Starting nations
-Place `START_NATIONS` capitals on the highest-capacity land cells, at least `START_MIN_SPACING` cell-steps apart. Each claims a small core of `START_CORE_SIZE` cells around its capital. Starting population is `START_POP_FRACTION` × capacity.
+Place `START_NATIONS` capitals on the highest-capacity land cells, at least `START_MIN_SPACING` cell-steps apart. Each claims a small core of `START_CORE_SIZE` cells around its capital (nearest first). Starting population is `START_POP_FRACTION` × capacity, stability `START_STABILITY`. Colors step round the color wheel by the golden angle (~137.5°) so no two are alike. Each nation logs a `founded` event at year 0.
 
 ### 3.9 Names
-A Markov-chain name generator, seeded per region, so nearby nations sound related.
+A Markov-chain name generator (order `NAME_ORDER`) trained on invented example names, one list per culture (`gen/nameCorpus.ts`). Each culture gets a random home point on the map; a nation uses the culture of the nearest home point, so nearby nations sound related. Names never repeat and never copy an example.
 
 ---
 
@@ -272,7 +272,7 @@ Emit a `SimEvent` for: nation founded, war declared, peace signed, rebellion, co
 
 ### 5.2 Nation overlay (redrawn each year)
 - Tint land pixels with the owner's color at `OVERLAY_ALPHA` so terrain shows through. Unowned land is not tinted.
-- Implementation: write into a `Uint32Array` view of `ImageData` using `pixelToCell`. If that's too slow, only recolor cells whose owner changed.
+- Implementation: write into `ImageData` using a *display-cell* map (`render/displayCells.ts`): like `pixelToCell`, but shifted by smooth waves so borders curve, and with coastal land pixels always mapped to a land cell. If redrawing gets too slow, only recolor cells whose owner changed.
 
 ### 5.3 Borders
 - Draw a line wherever neighboring pixels have different owners: darker (`BORDER_DARKEN`) and more opaque (`BORDER_ALPHA`).

@@ -81,7 +81,7 @@ describe("rivers", () => {
 
 describe("generateWorld", () => {
   // A small map with fewer pixels keeps this fast; the cell count stays the same.
-  const small = () => generateWorld("eldoria", 320, 180);
+  const small = () => generateWorld("eldoria", 320, 180).world;
 
   it("gives the same world for the same seed", () => {
     const a = small();

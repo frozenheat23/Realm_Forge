@@ -87,7 +87,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | M0 ✅ | Setup | Vite + TypeScript + Vitest run; seeded random generator has a test proving same seed = same numbers | §1, §7 |
 | M1 ✅ | Terrain | Seeded map with hillshading and water shows on screen and looks good | §3.1–3.2, §5.1 |
 | M2 ✅ | Cells & biomes | Cells with climate, biomes and rivers; debug view of cells | §3.3–3.7 |
-| M3 | Starting nations | Capitals and starting borders drawn with colors, borders and names | §3.8–3.9, §5.2–5.4 |
+| M3 ✅ | Starting nations | Capitals and starting borders drawn with colors, borders and names | §3.8–3.9, §5.2–5.4 |
 | M4a | Growth | Population and expansion work; nations spread across the map | §4.1–4.4 |
 | M4b | Instability | Stability, rebellion, collapse and emergence; empires break apart; event log | §4.3, §4.6–4.9, §6 |
 | M5 | War | Wars start, play out and end; a 1,000-year run tells a believable story | §4.5 |
@@ -130,3 +130,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-10-28 | M2: elevation thresholds (`MOUNTAIN_H`, `RIVER_SOURCE_MIN_H`) are now *land elevation* (0 = coast, 1 = peak) so they mean the same on every seed |
 | 2026-10-28 | Rivers use priority-flood drainage + random sources (`RIVER_SOURCE_PROB`); cells gain `elevation`, `downstream`, `riverFlow` |
 | 2026-10-28 | Milder climate defaults (`POLE_TEMP` −6) because one continent spans almost pole to pole; biome edges wobble so cells don't look polygonal |
+| 2026-10-28 | M3: `START_CORE_SIZE` 5 → 12 and `LABEL_MIN_AREA` 15 → 10, so starting nations are visible and named at year 0 |
+| 2026-10-28 | `generateWorld()` returns `{ world, state }`: the fixed map plus the year-0 `WorldState` the sim will advance |
+| 2026-10-28 | Nation names: order-2 Markov chain over 4 invented culture lists; culture picked by nearest random home point |
+| 2026-10-28 | `OVERLAY_ALPHA` 0.5 and more vivid nation colors so kingdoms read over colorful biomes |

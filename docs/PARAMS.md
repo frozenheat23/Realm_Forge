@@ -109,8 +109,20 @@ Base capacity is relative (1.0 = grassland). Move cost affects expansion and war
 |---|---|---|---|---|---|
 | `START_NATIONS` | 24 | 8–50 | Nations at year 0 | Crowded, early wars | Open land, long expansion phase |
 | `START_MIN_SPACING` | 12 | 6–25 | Min cell-steps between capitals | Evenly spread | Clustered rivals |
-| `START_CORE_SIZE` | 5 | 1–15 | Cells each nation starts with | Faster start | Slower start |
+| `START_CORE_SIZE` | 12 | 1–30 | Cells each nation starts with | Faster start | Slower start |
 | `START_POP_FRACTION` | 0.3 | 0.1–0.8 | Starting pop as share of capacity | Strong from day one | Slow early growth |
+| `START_STABILITY` | 0.8 | 0.3–1.0 | Stability every starting nation begins with | Long early calm | Early rebellions |
+| `NATION_SATURATION` | 0.7 | 0.3–0.9 | How vivid nation colors are | Bold, game-like colors | Muted, pastel colors |
+| `NATION_LIGHTNESS` | 0.52 | 0.35–0.7 | How light nation colors are | Pastel | Dark, heavy |
+
+## Names
+
+Example names per culture live in `src/gen/nameCorpus.ts` (all invented). Edit them to change how a culture sounds.
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `NAME_ORDER` | 2 | 1–3 | Letters of context the Markov chain uses | Names closer to the examples (3 often copies them) | Wilder, less pronounceable names |
+| `NAME_MIN_LENGTH` / `NAME_MAX_LENGTH` | 4 / 9 | 3–12 | Allowed name length in letters | — | — |
 
 ---
 
@@ -228,10 +240,14 @@ Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shadi
 | `BIOME_COLORS` | see code | — | Flat color per biome | — | — |
 | `RIVER_COLOR`, `RIVER_MIN_WIDTH`, `RIVER_WIDTH_PER_FLOW` | #3d7db3, 1.2, 0.6 | — | River color and how width grows with flow | Wider rivers | Thinner rivers |
 | `CEL_RIPPLES` | [20, 32] | — | Distances (pixels) of ripple lines around coasts | Rings further out | Rings hug the coast |
-| `OVERLAY_ALPHA` | 0.40 | 0.25–0.60 | Nation color opacity | Bold colors, less terrain | Terrain dominates |
+| `OVERLAY_ALPHA` | 0.5 | 0.25–0.70 | Nation color opacity | Bold colors, less terrain | Terrain dominates |
 | `BORDER_ALPHA` | 0.85 | 0.5–1.0 | Border line opacity | Crisp borders | Subtle borders |
 | `BORDER_DARKEN` | 0.4 | 0.2–0.7 | How much darker borders are than fill | High contrast | Soft borders |
-| `LABEL_MIN_AREA` | 15 | 5–40 | Smallest nation that gets a label | Cleaner map | More names shown |
+| `LABEL_MIN_AREA` | 10 | 5–40 | Smallest nation that gets a label | Cleaner map | More names shown |
+| `LABEL_MIN_SIZE` / `LABEL_MAX_SIZE` | 11 / 40 | — | Label font size limits (pixels) | — | — |
+| `LABEL_SIZE_PER_SQRT_AREA` | 2.2 | 1–4 | How fast labels grow with nation size | Big nations shout | All labels similar size |
+| `LABEL_LETTER_SPACING` | 0.18 | 0–0.5 | Gap between letters (share of font size) | Airy, map-style lettering | Tight text |
+| `CAPITAL_RADIUS` | 3 | 2–6 | Capital dot size (pixels) | Bigger dots | Smaller dots |
 
 ---
 

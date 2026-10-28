@@ -96,6 +96,25 @@ export const RIVER_MIN_WIDTH = 1.2;
 /** Extra width per square-root of flow (big rivers get wider, but not endlessly). */
 export const RIVER_WIDTH_PER_FLOW = 0.6;
 
+// --- Nations (SPEC §5.2–5.4) ---
+export const OVERLAY_ALPHA = 0.5;
+export const BORDER_ALPHA = 0.85;
+export const BORDER_DARKEN = 0.4;
+/** Smallest nation (in cells) that gets a name label. */
+export const LABEL_MIN_AREA = 10;
+export const LABEL_FONT = "Georgia, 'Times New Roman', serif";
+/** Label size in pixels: grows with the square root of the nation's area, within these limits. */
+export const LABEL_MIN_SIZE = 11;
+export const LABEL_MAX_SIZE = 40;
+export const LABEL_SIZE_PER_SQRT_AREA = 2.2;
+/** Gap between letters, as a share of the font size. */
+export const LABEL_LETTER_SPACING = 0.18;
+export const LABEL_COLOR = "#2b2620";
+/** Light outline around label letters so they read over any color. */
+export const LABEL_HALO = "rgba(250, 246, 235, 0.85)";
+export const CAPITAL_RADIUS = 3;
+export const CAPITAL_FILL = "#fbf6e9";
+
 // --- Debug view (press C) ---
 export const DEBUG_CELL_LINE = "rgba(30, 30, 30, 0.25)";
 

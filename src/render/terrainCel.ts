@@ -8,7 +8,6 @@ import {
   BIOME_COLORS,
   CEL_BAND_DARKEN,
   CEL_BAND_LINE_ALPHA,
-  CEL_BIOME_EDGE_WOBBLE,
   CEL_COAST_WIDTH,
   CEL_DEEP_COLOR,
   CEL_FIRST_ROCK_BAND,
@@ -113,18 +112,6 @@ export function distanceToCoast(map: Heightmap): Float32Array {
   return dist;
 }
 
-// Which cell's biome color to use at a pixel. We look up a slightly shifted
-// pixel (shifted by smooth waves), so biome edges curve instead of
-// following the straight edges of the cells.
-function wobblyCellAt(world: GeneratedWorld, x: number, y: number): number {
-  const w = CEL_BIOME_EDGE_WOBBLE;
-  const sx = Math.round(x + w * Math.sin(y * 0.11 + x * 0.03) + w * 0.5 * Math.sin(y * 0.37));
-  const sy = Math.round(y + w * Math.sin(x * 0.09 - y * 0.04) + w * 0.5 * Math.sin(x * 0.31));
-  const cx = Math.min(world.width - 1, Math.max(0, sx));
-  const cy = Math.min(world.height - 1, Math.max(0, sy));
-  return world.pixelToCell[cy * world.width + cx]!;
-}
-
 // Which flat band a land height (0 = coast, 1 = peak) falls into.
 function bandIndex(t: number): number {
   for (let b = 0; b < CEL_LAND_BANDS.length; b++) {
@@ -133,7 +120,8 @@ function bandIndex(t: number): number {
   return CEL_LAND_BANDS.length - 1;
 }
 
-export function renderCelTerrain(world: GeneratedWorld): ImageData {
+/** `displayCells` comes from buildDisplayCells(): which cell each pixel shows. */
+export function renderCelTerrain(world: GeneratedWorld, displayCells: Int32Array): ImageData {
   const map = world.heightmap;
   const { width, height, data, seaLevel } = map;
   const image = new ImageData(width, height);
@@ -173,7 +161,7 @@ export function renderCelTerrain(world: GeneratedWorld): ImageData {
         rgb =
           band >= CEL_FIRST_ROCK_BAND
             ? bandColors[band]!
-            : scaleRgb(biomeColors[wobblyCellAt(world, x, y)]!, 1 - band * CEL_BAND_DARKEN);
+            : scaleRgb(biomeColors[displayCells[i]!] ?? bandColors[0]!, 1 - band * CEL_BAND_DARKEN);
         if (bands[i]! >= CEL_FIRST_SHADED_BAND) {
           const shade = hillshade(smooth, width, height, x, y, light, HILLSHADE_EXAGGERATION);
           if (shade > CEL_SHADE_THRESHOLD) rgb = scaleRgb(rgb, CEL_HIGHLIGHT);
