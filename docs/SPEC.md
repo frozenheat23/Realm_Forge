@@ -55,14 +55,17 @@ interface Cell {
   id: CellId;
   site: [number, number]; // center point, in map pixels
   neighbors: CellId[];
-  h: number;              // elevation 0..1 (sea level = SEA_LEVEL)
+  h: number;              // raw elevation 0..1 (land if above the sea level)
+  elevation: number;      // height above the sea: 0 = coast, 1 = highest peak (0 for water)
   isLand: boolean;
   temp: number;           // roughly °C
   moisture: number;       // 0..1
   biome: BiomeId;
   river: boolean;
+  riverFlow: number;      // how many river sources pass through (0 = none)
+  downstream: CellId;     // cell water drains into on its way to the sea (-1 for water)
   coastal: boolean;
-  mountain: boolean;      // h above MOUNTAIN_H
+  mountain: boolean;      // elevation above MOUNTAIN_H
   capacity: number;       // max population this cell can hold
 }
 
@@ -145,10 +148,13 @@ Map size `MAP_WIDTH` × `MAP_HEIGHT`, divided into about `CELL_COUNT` cells.
 Look up each land cell's biome from temperature × moisture (Whittaker-style chart). The biome sets base capacity and movement cost (table in `PARAMS.md`).
 
 ### 3.5 Rivers
-Start from land cells with moisture above `RIVER_SOURCE_MOISTURE` and elevation above `RIVER_SOURCE_MIN_H`, then follow the steepest downhill path to the sea. Drop rivers shorter than `RIVER_MIN_LENGTH` cells.
+1. **Drainage:** a *priority flood* from every water cell decides where each land cell drains (`downstream`). It always reaches the sea, even out of dips where plain "steepest downhill" would get stuck.
+2. **Sources:** land cells with moisture above `RIVER_SOURCE_MOISTURE` and land elevation above `RIVER_SOURCE_MIN_H`, each picked with chance `RIVER_SOURCE_PROB`.
+3. Follow `downstream` to the sea, adding 1 to `riverFlow` on every cell passed. Joining rivers add up. Drop sources whose path is shorter than `RIVER_MIN_LENGTH` cells.
+4. Drawn as smooth curves through cell centers, wider where `riverFlow` is higher.
 
 ### 3.6 Cells
-1. Place cell centers using jittered-grid or Poisson-disc sampling.
+1. Place cell centers on a jittered grid (`CELL_JITTER`).
 2. Build the Voronoi diagram with `d3-delaunay`.
 3. Sample height, climate and biome at each center; find neighbors.
 4. Build `pixelToCell`.

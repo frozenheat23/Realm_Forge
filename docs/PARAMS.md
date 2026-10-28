@@ -46,16 +46,26 @@ The values below are the **starting defaults**. Most are educated guesses meant 
 | `DOMAIN_WARP` | 0.3 | 0–0.8 | Twistiness of coastlines (only bends the 3 biggest noise layers) | Swirly, organic coasts | Blobby, rounder coasts |
 | `RIDGE_STRENGTH` | 0.35 | 0–0.7 | How much ridged noise builds mountain ranges on high ground | Long, sharp mountain chains | Rounded hills, few ranges |
 | `LAND_RATIO` | 0.40 | 0.25–0.60 | Share of map that's land | More land, more nations fit | More ocean, island feel |
-| `MOUNTAIN_H` | 0.75 | 0.65–0.85 | Elevation where mountains start | Fewer mountains | More mountains, more natural borders |
+| `MOUNTAIN_H` | 0.6 | 0.45–0.8 | Land elevation (0 = coast, 1 = peak) where mountains start | Fewer mountains | More mountains, more natural borders |
+
+## Cells
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `CELL_JITTER` | 0.8 | 0–1 | How far cell centers wander from a perfect grid | Organic, irregular cells | Visible grid pattern |
 
 ## Climate
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `EQUATOR_TEMP` | 30 | 20–35 | Temperature at the warmest latitude (°C) | More desert and jungle | Cooler world |
-| `POLE_TEMP` | -15 | -30–0 | Temperature at top/bottom edges | Less tundra and ice | More frozen north/south |
-| `LAPSE_RATE` | 25 | 10–40 | Cooling from lowest to highest elevation | Snowier peaks | Milder highlands |
+| `EQUATOR_TEMP` | 28 | 20–35 | Temperature at the warmest latitude (°C) | More desert and jungle | Cooler world |
+| `POLE_TEMP` | -6 | -30–5 | Temperature at top/bottom edges | Less tundra and ice | More frozen north/south |
+| `LAPSE_RATE` | 22 | 10–40 | Cooling from lowest to highest elevation | Snowier peaks | Milder highlands |
 | `COAST_MOISTURE_BONUS` | 0.2 | 0–0.4 | Extra moisture near coasts | Greener coasts | Drier coasts |
+| `COAST_MOISTURE_RANGE` | 8 | 2–20 | Cell steps inland over which the coast bonus fades | Wet interiors | Only the shoreline is wet |
+| `MOISTURE_NOISE_SCALE` | 0.0025 | 0.001–0.006 | Size of wet/dry regions | Small, patchy regions | Huge wet/dry zones |
+
+**Biome thresholds** (Whittaker-style chart in `gen/biomes.ts`): `ICE_TEMP` −10, `TUNDRA_TEMP` 0, `TAIGA_TEMP` 7, `HOT_TEMP` 19 (°C); `DRY_MOISTURE` 0.3, `SEMI_DRY_MOISTURE` 0.42, `FOREST_MOISTURE` 0.58, `WETLAND_MOISTURE` 0.8; wetlands only below land elevation `WETLAND_MAX_ELEVATION` 0.12. Raise a temperature threshold → that biome spreads toward the equator; raise a moisture threshold → drier biomes take over.
 
 ## Biomes
 
@@ -89,8 +99,9 @@ Base capacity is relative (1.0 = grassland). Move cost affects expansion and war
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
 | `RIVER_SOURCE_MOISTURE` | 0.6 | 0.4–0.8 | Moisture needed to start a river | Fewer rivers | More rivers |
-| `RIVER_SOURCE_MIN_H` | 0.55 | 0.45–0.75 | Elevation needed to start a river | Rivers only from high ground | Rivers start from lowlands too |
+| `RIVER_SOURCE_MIN_H` | 0.35 | 0.15–0.7 | Land elevation (0 = coast, 1 = peak) needed to start a river | Rivers only from high ground | Rivers start from lowlands too |
 | `RIVER_MIN_LENGTH` | 6 | 3–15 | Shortest river kept (cells) | Fewer, longer rivers | Many short streams |
+| `RIVER_SOURCE_PROB` | 0.08 | 0.02–0.3 | Chance each eligible cell starts a river | Dense river network | A few big rivers |
 
 ## Starting nations
 
@@ -199,7 +210,7 @@ All in `render/palette.ts`.
 
 ### Cel-shaded style (default)
 
-Flat elevation bands, 3-tone shading and ink lines. Kept light and muted so nation colors read on top. Pick the other style with `?style=painted`.
+Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shading and ink lines. Kept light and muted so nation colors read on top. Pick the other style with `?style=painted`.
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
@@ -211,6 +222,11 @@ Flat elevation bands, 3-tone shading and ink lines. Kept light and muted so nati
 | `CEL_BAND_LINE_ALPHA` | 0.3 | 0–0.7 | Darkness of lines between bands | Contour-map look | No contour lines |
 | `CEL_COAST_WIDTH` | 2 | 1–4 | Inked coastline thickness (pixels) | Bold, cartoon coast | Fine coast |
 | `CEL_SHALLOW_WIDTH` | 12 | 0–30 | Shallow-water strip width (pixels) | Wide shallows | Hard edge |
+| `CEL_FIRST_ROCK_BAND` | 3 | 2–5 | First band that ignores biome and uses rock/snow color | More biome color on hills | More rocky highlands |
+| `CEL_BAND_DARKEN` | 0.06 | 0–0.15 | How much each higher band darkens the biome color | Height reads more | Flatter, biome-only look |
+| `CEL_BIOME_EDGE_WOBBLE` | 5 | 0–10 | Wave size (pixels) on biome edges | Wavier, hand-drawn edges | Straight cell edges (0) |
+| `BIOME_COLORS` | see code | — | Flat color per biome | — | — |
+| `RIVER_COLOR`, `RIVER_MIN_WIDTH`, `RIVER_WIDTH_PER_FLOW` | #3d7db3, 1.2, 0.6 | — | River color and how width grows with flow | Wider rivers | Thinner rivers |
 | `CEL_RIPPLES` | [20, 32] | — | Distances (pixels) of ripple lines around coasts | Rings further out | Rings hug the coast |
 | `OVERLAY_ALPHA` | 0.40 | 0.25–0.60 | Nation color opacity | Bold colors, less terrain | Terrain dominates |
 | `BORDER_ALPHA` | 0.85 | 0.5–1.0 | Border line opacity | Crisp borders | Subtle borders |

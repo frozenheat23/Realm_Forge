@@ -22,7 +22,7 @@ npm install
 npm run dev
 ```
 
-Then open the link shown in the terminal (usually http://localhost:5173). Add `?seed=anything` to the address to get a different world, or `?style=painted` for the painted look.
+Then open the link shown in the terminal (usually http://localhost:5173). Add `?seed=anything` to the address to get a different world, or `?style=painted` for the painted look. Press **C** to see the cells, and hover to inspect one.
 
 Run the tests with:
 
@@ -34,7 +34,7 @@ npm test
 
 - [x] M0 · Project setup
 - [x] M1 · Terrain
-- [ ] M2 · Cells and biomes
+- [x] M2 · Cells and biomes
 - [ ] M3 · Starting nations
 - [ ] M4a · Growth
 - [ ] M4b · Rebellion and collapse

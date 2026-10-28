@@ -28,3 +28,14 @@ New concepts as we meet them, with where they show up in our code.
 | **Box blur** | Replacing each pixel with the average of its neighbors, to smooth out small bumps. | `boxBlur()` in `terrainCel.ts` |
 | **Distance field** | For every pixel, how far it is to the nearest coast. We use it for the ink line, shallows and ripples. | `distanceToCoast()` in `terrainCel.ts` |
 | **Function as a value** | In TypeScript a function can be stored in a variable and called later, like picking a renderer. | `const renderTerrain = ...` in `src/main.ts` |
+| **Voronoi diagram** | Splitting a plane into regions, one per point, where each region is everything closest to that point. Our cells. | `buildCellGraph()` in `src/gen/cells.ts` |
+| **Delaunay triangulation** | The "partner" of Voronoi: lines joining points whose regions touch. We use it to find neighbors. | `delaunay.neighbors(i)` |
+| **Jittered grid** | Points on a grid, each nudged randomly. Even spacing without looking like a grid. | `jitteredGrid()` |
+| **Graph** | Things (cells) plus links between them (neighbors). Most of the sim walks this graph. | `Cell.neighbors` |
+| **Breadth-first search (BFS)** | Exploring a graph in rings: everything 1 step away, then 2, and so on. | `stepsFromWater()` in `src/gen/climate.ts` |
+| **Priority flood** | Like BFS, but always grow from the lowest cell next. Finds where water drains, even out of dips. | `drainageMap()` in `src/gen/rivers.ts` |
+| **Min-heap** | A list that always gives back its smallest item quickly. Powers the priority flood. | `class MinHeap` in `rivers.ts` |
+| **Class** | A blueprint for objects that bundle data with functions (methods). `private` hides parts from outside code. | `MinHeap` |
+| **`as const`** | Tells TypeScript the values are fixed, so `Biome.Desert` is exactly `8`, not any number. | `Biome` in `src/core/types.ts` |
+| **`Record<K, V>`** | A TypeScript type for "an object with a value of type V for every key K". | `BIOME_STATS`, `BIOME_COLORS` |
+| **Event listener** | Code that runs when something happens on the page (a key press, the mouse moving). | `src/ui/debugInfo.ts` |

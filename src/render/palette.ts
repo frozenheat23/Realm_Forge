@@ -1,3 +1,5 @@
+import { Biome, type BiomeId } from "../core/types";
+
 // Colors and drawing settings. See docs/PARAMS.md ("Rendering") for what each one does.
 // Look: "painted strategy" — warm greens and ochres, soft relief, blue seas.
 
@@ -64,6 +66,38 @@ export const CEL_LAND_BANDS: ColorBand[] = [
   { upTo: 0.85, color: "#ad977c" }, // mountains
   { upTo: 1.0, color: "#f3f1eb" }, // snow
 ];
+
+/** Bands from this one up keep their own color; lower bands are colored by biome instead. */
+export const CEL_FIRST_ROCK_BAND = 3;
+/** Each band above the lowlands darkens the biome color by this much, so height still reads. */
+export const CEL_BAND_DARKEN = 0.06;
+/** How far (pixels) biome edges wave, so they don't show straight cell edges. */
+export const CEL_BIOME_EDGE_WOBBLE = 5;
+
+/** Flat, muted color per biome (indexed by the Biome number in core/types.ts). */
+export const BIOME_COLORS: Record<BiomeId, string> = {
+  [Biome.Water]: "#5795c4",
+  [Biome.Grassland]: "#b3cc7e",
+  [Biome.TemperateForest]: "#8fb46e",
+  [Biome.Savanna]: "#d2c983",
+  [Biome.TropicalForest]: "#7fae69",
+  [Biome.Shrubland]: "#c9bf8a",
+  [Biome.Taiga]: "#97ac80",
+  [Biome.Wetland]: "#9dbb8f",
+  [Biome.Desert]: "#e6d39c",
+  [Biome.Tundra]: "#c9cbb8",
+  [Biome.Ice]: "#f1f3f2",
+};
+
+// --- Rivers ---
+export const RIVER_COLOR = "#3d7db3";
+/** River line width at its source, in pixels. */
+export const RIVER_MIN_WIDTH = 1.2;
+/** Extra width per square-root of flow (big rivers get wider, but not endlessly). */
+export const RIVER_WIDTH_PER_FLOW = 0.6;
+
+// --- Debug view (press C) ---
+export const DEBUG_CELL_LINE = "rgba(30, 30, 30, 0.25)";
 
 export const CEL_SHALLOW_COLOR = "#86bcd8";
 export const CEL_DEEP_COLOR = "#5795c4";
