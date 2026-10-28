@@ -38,7 +38,7 @@ npm test
 - [x] M3 · Starting nations
 - [x] M4a · Growth
 - [x] M4b · Rebellion and collapse
-- [ ] M5 · War
+- [x] M5 · War
 - [ ] M6 · Polish (speed controls, video export, save/load)
 
 ## Built with

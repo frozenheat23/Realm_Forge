@@ -100,6 +100,8 @@ export const RIVER_WIDTH_PER_FLOW = 0.6;
 export const OVERLAY_ALPHA = 0.5;
 export const BORDER_ALPHA = 0.85;
 export const BORDER_DARKEN = 0.4;
+/** Border color where two nations are at war (SPEC §5.3: highlight war fronts). */
+export const WAR_FRONT_COLOR = "#c8312b";
 /** Smallest nation (in cells) that gets a name label. */
 export const LABEL_MIN_AREA = 10;
 export const LABEL_FONT = "Georgia, 'Times New Roman', serif";

@@ -169,6 +169,7 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 |---|---|---|---|---|---|
 | `WAR_BASE_PROB` | 0.004 | 0.001–0.02 | Base yearly chance a neighbor pair goes to war | Constant warfare | Peaceful eras |
 | `WAR_STRENGTH_EXP` | 1.0 | 0.5–2.0 | How much a power gap encourages war | Strong prey on weak | Wars between equals too |
+| `WAR_MAX_PROB` | 0.1 | 0.02–0.3 | Ceiling on a pair's yearly war chance, however lopsided | Bullies attack almost at once | Even giants hesitate |
 | `MAX_WARS_PER_NATION` | 2 | 1–4 | Concurrent wars per nation | Multi-front collapses | Focused wars |
 | `DEFENDER_BONUS` | 1.2 | 1.0–1.6 | Defender strength multiplier | Hard to conquer; stable borders | Snowballing conquests |
 | `FRONT_FLIPS_PER_YEAR` | 3 | 1–8 | Max cells captured per war per year | Fast, decisive wars | Slow, grinding fronts |
@@ -245,6 +246,7 @@ Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shadi
 | `OVERLAY_ALPHA` | 0.5 | 0.25–0.70 | Nation color opacity | Bold colors, less terrain | Terrain dominates |
 | `BORDER_ALPHA` | 0.85 | 0.5–1.0 | Border line opacity | Crisp borders | Subtle borders |
 | `BORDER_DARKEN` | 0.4 | 0.2–0.7 | How much darker borders are than fill | High contrast | Soft borders |
+| `WAR_FRONT_COLOR` | #c8312b | — | Border color between nations at war (drawn 2 px thicker) | — | — |
 | `LABEL_MIN_AREA` | 10 | 5–40 | Smallest nation that gets a label | Cleaner map | More names shown |
 | `LABEL_MIN_SIZE` / `LABEL_MAX_SIZE` | 11 / 40 | — | Label font size limits (pixels) | — | — |
 | `LABEL_SIZE_PER_SQRT_AREA` | 2.2 | 1–4 | How fast labels grow with nation size | Big nations shout | All labels similar size |

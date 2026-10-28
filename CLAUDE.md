@@ -90,7 +90,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | M3 ✅ | Starting nations | Capitals and starting borders drawn with colors, borders and names | §3.8–3.9, §5.2–5.4 |
 | M4a ✅ | Growth | Population and expansion work; nations spread across the map | §4.1–4.4 |
 | M4b ✅ | Instability | Stability, rebellion, collapse and emergence; empires break apart; event log | §4.3, §4.6–4.9, §6 |
-| M5 | War | Wars start, play out and end; a 1,000-year run tells a believable story | §4.5 |
+| M5 ✅ | War | Wars start, play out and end; a 1,000-year run tells a believable story | §4.5 |
 | M6 | Polish | Speed controls, settings panel, video export, save/load. Web Worker only if needed. | §5.5, §6 |
 | Later | Backlog | See SPEC.md §8 | §8 |
 
@@ -142,3 +142,6 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-10-28 | Known: without war, history freezes ~year 300 once every nation is ≤ `ADMIN_CAP_BASE` and the land is full. M5 (war) is expected to fix this; retune then |
 | 2026-10-28 | Collapse hands cells out using a pre-collapse snapshot (order-independent, no chaining) |
 | 2026-10-28 | Later idea: pick nation colors that avoid neighbors' colors (with ~75 nations some neighbors look alike) |
+| 2026-10-29 | M5: war added per SPEC §4.5. History no longer freezes: ~100–120 wars, ~20–30 rebellions per century; 55–75 nations alive; biggest ~150–180 cells |
+| 2026-10-29 | `WAR_MAX_PROB` cap on declaring war (ratio^exp had no ceiling); capitals are taken last on a front (capital losses fell from ~100 to ~12 per century) |
+| 2026-10-29 | Tuning still open: no great empires form (biggest ~180 cells). Try ↑ `ADMIN_CAP_BASE` or ↓ `DEFENDER_BONUS` during "further testing" |

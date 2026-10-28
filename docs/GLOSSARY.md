@@ -62,3 +62,7 @@ New concepts as we meet them, with where they show up in our code.
 | **Optional property (`?`)** | A property that may be missing, like `parent?: NationId` (only rebels have one). | `Nation.parent` |
 | **Determinism test** | Run the same thing twice and demand identical results. Catches hidden randomness or order bugs. | "1,000 years of history" in `tests/instability.test.ts` |
 | **DOM** | The page's structure as objects JavaScript can change, e.g. adding a new line to the event log. | `createEventLog()` in `src/ui/eventLog.ts` |
+| **Weighted coin flip** | A random yes/no where one side is more likely, e.g. attacker wins with chance A ÷ (A + D). | `fightBattle()` in `src/sim/war.ts` |
+| **Pair key** | Turning two ids into one number that's the same in either order, so (3, 7) and (7, 3) match. | `pairKey()` in `war.ts` |
+| **Comparator** | A function telling `sort` which of two items comes first (negative, zero or positive). | `.sort((x, y) => cost(x) - cost(y) \|\| x - y)` in `war.ts` |
+| **`Infinity`** | A number bigger than every other number. Handy to push something to the end of a sort. | capital cost in `fightBattle()` |

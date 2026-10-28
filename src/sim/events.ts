@@ -35,3 +35,21 @@ export function capitalMovedEvent(year: number, nation: Nation): SimEvent {
     text: `Year ${year}: ${nation.name} loses its capital and moves its court.`,
   };
 }
+
+export function warEvent(year: number, attacker: Nation, defender: Nation): SimEvent {
+  return {
+    year,
+    type: "war",
+    actors: [attacker.id, defender.id],
+    text: `Year ${year}: ${attacker.name} declares war on ${defender.name}.`,
+  };
+}
+
+/** `winner` is null for a white peace (nobody clearly won). `cells` = land the winner gained. */
+export function peaceEvent(year: number, a: Nation, b: Nation, winner: Nation | null, cells: number): SimEvent {
+  const loser = winner === a ? b : a;
+  const text = winner
+    ? `Year ${year}: ${winner.name} defeats ${loser.name}, taking ${cells} province${cells === 1 ? "" : "s"}.`
+    : `Year ${year}: ${a.name} and ${b.name} sign a white peace.`;
+  return { year, type: "peace", actors: [winner?.id ?? a.id, loser.id], text };
+}

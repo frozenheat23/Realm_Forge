@@ -3,7 +3,8 @@
 import type { GeneratedWorld } from "../gen";
 import type { WorldState } from "../core/types";
 import { hexToRgb, scaleRgb, type Rgb } from "./color";
-import { BORDER_ALPHA, BORDER_DARKEN, OVERLAY_ALPHA } from "./palette";
+import { pairKey } from "../sim/war";
+import { BORDER_ALPHA, BORDER_DARKEN, OVERLAY_ALPHA, WAR_FRONT_COLOR } from "./palette";
 
 /** Packs a color and alpha into one 32-bit number, the way ImageData stores a pixel. */
 function packPixel(rgb: Rgb, alpha: number): number {
@@ -31,6 +32,11 @@ export function renderNationOverlay(world: GeneratedWorld, displayCells: Int32Ar
     border[nation.id] = packPixel(scaleRgb(rgb, 1 - BORDER_DARKEN), borderAlpha);
   }
 
+  // Borders between nations at war are drawn in red.
+  const warFront = packPixel(hexToRgb(WAR_FRONT_COLOR), 255);
+  const atWar = new Set(state.wars.map((w) => pairKey(w.attacker, w.defender)));
+  const isEnemy = (me: number, other: number) => other > 0 && other !== me && atWar.has(pairKey(me, other));
+
   // Owner of every pixel: 0 = unowned land, −1 = water.
   const pixelOwner = new Int32Array(width * height);
   for (let i = 0; i < pixelOwner.length; i++) {
@@ -57,7 +63,24 @@ export function renderNationOverlay(world: GeneratedWorld, displayCells: Int32Ar
         (up !== -1 && up !== me) ||
         (down !== -1 && down !== me);
 
-      px[i] = onBorder ? border[me]! : fill[me]!;
+      // War fronts are drawn thicker: also check pixels two steps away.
+      const nearEnemy2 =
+        atWar.size > 0 &&
+        ((x > 1 && isEnemy(me, pixelOwner[i - 2]!)) ||
+          (x < width - 2 && isEnemy(me, pixelOwner[i + 2]!)) ||
+          (y > 1 && isEnemy(me, pixelOwner[i - 2 * width]!)) ||
+          (y < height - 2 && isEnemy(me, pixelOwner[i + 2 * width]!)));
+
+      if (!onBorder) {
+        px[i] = nearEnemy2 ? warFront : fill[me]!;
+      } else if (
+        atWar.size > 0 &&
+        (isEnemy(me, left) || isEnemy(me, right) || isEnemy(me, up) || isEnemy(me, down))
+      ) {
+        px[i] = warFront;
+      } else {
+        px[i] = border[me]!;
+      }
     }
   }
   return image;

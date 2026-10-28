@@ -226,12 +226,12 @@ For each unowned land cell, every neighboring nation rolls to claim it with prob
 chance = WAR_BASE_PROB × (strongerStrength / weakerStrength) ^ WAR_STRENGTH_EXP × (1 − attacker.warWeariness)
 ```
 
-The stronger side is the attacker. A nation can be in at most `MAX_WARS_PER_NATION` wars.
+The chance is capped at `WAR_MAX_PROB`. The stronger side is the attacker. A nation can be in at most `MAX_WARS_PER_NATION` wars.
 
 **Fighting.** Each year, for each war:
 1. **Front cells** are owned cells that touch an enemy cell.
 2. Roll a weighted contest: attacker strength vs defender strength × `DEFENDER_BONUS`.
-3. The winner captures up to `FRONT_FLIPS_PER_YEAR` enemy front cells (lowest move cost first).
+3. The winner captures up to `FRONT_FLIPS_PER_YEAR` enemy front cells (lowest move cost first; the loser's capital always last).
 4. Adjust `score` toward the winner by `SCORE_PER_FLIP` per captured cell.
 5. If a capital is captured, see §4.7.
 
@@ -240,7 +240,7 @@ The stronger side is the attacker. A nation can be in at most `MAX_WARS_PER_NATI
 - either side's war weariness ≥ `WEARINESS_PEACE`
 - the war has lasted `MAX_WAR_YEARS`
 
-The winner keeps captured cells. The two sides then can't fight again for `TRUCE_YEARS`.
+The winner keeps captured cells. The two sides then can't fight again for `TRUCE_YEARS`. The `peace` event names a winner only if `|score|` ≥ `PEACE_SCORE` / 3; otherwise it's a white peace. Wars with a side that has died end silently.
 
 ### 4.6 Rebellion
 If a nation's stability is below `REBEL_THRESHOLD`, each year it has a `REBEL_PROB` chance of a rebellion:
@@ -276,7 +276,7 @@ Emit a `SimEvent` for: nation founded, war declared, peace signed, rebellion, co
 
 ### 5.3 Borders
 - Draw a line wherever neighboring pixels have different owners: darker (`BORDER_DARKEN`) and more opaque (`BORDER_ALPHA`).
-- Optional: highlight active war fronts with hatching or a pulse.
+- Borders between nations at war are drawn in `WAR_FRONT_COLOR`, 2 px wider on each side.
 
 ### 5.4 Labels
 - Nation name at the center of its territory, sized by area, letter-spaced.

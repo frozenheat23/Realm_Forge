@@ -22,6 +22,20 @@ export const WEARINESS_DECAY = 0.05;
 // --- Expansion ---
 export const EXPANSION_RATE = 0.1;
 
+// --- War ---
+export const WAR_BASE_PROB = 0.004;
+export const WAR_STRENGTH_EXP = 1.0;
+/** Ceiling on the yearly chance a pair goes to war, however lopsided they are. */
+export const WAR_MAX_PROB = 0.1;
+export const MAX_WARS_PER_NATION = 2;
+export const DEFENDER_BONUS = 1.2;
+export const FRONT_FLIPS_PER_YEAR = 3;
+export const SCORE_PER_FLIP = 5;
+export const PEACE_SCORE = 60;
+export const WEARINESS_PEACE = 0.9;
+export const MAX_WAR_YEARS = 25;
+export const TRUCE_YEARS = 10;
+
 // --- Rebellion ---
 export const REBEL_THRESHOLD = 0.25;
 export const REBEL_PROB = 0.03;
