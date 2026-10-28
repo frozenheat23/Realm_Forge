@@ -1,8 +1,9 @@
-// Entry point: starts the app. For M0 it just proves the page, TypeScript and
-// the seeded generator all work by drawing a few random dots.
+// Entry point: generates a world from a seed and draws it.
+// Try a different world by adding ?seed=anything to the page address.
 import { createRng } from "./core/rng";
+import { generateHeightmap } from "./gen/heightmap";
 import { MAP_HEIGHT, MAP_WIDTH } from "./gen/params";
-import { PLACEHOLDER_DOT, PLACEHOLDER_WATER } from "./render/palette";
+import { renderTerrain } from "./render/terrain";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#map");
 if (!canvas) throw new Error("Missing <canvas id='map'> in index.html");
@@ -11,17 +12,15 @@ canvas.width = MAP_WIDTH;
 canvas.height = MAP_HEIGHT;
 const ctx = canvas.getContext("2d")!;
 
-ctx.fillStyle = PLACEHOLDER_WATER;
-ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+const seed = new URLSearchParams(location.search).get("seed") ?? "realm-forge";
+const rng = createRng(seed);
 
-// Reload the page: the dots stay in the same place because the seed is fixed.
-const rng = createRng("realm-forge");
-ctx.fillStyle = PLACEHOLDER_DOT;
-for (let i = 0; i < 200; i++) {
-  ctx.beginPath();
-  ctx.arc(rng.range(0, MAP_WIDTH), rng.range(0, MAP_HEIGHT), rng.range(2, 6), 0, Math.PI * 2);
-  ctx.fill();
-}
+const t0 = performance.now();
+const heightmap = generateHeightmap(rng.fork("terrain"), MAP_WIDTH, MAP_HEIGHT);
+const t1 = performance.now();
+ctx.putImageData(renderTerrain(heightmap), 0, 0);
+const t2 = performance.now();
 
-ctx.font = "48px Georgia, serif";
-ctx.fillText("Realm Forge", 40, 80);
+console.log(
+  `Seed "${seed}": heightmap ${(t1 - t0).toFixed(0)} ms, terrain ${(t2 - t1).toFixed(0)} ms`,
+);

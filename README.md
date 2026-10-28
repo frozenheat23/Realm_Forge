@@ -22,7 +22,7 @@ npm install
 npm run dev
 ```
 
-Then open the link shown in the terminal (usually http://localhost:5173).
+Then open the link shown in the terminal (usually http://localhost:5173). Add `?seed=anything` to the address to get a different world.
 
 Run the tests with:
 
@@ -33,7 +33,7 @@ npm test
 ## Progress
 
 - [x] M0 · Project setup
-- [ ] M1 · Terrain
+- [x] M1 · Terrain
 - [ ] M2 · Cells and biomes
 - [ ] M3 · Starting nations
 - [ ] M4a · Growth

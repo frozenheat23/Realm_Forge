@@ -38,12 +38,13 @@ The values below are the **starting defaults**. Most are educated guesses meant 
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `NOISE_SCALE` | 0.003 | 0.001–0.008 | Size of landforms | Smaller, busier features | Larger, smoother continents |
+| `NOISE_SCALE` | 0.0016 | 0.001–0.004 | Size of landforms | Smaller, busier features | Larger, smoother continents |
 | `NOISE_OCTAVES` | 6 | 3–8 | Layers of detail | Rougher, more detailed coasts | Smoother, simpler shapes |
 | `NOISE_PERSISTENCE` | 0.5 | 0.3–0.7 | Strength of fine detail | Jagged terrain | Soft, rolling terrain |
 | `NOISE_LACUNARITY` | 2.0 | 1.8–2.5 | Detail spacing between layers | Finer small detail | Coarser detail |
-| `EDGE_FALLOFF` | 0.6 | 0–1 | Pushes land away from map edges | One central continent | Land reaches edges; more islands |
-| `DOMAIN_WARP` | 0.3 | 0–0.8 | Twistiness of coastlines | Swirly, organic coasts | Blobby, rounder coasts |
+| `EDGE_FALLOFF` | 0.9 | 0–1.5 | Pushes land away from map edges | One central continent | Land reaches edges; more islands |
+| `DOMAIN_WARP` | 0.3 | 0–0.8 | Twistiness of coastlines (only bends the 3 biggest noise layers) | Swirly, organic coasts | Blobby, rounder coasts |
+| `RIDGE_STRENGTH` | 0.35 | 0–0.7 | How much ridged noise builds mountain ranges on high ground | Long, sharp mountain chains | Rounded hills, few ranges |
 | `LAND_RATIO` | 0.40 | 0.25–0.60 | Share of map that's land | More land, more nations fit | More ocean, island feel |
 | `MOUNTAIN_H` | 0.75 | 0.65–0.85 | Elevation where mountains start | Fewer mountains | More mountains, more natural borders |
 
@@ -188,7 +189,13 @@ All in `render/palette.ts`.
 | `HILLSHADE_AZIMUTH` | 315 | 0–360 | Light direction in degrees (315 = from top-left) | — | — |
 | `HILLSHADE_ALTITUDE` | 45 | 20–70 | Light angle above the horizon | Flatter, softer shading | Dramatic long shadows |
 | `HILLSHADE_STRENGTH` | 0.6 | 0.3–1.0 | How strong shading is | Punchy 3D relief | Flatter map |
+| `HILLSHADE_EXAGGERATION` | 60 | 20–150 | Stretches heights before shading | Steep, dramatic slopes (too high = plastic look) | Soft, subtle relief |
 | `TERRAIN_GRAIN` | 0.03 | 0–0.08 | Texture noise on terrain | Gritty, painted feel | Clean, smooth |
+| `COAST_LINE_ALPHA` | 0.55 | 0–1 | Darkness of the inked coastline | Crisp, drawn coasts | Soft coasts |
+| `COAST_GLOW_WIDTH` | 0.012 | 0–0.04 | Width of the pale shallow-water band | Wide glowing shallows | Hard coast edge |
+| `SEA_GRID_SPACING` | 100 | 50–200 | Pixels between faint grid lines on water | Sparser grid | Denser grid |
+| `SEA_GRID_ALPHA` | 0.08 | 0–0.2 | Visibility of the sea grid | Obvious grid | Invisible (0) |
+| `LAND_RAMP` / `WATER_RAMP` | see code | — | Height → color stops ("painted strategy" look) | — | — |
 | `OVERLAY_ALPHA` | 0.40 | 0.25–0.60 | Nation color opacity | Bold colors, less terrain | Terrain dominates |
 | `BORDER_ALPHA` | 0.85 | 0.5–1.0 | Border line opacity | Crisp borders | Subtle borders |
 | `BORDER_DARKEN` | 0.4 | 0.2–0.7 | How much darker borders are than fill | High contrast | Soft borders |
