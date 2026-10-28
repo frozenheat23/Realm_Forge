@@ -1,8 +1,12 @@
 // One year of history (SPEC §4). Steps always run in this order.
 import type { Rng } from "../core/rng";
 import type { SimEvent, WorldState } from "../core/types";
+import { collapses } from "./collapse";
+import { emergence } from "./emergence";
 import { expand } from "./expansion";
 import { growPopulation } from "./population";
+import { rebellions } from "./rebellion";
+import { updateStability } from "./stability";
 import { updateTotals } from "./totals";
 
 /**
@@ -17,13 +21,15 @@ export function tick(state: WorldState, rng: Rng): SimEvent[] {
   const year = rng.fork(`year-${state.year}`);
   const events: SimEvent[] = [];
 
-  growPopulation(state); //                       1. Population
-  updateTotals(state); //                         2. Totals
-  //                                              3. Stability (M4b)
-  expand(state, year.fork("expansion")); //       4. Expansion
-  //                                              5–6. War (M5)
-  //                                              7–9. Rebellion, collapse, emergence (M4b)
+  growPopulation(state); //                               1. Population
+  updateTotals(state); //                                 2. Totals
+  updateStability(state); //                              3. Stability
+  expand(state, year.fork("expansion")); //               4. Expansion
+  //                                                      5–6. War (M5)
+  events.push(...rebellions(state, year.fork("rebellion"))); // 7. Rebellion
+  events.push(...collapses(state)); //                    8. Collapse
+  events.push(...emergence(state, year.fork("emergence"))); //  9. Emergence
 
-  state.events.push(...events); //                10. Events
+  state.events.push(...events); //                        10. Events
   return events;
 }

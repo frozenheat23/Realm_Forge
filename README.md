@@ -37,7 +37,7 @@ npm test
 - [x] M2 · Cells and biomes
 - [x] M3 · Starting nations
 - [x] M4a · Growth
-- [ ] M4b · Rebellion and collapse
+- [x] M4b · Rebellion and collapse
 - [ ] M5 · War
 - [ ] M6 · Polish (speed controls, video export, save/load)
 

@@ -244,16 +244,16 @@ The winner keeps captured cells. The two sides then can't fight again for `TRUCE
 
 ### 4.6 Rebellion
 If a nation's stability is below `REBEL_THRESHOLD`, each year it has a `REBEL_PROB` chance of a rebellion:
-1. Pick a seed cell at least `REBEL_MIN_CAPITAL_DIST` steps from the capital.
-2. Flood-fill outward through the nation's cells, up to `REBEL_MAX_CELLS`.
-3. Those cells become a new nation with a new name and color. Set `parent` to the old nation and give it starting stability `REBEL_START_STABILITY`.
+1. Pick a seed cell at least `REBEL_MIN_CAPITAL_DIST` steps from the capital (walking only through the nation's own land), or one the capital can't reach that way at all (e.g. an island).
+2. Flood-fill outward through the nation's cells, up to `REBEL_MAX_CELLS`, never taking the capital. If the region is smaller than `MIN_AREA`, no rebellion happens.
+3. Those cells become a new nation with a new name and color. Set `parent` to the old nation and give it starting stability `REBEL_START_STABILITY`. Its capital is the region's most populous cell.
 
 ### 4.7 Collapse
 - **Capital lost:** the capital moves to the nation's most populous remaining cell (`capital_moved` event), and stability drops by `CAPITAL_LOSS_STAB_HIT`.
-- **Collapse:** a nation with `area < MIN_AREA`, or with no cells left, dissolves. Each of its cells is annexed by the strongest neighboring nation, or becomes unowned if there's no neighbor.
+- **Collapse:** a nation with `area < MIN_AREA`, or with no cells left, dissolves. Each of its cells is annexed by the strongest nation bordering *that cell* (judged on ownership before the collapse, so it doesn't chain), or becomes unowned if there's none. Logged as `annexed` (naming the nation that took the most cells) or `collapse`.
 
 ### 4.8 Emergence
-If a connected unowned land region has at least `EMERGENCE_MIN_REGION` habitable cells, each year it has an `EMERGENCE_PROB` chance of spawning a new nation at its highest-capacity cell.
+If a connected unowned land region has at least `EMERGENCE_MIN_REGION` habitable cells, each year it has an `EMERGENCE_PROB` chance of spawning a new nation at its highest-capacity cell, claiming `EMERGENCE_CORE_SIZE` cells around it.
 
 ### 4.9 Events
 Emit a `SimEvent` for: nation founded, war declared, peace signed, rebellion, collapse, annexation, capital moved. Each event gets a short readable sentence, e.g. *"Year 412: Velmora declares war on the Kethari Reach."*

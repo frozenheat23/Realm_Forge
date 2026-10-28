@@ -19,6 +19,13 @@
       }
       #bar button:hover { background: #2e3644; }
       #bar button.active { background: #c9b26b; color: #1b1b1b; border-color: #c9b26b; }
+      #log {
+        max-width: 1600px; margin: 0 auto 16px; padding: 4px 12px; height: 180px; overflow-y: auto;
+        font: 13px/1.6 system-ui, sans-serif; color: #d8d2c4; border-top: 1px solid #2c3340;
+      }
+      #log .swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 7px; }
+      #log .event-rebellion { color: #e8c37a; }
+      #log .event-collapse, #log .event-annexed { color: #d99a8f; }
       #info { padding: 0 12px 8px; font: 13px/1.4 system-ui, sans-serif; color: #b9b3a5; min-height: 1.4em; max-width: 1600px; margin: 0 auto; }
     </style>
   </head>
@@ -29,6 +36,7 @@
     </div>
     <div id="bar"></div>
     <div id="info">Hover the map to inspect a cell · Space play/pause · → step · C cells · N nations</div>
+    <div id="log"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

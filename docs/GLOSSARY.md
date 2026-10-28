@@ -56,3 +56,9 @@ New concepts as we meet them, with where they show up in our code.
 | **Closure** | A function that remembers variables from where it was created, even after that code finished. | `playing`, `speed` inside `createControls()` |
 | **Bit packing** | Squeezing several small numbers into one bigger number (here R, G, B, A into one 32-bit pixel). | `packPixel()` in `src/render/overlay.ts` |
 | **Collision check** | Testing whether two boxes overlap. Used to stop labels piling on top of each other. | `overlaps()` in `src/render/labels.ts` |
+| **Flood fill** | Spreading out from one cell to connected cells that match a rule (here: same owner), like paint filling a shape. | `floodFill()` in `src/sim/rebellion.ts` |
+| **Connected components** | Splitting cells into separate groups that touch each other. We use it to find empty regions. | `emptyRegions()` in `src/sim/emergence.ts` |
+| **Union type** | A type that can be one of a few exact values, e.g. `"founded" \| "war" \| ...`. | `SimEvent["type"]` in `src/core/types.ts` |
+| **Optional property (`?`)** | A property that may be missing, like `parent?: NationId` (only rebels have one). | `Nation.parent` |
+| **Determinism test** | Run the same thing twice and demand identical results. Catches hidden randomness or order bugs. | "1,000 years of history" in `tests/instability.test.ts` |
+| **DOM** | The page's structure as objects JavaScript can change, e.g. adding a new line to the event log. | `createEventLog()` in `src/ui/eventLog.ts` |

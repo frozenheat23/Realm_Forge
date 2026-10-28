@@ -25,7 +25,7 @@ export const EXPANSION_RATE = 0.1;
 // --- Rebellion ---
 export const REBEL_THRESHOLD = 0.25;
 export const REBEL_PROB = 0.03;
-export const REBEL_MIN_CAPITAL_DIST = 10;
+export const REBEL_MIN_CAPITAL_DIST = 5;
 export const REBEL_MAX_CELLS = 40;
 export const REBEL_START_STABILITY = 0.6;
 
@@ -36,3 +36,5 @@ export const CAPITAL_LOSS_STAB_HIT = 0.3;
 // --- Emergence ---
 export const EMERGENCE_PROB = 0.01;
 export const EMERGENCE_MIN_REGION = 30;
+/** Cells a newly emerged nation starts with (keep it at least MIN_AREA so it survives). */
+export const EMERGENCE_CORE_SIZE = 8;

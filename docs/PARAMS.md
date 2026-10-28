@@ -184,7 +184,7 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 |---|---|---|---|---|---|
 | `REBEL_THRESHOLD` | 0.25 | 0.10–0.40 | Stability below which rebellions can start | Frequent breakups, more small nations | Empires last longer |
 | `REBEL_PROB` | 0.03 | 0.01–0.10 | Yearly rebellion chance when unstable | Fast fragmentation | Unstable empires limp on |
-| `REBEL_MIN_CAPITAL_DIST` | 10 | 5–20 | Min steps from capital for a rebel seed | Only far provinces rebel | Rebellions near the core |
+| `REBEL_MIN_CAPITAL_DIST` | 5 | 3–15 | Min steps from capital for a rebel seed | Only far provinces rebel | Rebellions near the core |
 | `REBEL_MAX_CELLS` | 40 | 10–100 | Max size of a breakaway nation | Big, dramatic splits | Many small splinters |
 | `REBEL_START_STABILITY` | 0.6 | 0.3–0.9 | New rebel nation's starting stability | Rebels survive | Rebels often collapse |
 
@@ -201,6 +201,7 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 |---|---|---|---|---|---|
 | `EMERGENCE_PROB` | 0.01 | 0.002–0.05 | Yearly chance empty land spawns a nation | Empty land refills quickly | Wastelands stay empty |
 | `EMERGENCE_MIN_REGION` | 30 | 10–80 | Empty cells needed to spawn a nation | Only big voids refill | Small gaps fill too |
+| `EMERGENCE_CORE_SIZE` | 8 | `MIN_AREA`–20 | Cells a newly emerged nation starts with (keep ≥ `MIN_AREA`) | Stronger newcomers | Fragile newcomers |
 
 ---
 
@@ -259,6 +260,7 @@ Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shadi
 | `SPEEDS` | [1, 5, 20, 50] | — | Years per second options |
 | `DEFAULT_SPEED` | 5 | — | Speed on load |
 | `SIM_YEARS` | 1000 | 200–5000 | Default length of a run |
+| `EVENT_LOG_MAX` | 300 | 50–2000 | Most lines kept in the on-screen event log |
 
 ---
 

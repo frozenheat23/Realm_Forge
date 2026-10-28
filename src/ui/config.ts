@@ -5,3 +5,5 @@ export const SPEEDS = [1, 5, 20, 50];
 export const DEFAULT_SPEED = 5;
 /** Playback stops by itself at this year. */
 export const SIM_YEARS = 1000;
+/** Most lines the event log keeps on screen (older ones drop off the bottom). */
+export const EVENT_LOG_MAX = 300;

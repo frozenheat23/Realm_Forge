@@ -14,12 +14,14 @@ import { tick } from "./sim/tick";
 import { SIM_YEARS } from "./ui/config";
 import { createControls } from "./ui/controls";
 import { onKey, showCellOnHover } from "./ui/debugInfo";
+import { createEventLog } from "./ui/eventLog";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#map");
 const infoPanel = document.querySelector<HTMLElement>("#info");
 const bar = document.querySelector<HTMLElement>("#bar");
 const yearLabel = document.querySelector<HTMLElement>("#year");
-if (!canvas || !infoPanel || !bar || !yearLabel) throw new Error("index.html is missing an element");
+const logPanel = document.querySelector<HTMLElement>("#log");
+if (!canvas || !infoPanel || !bar || !yearLabel || !logPanel) throw new Error("index.html is missing an element");
 
 const query = new URLSearchParams(location.search);
 const seed = query.get("seed") ?? "realm-forge";
@@ -69,9 +71,12 @@ function draw(): void {
 
 // --- History playback ---
 const simRng = createRng(seed).fork("sim");
+const eventLog = createEventLog(logPanel);
+eventLog.add(state.events, state); // the year-0 foundings
 
 function advanceYear(): void {
-  tick(state, simRng);
+  const events = tick(state, simRng);
+  eventLog.add(events, state);
   controls.showYear(state.year);
 }
 

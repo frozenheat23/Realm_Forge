@@ -89,7 +89,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | M2 ✅ | Cells & biomes | Cells with climate, biomes and rivers; debug view of cells | §3.3–3.7 |
 | M3 ✅ | Starting nations | Capitals and starting borders drawn with colors, borders and names | §3.8–3.9, §5.2–5.4 |
 | M4a ✅ | Growth | Population and expansion work; nations spread across the map | §4.1–4.4 |
-| M4b | Instability | Stability, rebellion, collapse and emergence; empires break apart; event log | §4.3, §4.6–4.9, §6 |
+| M4b ✅ | Instability | Stability, rebellion, collapse and emergence; empires break apart; event log | §4.3, §4.6–4.9, §6 |
 | M5 | War | Wars start, play out and end; a 1,000-year run tells a believable story | §4.5 |
 | M6 | Polish | Speed controls, settings panel, video export, save/load. Web Worker only if needed. | §5.5, §6 |
 | Later | Backlog | See SPEC.md §8 | §8 |
@@ -138,3 +138,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-10-28 | New cells start at `NEW_CELL_POP_FRACTION` of capacity (logistic growth can't start from 0) |
 | 2026-10-28 | `WorldState` stores `cultureHomes` and `colorHue` so nations born mid-game get fitting names and colors |
 | 2026-10-28 | Nation overlay writes whole pixels via a `Uint32Array` view; labels skip when they'd overlap a bigger one |
+| 2026-10-28 | M4b: `REBEL_MIN_CAPITAL_DIST` 10 → 5. With our ~12 px cells a 160-cell empire is only ~7 steps across, so at 10 big empires could never rebel |
+| 2026-10-28 | Known: without war, history freezes ~year 300 once every nation is ≤ `ADMIN_CAP_BASE` and the land is full. M5 (war) is expected to fix this; retune then |
+| 2026-10-28 | Collapse hands cells out using a pre-collapse snapshot (order-independent, no chaining) |
+| 2026-10-28 | Later idea: pick nation colors that avoid neighbors' colors (with ~75 nations some neighbors look alike) |
