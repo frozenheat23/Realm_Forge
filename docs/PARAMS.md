@@ -9,7 +9,7 @@ What every tunable number does, a sensible range, and what happens when you chan
 | `src/gen/params.ts` | World, Terrain, Climate, Biomes, Rivers, Starting nations |
 | `src/sim/params.ts` | Population through Emergence |
 | `src/render/palette.ts` | Rendering |
-| `src/ui/` config | Playback |
+| `src/ui/config.ts` | Playback |
 
 The values below are the **starting defaults**. Most are educated guesses meant to be tuned. If you change a default in code, update this table. Ranges are rough guides, not hard limits.
 
@@ -134,6 +134,7 @@ Example names per culture live in `src/gen/nameCorpus.ts` (all invented). Edit t
 |---|---|---|---|---|---|
 | `POP_GROWTH` | 0.02 | 0.005–0.05 | Yearly growth rate toward capacity | Fast recovery after wars | Wars scar for longer |
 | `WAR_ATTRITION` | 0.05 | 0–0.2 | Pop lost yearly on war fronts | Wars devastate border regions | Wars are cheap |
+| `NEW_CELL_POP_FRACTION` | 0.05 | 0.01–0.3 | Population a newly claimed cell starts with (share of capacity) | New land is productive at once | Frontier stays empty for decades |
 
 ## Totals
 

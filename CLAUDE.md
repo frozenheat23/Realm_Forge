@@ -88,7 +88,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | M1 ✅ | Terrain | Seeded map with hillshading and water shows on screen and looks good | §3.1–3.2, §5.1 |
 | M2 ✅ | Cells & biomes | Cells with climate, biomes and rivers; debug view of cells | §3.3–3.7 |
 | M3 ✅ | Starting nations | Capitals and starting borders drawn with colors, borders and names | §3.8–3.9, §5.2–5.4 |
-| M4a | Growth | Population and expansion work; nations spread across the map | §4.1–4.4 |
+| M4a ✅ | Growth | Population and expansion work; nations spread across the map | §4.1–4.4 |
 | M4b | Instability | Stability, rebellion, collapse and emergence; empires break apart; event log | §4.3, §4.6–4.9, §6 |
 | M5 | War | Wars start, play out and end; a 1,000-year run tells a believable story | §4.5 |
 | M6 | Polish | Speed controls, settings panel, video export, save/load. Web Worker only if needed. | §5.5, §6 |
@@ -134,3 +134,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-10-28 | `generateWorld()` returns `{ world, state }`: the fixed map plus the year-0 `WorldState` the sim will advance |
 | 2026-10-28 | Nation names: order-2 Markov chain over 4 invented culture lists; culture picked by nearest random home point |
 | 2026-10-28 | `OVERLAY_ALPHA` 0.5 and more vivid nation colors so kingdoms read over colorful biomes |
+| 2026-10-28 | M4a: `tick()` changes the state in place and returns the year's events (simpler and faster than copying) |
+| 2026-10-28 | New cells start at `NEW_CELL_POP_FRACTION` of capacity (logistic growth can't start from 0) |
+| 2026-10-28 | `WorldState` stores `cultureHomes` and `colorHue` so nations born mid-game get fitting names and colors |
+| 2026-10-28 | Nation overlay writes whole pixels via a `Uint32Array` view; labels skip when they'd overlap a bigger one |

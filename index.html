@@ -6,13 +6,29 @@
     <title>Realm Forge</title>
     <style>
       body { margin: 0; background: #14181f; color: #e8e2d4; font-family: Georgia, serif; }
-      #map { display: block; margin: 0 auto; max-width: 100%; height: auto; }
-      #info { padding: 6px 12px; font: 13px/1.4 system-ui, sans-serif; color: #b9b3a5; min-height: 1.4em; }
+      #stage { position: relative; max-width: 1600px; margin: 0 auto; }
+      #map { display: block; width: 100%; height: auto; }
+      #year {
+        position: absolute; top: 12px; right: 18px; font-size: 34px; letter-spacing: 0.06em;
+        color: #fbf6e9; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7); pointer-events: none;
+      }
+      #bar { display: flex; gap: 6px; align-items: center; padding: 8px 12px; max-width: 1600px; margin: 0 auto; }
+      #bar button {
+        font: 13px system-ui, sans-serif; padding: 5px 12px; border-radius: 4px; cursor: pointer;
+        border: 1px solid #4a5160; background: #232a35; color: #e8e2d4;
+      }
+      #bar button:hover { background: #2e3644; }
+      #bar button.active { background: #c9b26b; color: #1b1b1b; border-color: #c9b26b; }
+      #info { padding: 0 12px 8px; font: 13px/1.4 system-ui, sans-serif; color: #b9b3a5; min-height: 1.4em; max-width: 1600px; margin: 0 auto; }
     </style>
   </head>
   <body>
-    <canvas id="map"></canvas>
-    <div id="info">Hover the map to inspect a cell · press C for cell outlines</div>
+    <div id="stage">
+      <canvas id="map"></canvas>
+      <div id="year">Year 0</div>
+    </div>
+    <div id="bar"></div>
+    <div id="info">Hover the map to inspect a cell · Space play/pause · → step · C cells · N nations</div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

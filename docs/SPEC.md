@@ -22,7 +22,7 @@ core/      types, seeded random generator, math, graph helpers
 
 **Rules**
 - `gen/` and `sim/` have **no** DOM or Canvas code. They take data in and return data out, so they can be tested and later moved to a Web Worker or ported to Rust.
-- `sim/` takes a `WorldState` and returns the next year's state plus events. No hidden global variables.
+- `sim/` advances a `WorldState` by one year **in place** (`tick(state, rng)` in `sim/tick.ts`) and returns that year's events. No hidden global variables. Each year gets its own RNG fork (`year-N`), and each step a fork of that.
 - `render/` reads the world but never changes it.
 - All randomness comes from one seeded generator, split into named streams (`rng.fork("war")`). Adding randomness to one system then doesn't reshuffle the others.
 
@@ -217,7 +217,7 @@ capitalDistancePenalty = max(0, avgHopsToCapital − CAPITAL_DIST_FREE) × CAPIT
 **War weariness:** rises by `WEARINESS_GAIN` per year at war, falls by `WEARINESS_DECAY` per year at peace, clamped to 0..1.
 
 ### 4.4 Expansion
-For each border cell next to unowned land, the nation claims that land with probability `EXPANSION_RATE / moveCost`. `moveCost` comes from the biome table, × `MOUNTAIN_COST_MULT` for mountains and × `RIVER_COST_MULT` for river cells (rivers are cheaper).
+For each unowned land cell, every neighboring nation rolls to claim it with probability `EXPANSION_RATE / moveCost`; if several succeed, one wins at random. Decisions use ownership from the start of the year (one ring of growth per year). A new cell starts with `NEW_CELL_POP_FRACTION` × capacity people. No expansion across water. `moveCost` comes from the biome table, × `MOUNTAIN_COST_MULT` for mountains and × `RIVER_COST_MULT` for river cells (rivers are cheaper).
 
 ### 4.5 War
 **Declaring.** For each pair of neighboring nations that aren't at war or in a truce:
@@ -280,7 +280,8 @@ Emit a `SimEvent` for: nation founded, war declared, peace signed, rebellion, co
 
 ### 5.4 Labels
 - Nation name at the center of its territory, sized by area, letter-spaced.
-- Hidden below `LABEL_MIN_AREA`; fades in and out when nations are born or die.
+- Hidden below `LABEL_MIN_AREA`. Bigger nations are labeled first; a label that would overlap one already drawn is skipped.
+- Later: fade in and out when nations are born or die.
 
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 5 ms, smooth at 20 years per second.

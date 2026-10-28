@@ -107,4 +107,8 @@ export interface WorldState {
   wars: War[];
   truces: { a: NationId; b: NationId; until: number }[];
   events: SimEvent[];
+  /** Each name culture's home point on the map; new nations take the nearest one's names. */
+  cultureHomes: [number, number][];
+  /** Starting hue (0..360) for nation colors, so new nations' colors follow on from the first ones. */
+  colorHue: number;
 }

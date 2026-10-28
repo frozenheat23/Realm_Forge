@@ -104,6 +104,8 @@ export function generateWorld(seed: string, width = MAP_WIDTH, height = MAP_HEIG
     wars: [],
     truces: [],
     events: start.events,
+    cultureHomes: start.cultureHomes,
+    colorHue: start.colorHue,
   };
   return { world, state };
 }

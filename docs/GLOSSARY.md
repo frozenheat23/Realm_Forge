@@ -48,3 +48,11 @@ New concepts as we meet them, with where they show up in our code.
 | **Alpha (transparency)** | The 4th color number: 0 = invisible, 255 = solid. Our nation tint is about half see-through so terrain shows. | `OVERLAY_ALPHA`, `src/render/overlay.ts` |
 | **Off-screen canvas** | A canvas never shown on the page. We draw slow layers there once, then copy them to the screen quickly. | `offscreen()` in `src/main.ts` |
 | **Destructuring** | Unpacking values by name or position: `const { world, state } = generateWorld(seed)`. | `src/main.ts` |
+| **Tick** | One step of the simulation; for us, one year. | `tick()` in `src/sim/tick.ts` |
+| **Logistic growth** | Growth that's fast when there's room and slows to zero at a limit (capacity). | `growPopulation()` in `src/sim/population.ts` |
+| **Snapshot** | A copy of data taken at one moment, so later changes in the same step don't affect decisions. | `owner.slice()` in `src/sim/expansion.ts` |
+| **`requestAnimationFrame`** | Asks the browser to call a function before the next screen refresh (~60×/s). Our playback loop. | `frame()` in `src/main.ts` |
+| **Getter** | A property that runs code when read (`get playing() {...}`), so it always gives the current value. | `createControls()` in `src/ui/controls.ts` |
+| **Closure** | A function that remembers variables from where it was created, even after that code finished. | `playing`, `speed` inside `createControls()` |
+| **Bit packing** | Squeezing several small numbers into one bigger number (here R, G, B, A into one 32-bit pixel). | `packPixel()` in `src/render/overlay.ts` |
+| **Collision check** | Testing whether two boxes overlap. Used to stop labels piling on top of each other. | `overlaps()` in `src/render/labels.ts` |

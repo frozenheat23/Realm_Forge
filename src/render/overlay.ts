@@ -1,59 +1,63 @@
 // Nation overlay (SPEC §5.2–5.3): tints land with its owner's color and draws borders.
-// Redrawn whenever ownership changes. Only reads the world; never changes it.
+// Redrawn whenever ownership changes, so it's written for speed. Only reads the world.
 import type { GeneratedWorld } from "../gen";
 import type { WorldState } from "../core/types";
 import { hexToRgb, scaleRgb, type Rgb } from "./color";
 import { BORDER_ALPHA, BORDER_DARKEN, OVERLAY_ALPHA } from "./palette";
 
+/** Packs a color and alpha into one 32-bit number, the way ImageData stores a pixel. */
+function packPixel(rgb: Rgb, alpha: number): number {
+  // Pixels are stored as bytes R, G, B, A; read as one little-endian number that's A B G R.
+  return ((alpha << 24) | (Math.round(rgb[2]) << 16) | (Math.round(rgb[1]) << 8) | Math.round(rgb[0])) >>> 0;
+}
+
 export function renderNationOverlay(world: GeneratedWorld, displayCells: Int32Array, state: WorldState): ImageData {
-  const { width, height } = world;
+  const { width, height, cells } = world;
   const owner = state.state.owner;
   const image = new ImageData(width, height); // starts fully transparent
-  const px = image.data;
+  // A second view of the same memory: one number per pixel instead of four bytes.
+  const px = new Uint32Array(image.data.buffer);
 
-  // Look up each nation's colors once, not once per pixel.
-  const fill = new Map<number, Rgb>();
-  const border = new Map<number, Rgb>();
-  for (const nation of state.nations.values()) {
-    const rgb = hexToRgb(nation.color);
-    fill.set(nation.id, rgb);
-    border.set(nation.id, scaleRgb(rgb, 1 - BORDER_DARKEN));
-  }
-
-  // Owner of the cell a pixel shows: 0 = unowned land, −1 = water.
-  const ownerAt = (i: number): number => {
-    const cell = displayCells[i]!;
-    if (cell < 0 || !world.cells[cell]!.isLand) return -1;
-    return owner[cell]!;
-  };
-
+  // Each nation's fill and border colors, packed once (index = nation id).
+  let maxId = 0;
+  for (const id of state.nations.keys()) maxId = Math.max(maxId, id);
+  const fill = new Uint32Array(maxId + 1);
+  const border = new Uint32Array(maxId + 1);
   const fillAlpha = Math.round(OVERLAY_ALPHA * 255);
   const borderAlpha = Math.round(BORDER_ALPHA * 255);
+  for (const nation of state.nations.values()) {
+    const rgb = hexToRgb(nation.color);
+    fill[nation.id] = packPixel(rgb, fillAlpha);
+    border[nation.id] = packPixel(scaleRgb(rgb, 1 - BORDER_DARKEN), borderAlpha);
+  }
+
+  // Owner of every pixel: 0 = unowned land, −1 = water.
+  const pixelOwner = new Int32Array(width * height);
+  for (let i = 0; i < pixelOwner.length; i++) {
+    const cell = displayCells[i]!;
+    pixelOwner[i] = cell < 0 || !cells[cell]!.isLand ? -1 : owner[cell]!;
+  }
 
   for (let y = 0; y < height; y++) {
+    const row = y * width;
     for (let x = 0; x < width; x++) {
-      const i = y * width + x;
-      const me = ownerAt(i);
+      const i = row + x;
+      const me = pixelOwner[i]!;
       if (me <= 0) continue;
 
       // A border pixel touches land owned by someone else (water doesn't count:
       // the coastline is already inked).
-      const differs = (j: number) => {
-        const other = ownerAt(j);
-        return other !== -1 && other !== me;
-      };
+      const left = x > 0 ? pixelOwner[i - 1]! : -1;
+      const right = x < width - 1 ? pixelOwner[i + 1]! : -1;
+      const up = y > 0 ? pixelOwner[i - width]! : -1;
+      const down = y < height - 1 ? pixelOwner[i + width]! : -1;
       const onBorder =
-        (x > 0 && differs(i - 1)) ||
-        (x < width - 1 && differs(i + 1)) ||
-        (y > 0 && differs(i - width)) ||
-        (y < height - 1 && differs(i + width));
+        (left !== -1 && left !== me) ||
+        (right !== -1 && right !== me) ||
+        (up !== -1 && up !== me) ||
+        (down !== -1 && down !== me);
 
-      const rgb = onBorder ? border.get(me)! : fill.get(me)!;
-      const p = i * 4;
-      px[p] = rgb[0];
-      px[p + 1] = rgb[1];
-      px[p + 2] = rgb[2];
-      px[p + 3] = onBorder ? borderAlpha : fillAlpha;
+      px[i] = onBorder ? border[me]! : fill[me]!;
     }
   }
   return image;

@@ -88,11 +88,41 @@ export function hslToHex(hue: number, sat: number, light: number): string {
 // new color far from the ones before it, however many nations there are.
 const GOLDEN_ANGLE = 137.508;
 
+/** Color for nation number `id`. Every new nation steps further round the color wheel. */
+export function nationColor(colorHue: number, id: NationId): string {
+  return hslToHex((colorHue + (id - 1) * GOLDEN_ANGLE) % 360, NATION_SATURATION, NATION_LIGHTNESS);
+}
+
+/** Which culture's names a nation at (x, y) uses: the one with the nearest home point. */
+export function cultureAt(cultureHomes: [number, number][], x: number, y: number): number {
+  let culture = 0;
+  let best = Infinity;
+  cultureHomes.forEach(([hx, hy], c) => {
+    const d = (hx - x) ** 2 + (hy - y) ** 2;
+    if (d < best) [best, culture] = [d, c];
+  });
+  return culture;
+}
+
+/** Makes a new nation name for a nation whose capital is at (x, y). */
+export function nameNationAt(
+  rng: Rng,
+  cultureHomes: [number, number][],
+  taken: Set<string>,
+  x: number,
+  y: number,
+): string {
+  const culture = NAME_CULTURES[cultureAt(cultureHomes, x, y)]!;
+  return generateName(rng, buildChain(culture.examples), taken, culture.examples);
+}
+
 export interface StartingNations {
   nations: Map<NationId, Nation>;
   owner: Int32Array;
   pop: Float32Array;
   events: SimEvent[];
+  cultureHomes: [number, number][];
+  colorHue: number;
 }
 
 export function createStartingNations(rng: Rng, cells: Cell[], width: number, height: number): StartingNations {
@@ -103,22 +133,15 @@ export function createStartingNations(rng: Rng, cells: Cell[], width: number, he
 
   // Each culture gets a home point on the map; a nation speaks the culture of the
   // nearest home point, so neighbors end up with related-sounding names.
-  const cultureHomes = NAME_CULTURES.map(() => [rng.range(0, width), rng.range(0, height)] as const);
-  const chains = NAME_CULTURES.map((c) => buildChain(c.examples));
+  const cultureHomes = NAME_CULTURES.map((): [number, number] => [rng.range(0, width), rng.range(0, height)]);
   const takenNames = new Set<string>();
   const nameRng = rng.fork("names");
-  const startHue = rng.range(0, 360);
+  const colorHue = rng.range(0, 360);
 
   const capitals = placeCapitals(rng.fork("capitals"), cells, START_NATIONS, START_MIN_SPACING);
   capitals.forEach((capital, index) => {
     const id: NationId = index + 1; // 0 means "unowned"
     const [x, y] = cells[capital]!.site;
-    let culture = 0;
-    let best = Infinity;
-    cultureHomes.forEach(([hx, hy], c) => {
-      const d = (hx - x) ** 2 + (hy - y) ** 2;
-      if (d < best) [best, culture] = [d, c];
-    });
 
     const territory = claimCore(capital, id, START_CORE_SIZE, cells, owner);
     let totalPop = 0;
@@ -127,11 +150,11 @@ export function createStartingNations(rng: Rng, cells: Cell[], width: number, he
       totalPop += pop[cell]!;
     }
 
-    const name = generateName(nameRng, chains[culture]!, takenNames, NAME_CULTURES[culture]!.examples);
+    const name = nameNationAt(nameRng, cultureHomes, takenNames, x, y);
     nations.set(id, {
       id,
       name,
-      color: hslToHex((startHue + index * GOLDEN_ANGLE) % 360, NATION_SATURATION, NATION_LIGHTNESS),
+      color: nationColor(colorHue, id),
       capital,
       founded: 0,
       alive: true,
@@ -144,5 +167,5 @@ export function createStartingNations(rng: Rng, cells: Cell[], width: number, he
     events.push({ year: 0, type: "founded", actors: [id], text: `Year 0: ${name} is founded.` });
   });
 
-  return { nations, owner, pop, events };
+  return { nations, owner, pop, events, cultureHomes, colorHue };
 }
