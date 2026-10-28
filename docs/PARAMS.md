@@ -195,7 +195,23 @@ All in `render/palette.ts`.
 | `COAST_GLOW_WIDTH` | 0.012 | 0–0.04 | Width of the pale shallow-water band | Wide glowing shallows | Hard coast edge |
 | `SEA_GRID_SPACING` | 100 | 50–200 | Pixels between faint grid lines on water | Sparser grid | Denser grid |
 | `SEA_GRID_ALPHA` | 0.08 | 0–0.2 | Visibility of the sea grid | Obvious grid | Invisible (0) |
-| `LAND_RAMP` / `WATER_RAMP` | see code | — | Height → color stops ("painted strategy" look) | — | — |
+| `LAND_RAMP` / `WATER_RAMP` | see code | — | Height → color stops (`?style=painted` only) | — | — |
+
+### Cel-shaded style (default)
+
+Flat elevation bands, 3-tone shading and ink lines. Kept light and muted so nation colors read on top. Pick the other style with `?style=painted`.
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `CEL_LAND_BANDS` | 5 bands, see code | — | Flat colors and the height where each band ends | — | — |
+| `CEL_SMOOTH_RADIUS` | 6 | 2–12 | Blur before banding/shading (pixels) | Rounder, simpler shapes | Busier, spottier detail |
+| `CEL_SHADE_THRESHOLD` | 0.3 | 0.1–0.5 | How steep a slope must be to get the light/shadow tone | Only big slopes shaded | Shading everywhere |
+| `CEL_FIRST_SHADED_BAND` | 1 | 0–3 | Lowest band that gets shading (0 = lowlands) | Flatter map | More relief on plains |
+| `CEL_HIGHLIGHT` / `CEL_SHADOW` | 1.08 / 0.8 | 1.0–1.2 / 0.6–0.95 | Brightness of lit and shadowed slopes | Stronger contrast | Softer contrast |
+| `CEL_BAND_LINE_ALPHA` | 0.3 | 0–0.7 | Darkness of lines between bands | Contour-map look | No contour lines |
+| `CEL_COAST_WIDTH` | 2 | 1–4 | Inked coastline thickness (pixels) | Bold, cartoon coast | Fine coast |
+| `CEL_SHALLOW_WIDTH` | 12 | 0–30 | Shallow-water strip width (pixels) | Wide shallows | Hard edge |
+| `CEL_RIPPLES` | [20, 32] | — | Distances (pixels) of ripple lines around coasts | Rings further out | Rings hug the coast |
 | `OVERLAY_ALPHA` | 0.40 | 0.25–0.60 | Nation color opacity | Bold colors, less terrain | Terrain dominates |
 | `BORDER_ALPHA` | 0.85 | 0.5–1.0 | Border line opacity | Crisp borders | Subtle borders |
 | `BORDER_DARKEN` | 0.4 | 0.2–0.7 | How much darker borders are than fill | High contrast | Soft borders |

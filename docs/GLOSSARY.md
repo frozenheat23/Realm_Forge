@@ -24,3 +24,7 @@ New concepts as we meet them, with where they show up in our code.
 | **Color ramp** | A list of colors at set heights; anything in between is blended. | `LAND_RAMP`, `WATER_RAMP` in `palette.ts` |
 | **ImageData** | The raw pixels of a canvas: 4 numbers (red, green, blue, alpha) per pixel. We fill it, then paint it with `putImageData`. | `renderTerrain()` |
 | **URL query (`?seed=`)** | Extra info after `?` in a web address. We read it to choose the world. | `URLSearchParams` in `src/main.ts` |
+| **Cel shading** | Cartoon-style shading: instead of smooth gradients, light snaps to a few flat tones. | `renderCelTerrain()` in `src/render/terrainCel.ts` |
+| **Box blur** | Replacing each pixel with the average of its neighbors, to smooth out small bumps. | `boxBlur()` in `terrainCel.ts` |
+| **Distance field** | For every pixel, how far it is to the nearest coast. We use it for the ink line, shallows and ripples. | `distanceToCoast()` in `terrainCel.ts` |
+| **Function as a value** | In TypeScript a function can be stored in a variable and called later, like picking a renderer. | `const renderTerrain = ...` in `src/main.ts` |

@@ -45,3 +45,44 @@ export const COAST_GLOW_WIDTH = 0.012;
 // --- Sea grid (faint latitude/longitude lines over water) ---
 export const SEA_GRID_SPACING = 100;
 export const SEA_GRID_ALPHA = 0.08;
+
+// =====================================================================
+// Cel-shaded ("illustrated") style: flat color bands, stepped shading, ink lines.
+// Kept light and muted so nation colors read clearly on top.
+// =====================================================================
+
+/** One flat land band: used for heights up to `upTo` (0 = coast, 1 = highest peak). */
+export interface ColorBand {
+  upTo: number;
+  color: string;
+}
+
+export const CEL_LAND_BANDS: ColorBand[] = [
+  { upTo: 0.22, color: "#a9c77c" }, // lowlands
+  { upTo: 0.45, color: "#c1c987" }, // hills
+  { upTo: 0.65, color: "#d4c393" }, // highlands
+  { upTo: 0.85, color: "#ad977c" }, // mountains
+  { upTo: 1.0, color: "#f3f1eb" }, // snow
+];
+
+export const CEL_SHALLOW_COLOR = "#86bcd8";
+export const CEL_DEEP_COLOR = "#5795c4";
+export const CEL_RIPPLE_COLOR = "#a9d2e7";
+export const CEL_INK_COLOR = "#2e3a33";
+
+/** Thickness of the inked coastline, in pixels. */
+export const CEL_COAST_WIDTH = 2;
+/** How dark the thin lines between elevation bands are (0 = none, 1 = full ink). */
+export const CEL_BAND_LINE_ALPHA = 0.3;
+/** Width of the shallow-water strip along coasts, in pixels. */
+export const CEL_SHALLOW_WIDTH = 12;
+/** Distances from the coast (pixels) where ripple lines are drawn. */
+export const CEL_RIPPLES = [20, 32];
+/** Blur radius (pixels) used to smooth the terrain before banding and shading. */
+export const CEL_SMOOTH_RADIUS = 6;
+/** Slopes lit more/less than this (−1..1) snap to the highlight/shadow tone. */
+export const CEL_SHADE_THRESHOLD = 0.3;
+/** Bands below this (0 = lowlands) are never shaded. */
+export const CEL_FIRST_SHADED_BAND = 1;
+export const CEL_HIGHLIGHT = 1.08;
+export const CEL_SHADOW = 0.8;

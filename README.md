@@ -22,7 +22,7 @@ npm install
 npm run dev
 ```
 
-Then open the link shown in the terminal (usually http://localhost:5173). Add `?seed=anything` to the address to get a different world.
+Then open the link shown in the terminal (usually http://localhost:5173). Add `?seed=anything` to the address to get a different world, or `?style=painted` for the painted look.
 
 Run the tests with:
 

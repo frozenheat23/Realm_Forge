@@ -126,3 +126,4 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-10-28 | M1 terrain look = "painted strategy" (Fantasy Map Simulator's green/tan style, a bit richer). Parchment can be a palette preset later |
 | 2026-10-28 | Heightmap: domain warp bends only the 3 biggest octaves (warping fine detail made streaks); detail grows with elevation so plains stay smooth; ridged noise adds mountain ranges |
 | 2026-10-28 | `?seed=...` in the page URL picks the world |
+| 2026-10-28 | Switched default terrain to **cel-shaded illustration** (flat bands, 3-tone shading, ink coast, ripple lines) so kingdoms stay readable; painted kept as `?style=painted` |
