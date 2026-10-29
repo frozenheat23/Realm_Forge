@@ -7,7 +7,7 @@ What every tunable number does, a sensible range, and what happens when you chan
 | Code file | Covers |
 |---|---|
 | `src/gen/params.ts` | World, Terrain, Climate, Biomes, Rivers, Starting nations, Races (`RACES` table and homelands) |
-| `src/sim/params.ts` | Population through Emergence (one `SIM` object, editable live in the Settings panel) |
+| `src/sim/params.ts` | Population through Armies (one `SIM` object, editable live in the Settings panel) |
 | `src/render/palette.ts` | Rendering |
 | `src/ui/config.ts` | Playback |
 
@@ -357,6 +357,88 @@ Opinion between two nations moves `OPINION_DRIFT` of the way toward a target eac
 
 ---
 
+## Armies
+
+> **Planned for M11, not in code yet** (SPEC §4.13). Defaults are first guesses for tuning. They'll live in `src/sim/params.ts` (editable in Settings) as each M11 step lands. Soldiers are in the same units as `pop` (1 ≈ a fully settled grassland cell).
+
+**Manpower**
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `LEVY_SHARE` | 0.08 | 0.03–0.2 | Most soldiers a nation can have, as a share of `militaryPop` | Huge armies; wars decided by numbers | Small armies; terrain and forts matter more |
+| `LEVY_REFILL` | 0.1 | 0.03–0.3 | Share of the gap to the cap refilled per year (× 0.5 + stability) | Losers bounce back fast | A lost army means decades of weakness |
+| `WEARINESS_LOSS_K` | 0.5 | 0–2 | War weariness gained per share of the cap lost | Bloody wars end quickly | Losses don't push toward peace (0) |
+
+**Raising armies**
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `MOBILIZE_SHARE` | 0.8 | 0.3–1 | Share of the reserve raised into a new army | Everything thrown in at once | Big reserve held back |
+| `REINFORCE_RATE` | 0.3 | 0–1 | Share of the reserve sent each year to armies in supply | Armies refill quickly | Armies wear down |
+| `MIN_ARMY_SIZE` | 0.3 | 0.1–1 | Smallest army worth raising; smaller ones rout | Weak nations can't field armies | Tiny armies wander the map |
+
+**Campaign and movement**
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `CAMPAIGN_STEPS` | 4 | 1–12 | War steps (seasons) per year | Faster wars, smoother marches, slower tick | Clunky, slow wars |
+| `ARMY_MOVE` | 4 | 1–10 | Move points per step (grassland costs 1) | Armies cross realms in a season | Slow slogs |
+| `ENGAGE_RANGE` | 6 | 2–15 | Steps within which an army goes after an enemy army | Wars are battle-hunts | Armies ignore each other; more sieges |
+| `ENGAGE_RATIO` | 0.8 | 0.5–1.5 | How strong (vs the enemy) an army must be to attack it | Cautious; defenders sit in cities | Reckless attacks |
+| `RETREAT_MORALE` | 0.4 | 0.2–0.6 | Below this an army falls back to its own settlement | Armies retreat early | Fight to the end |
+| `RAID_RANGE` | 5 | 2–10 | How far past the border raiders and defenders look for rich targets | Deep raids | Border skirmishes |
+| `ARMY_ATTRITION` | 0.03 | 0–0.1 | Size lost per step outside supply (× 2 in desert, tundra, ice, mountains) | Long invasions bleed out | Armies roam freely |
+
+**Battle**
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `BATTLE_LOSS` | 0.25 | 0.1–0.5 | Base share of the loser's army lost (× power ratio) | Decisive, bloody battles | Long series of small fights |
+| `BATTLE_MAX_LOSS` | 0.6 | 0.3–0.9 | Cap on losses in one battle | Armies wiped out in one day | Even defeats leave a core |
+| `WINNER_LOSS_SHARE` | 0.4 | 0.1–1 | Winner's losses relative to the loser's (÷ ratio) | Pyrrhic victories | Cheap victories |
+| `FORT_BONUS` | 0.15 | 0–0.5 | Defender power per settlement level (city = +45%) | Cities are fortresses | Cities don't help |
+| `MORALE_LOSS` / `MORALE_GAIN` | 0.35 / 0.1 | 0.1–0.6 / 0–0.3 | Morale lost by the loser / gained by the winner | Swingy wars | Steady wars |
+| `MORALE_RECOVERY` | 0.15 | 0.05–0.4 | Morale regained per step in own land | Beaten armies return fast | Defeats linger |
+| `ROUT_MORALE` | 0.15 | 0–0.3 | Below this an army is destroyed | Armies shatter | Armies always limp home |
+| `ROUT_RETURN` | 0.5 | 0–1 | Share of a routed army's soldiers who return to the reserve | Defeats are survivable | Routs are catastrophes |
+| `BATTLE_POP_LOSS` / `DEVASTATION_BATTLE` | 0.1 / 0.3 | 0–0.3 / 0–0.6 | People lost and devastation at a battle site | Battlefields scar the land | Clean battles |
+| `DEVASTATION_MARCH` | 0.05 | 0–0.2 | Devastation per enemy cell an army marches through | Invasion trails of ruin | Armies pass lightly |
+
+`DEFENDER_BONUS` (War) also applies to the defending army in a battle.
+
+**Siege and occupation**
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `SIEGE_STEPS` | 1 | 0.5–4 | Steps to occupy an empty cell (× defensibility) | Slow conquest | Armies sweep through |
+| `SIEGE_SETTLEMENT_K` | 1.5 | 0–4 | Extra siege time per settlement level (city = 5.5 × base) | Cities hold out for years | Cities fall like villages |
+| `CAPITAL_SIEGE_MULT` | 2 | 1–4 | Capitals take this much longer | Capitals almost never fall | Capitals fall quickly |
+
+**War goals, score and peace**
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `RAID_CHANCE` | 0.25 | 0–0.6 | Chance a war without a claim is a raid (× ruling race `aggression`) | Lots of plundering, few border changes | Every war is for land |
+| `BATTLE_SCORE` / `ROUT_SCORE` | 10 / 10 | 0–30 | Score for winning a battle / destroying an army | Battles decide wars | Sieges decide wars |
+| `SCORE_PER_OCCUPIED` | 3 | 1–10 | Score per occupied enemy cell | Wars end sooner | Wars drag on |
+| `GOAL_SCORE_MULT` | 2 | 1–4 | Goal cells count this much more | Wars focus on their goal | Any occupation will do |
+| `CAPITAL_SCORE` | 20 | 0–60 | Score for holding the enemy capital | Taking the capital wins the war | Capitals don't matter |
+| `PEACE_EXTRA_CELLS` | 10 | 0–40 | Occupied non-goal cells a winner may also keep | Wars grab more land | Wars only take the goal (0) |
+| `RAID_TRIBUTE` | 0.1 | 0–0.3 | Stability moved from loser to winner after a raid | Raids break nations | Raids only burn land |
+
+`PEACE_SCORE`, `WEARINESS_PEACE`, `MAX_WAR_YEARS` and `TRUCE_YEARS` (War) still apply.
+
+**Rebels**
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `REBEL_LEVY` | 0.15 | 0.05–0.4 | Rebel army size as a share of the region's `militaryPop` (the old nation loses the same share of its reserve) | Rebels win their freedom | Rebels get crushed |
+| `REBEL_WAR_PROB` | 0.5 | 0–1 | Chance the old nation fights at once to take the rebels back | Every rebellion is a civil war | Peaceful breakaways; claims may bring war later |
+
+**Retiring when campaigns land (M11 step 3):** `FRONT_FLIPS_PER_YEAR`, `SCORE_PER_FLIP`, `WAR_ATTRITION`, `DEVASTATION_FRONT`.
+
+---
+
 # Rendering
 
 All in `render/palette.ts`.
@@ -438,6 +520,17 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | `EMBER_SIZE` / `EMBER_FLICKER` | 5 / 5 | 3–9 / 1–12 | Glow size (pixels) and flicker speed | Bigger, faster flames | Small, slow glow |
 | `EMBER_COLOR` | 255, 122, 26 | — | Ember color (R, G, B) | — | — |
 
+### Armies
+
+> **Planned for M11, not in code yet** (SPEC §5.4h). Layer key W. Visual only.
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `ARMY_MEN_PER_UNIT` | 2000 | 500–10000 | Men shown per soldier unit (the label only) | Bigger numbers on banners | Smaller numbers |
+| `ARMY_BANNER_MIN` / `ARMY_BANNER_MAX` | 7 / 16 | 4–12 / 10–24 | Banner half-height for the smallest / largest armies (pixels) | Armies dominate the map | Discreet markers |
+| `ARMY_TARGET_ALPHA` | 0.5 | 0–1 | Opacity of the dashed line to the army's target | Clear war plans | Hidden (0) |
+| `OCCUPIED_HATCH_ALPHA` | 0.45 | 0–0.8 | Opacity of the occupier's stripes on occupied land | Occupations glare | Faint |
+
 ---
 
 # Playback
@@ -475,6 +568,9 @@ Common problems and which knobs to try first.
 | Rebels are always swallowed back | ↓ `CLAIM_WAR_BONUS`, ↓ `CLAIM_YEARS`, ↑ `REBEL_START_STABILITY` |
 | Rebellions start in random places | ↑ `UNREST_CONTROL_K` (check the unrest heatmap, key H) |
 | No cities / cities everywhere | ↑ / ↓ `DEV_GROWTH`, ↓ / ↑ `SETTLE_CITY`, `CITY_MIN_SPACING` |
+| Armies (M11, planned): wars end without battles | ↑ `ENGAGE_RANGE`, ↓ `ENGAGE_RATIO` |
+| Armies (M11, planned): rebels always crushed | ↑ `REBEL_LEVY`, ↓ `REBEL_WAR_PROB` |
+| Armies (M11, planned): one lost battle ends a nation | ↓ `BATTLE_MAX_LOSS`, ↑ `ROUT_RETURN`, ↑ `LEVY_REFILL` |
 | Wars too frequent since M9 | ↓ `WAR_VALUE_K`, ↓ `CLAIM_WAR_BONUS` before touching `WAR_BASE_PROB` |
 
 ---

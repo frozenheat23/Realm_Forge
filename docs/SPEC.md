@@ -442,6 +442,139 @@ Allies never declare war on each other. Alliances are both defensive and offensi
 
 **What this gives.** Kin of the friendlier races (Humans, Light Elves, Dwarves) ally and stay allied for centuries. Other alliances are wartime coalitions: two nations fighting the same enemy warm to each other and ally, then drift apart after the peace. Hated pairs (Light vs Dark Elves, Dwarves vs Orcs) go to war more often.
 
+### 4.13 Armies
+
+> **Planned for M11, not built yet.** This is the design. Sections §4.1–4.9 still describe the code as it is; each M11 step updates them as it lands (like M9 did with §4.11). Numbers are in `PARAMS.md` → "Armies". Code will live in `sim/manpower.ts`, `sim/armies.ts`, `sim/battle.ts`, `sim/siege.ts`, `sim/warGoals.ts`.
+
+**Goal.** Make war *happen somewhere*. Today a war is one weighted roll per year between whole-nation strengths, and the winner takes up to `FRONT_FLIPS_PER_YEAR` cells anywhere along the border. With armies, soldiers are a limited stock that takes decades to rebuild; armies march across the map, meet in battle and besiege towns; and peace hands over the land a war was fought *for*. A big empire with two wars has to split its soldiers, which is the overstretch the core loop needs.
+
+**Principles**
+- **One army per side per war.** Simple to follow on the map, and fast: about 10–30 armies at a time.
+- **Seasons inside a year.** One tick is still one year, but the war part runs `CAMPAIGN_STEPS` times (default 4, the seasons). Each step: armies choose a target, march, fight, besiege.
+- **Occupation is not ownership.** Armies *occupy* enemy cells during a war. Cells only change owner at peace, through the war's terms.
+- **Race traits keep their meaning.** `martial` sets how many soldiers a cell's people give (as in `militaryPop`); `defense`, `defensibility` and mithril help armies defending in their own land; the ruling race's terrain cost sets marching speed.
+
+#### Manpower (in step 2, Totals)
+
+Each nation has a **reserve** of trained soldiers who aren't in an army yet.
+
+```
+cap      = militaryPop × LEVY_SHARE           // militaryPop as in §4.2, but occupied cells don't count
+soldiers = reserve + size of the nation's armies
+reserve += (cap − soldiers) × LEVY_REFILL × (0.5 + stability)    // only if soldiers < cap
+```
+
+- So a nation that loses its army is weak for decades, and unstable nations rebuild slowly.
+- Units: soldiers are in the same units as `pop` (1 ≈ one fully settled grassland cell). The map shows them in men using `ARMY_MEN_PER_UNIT` (render only).
+- **Declaring war** (§4.5) compares soldiers instead of `strength`: `attackSide = attacker.soldiers + helpers' soldiers × ALLY_ATTACK_PROB` (same for the defender). `strength` stays for collapse (who annexes).
+- **War weariness** also rises with losses: `+ casualties / cap × WEARINESS_LOSS_K` for each battle and each step of attrition.
+
+#### Raising and reinforcing armies
+
+- **Raised** when a nation enters a war (declared, declared on, or joining as an ally) and doesn't yet have an army for that war: `size = reserve × MOBILIZE_SHARE / (number of its wars still without an army)`, placed at its city (then settlement, then capital) nearest to the enemy. Not raised if smaller than `MIN_ARMY_SIZE`. If an army is destroyed, a new one is raised the next year from whatever reserve is left.
+- **Reinforced** once a year: `REINFORCE_RATE` of the reserve is shared out equally among the nation's armies that are **in supply** (standing in own or allied land, or in occupied land connected to it).
+- **Disbanded** when its war ends: the soldiers go back into the reserve.
+- Each army stores: `id`, `owner`, `war`, `cell`, `size`, `morale` (0..1, starts at 1), `target`, and `trail` (the cells it walked this year, so the renderer can animate the march).
+
+#### Each campaign step
+
+Armies act in order of `id` (deterministic). Random rolls use the `armies` and `battle` streams.
+
+**1. Choose a target** (first rule that applies)
+1. **Retreat**: morale below `RETREAT_MORALE` → head for the nearest own settlement and stay there until morale is back above it.
+2. **Attack**: a hostile army (any war this nation fights) within `ENGAGE_RANGE` steps, and `my power ≥ ENGAGE_RATIO × its power` → march at it.
+3. **Liberate**: own (or the war ally's) land occupied by the enemy → the nearest such cell.
+4. **Goal**: the nearest goal cell (below) not yet occupied. Defenders and raiders: the enemy's most valuable cell (§4.11 value) within `RAID_RANGE` steps of the border.
+5. **Defend**: too weak to attack and nothing else to do → stand in the own city closest to the enemy army.
+
+**2. March.** Shortest path by move cost (biome × mountain × river × ruling-race terrain cost, the same costs as §4.4 and `control`). An army may walk through its own land, allied land, and land of nations it's at war with; never through neutral nations or water (navies are in the backlog). It gets `ARMY_MOVE` move points per step. It **stops** as soon as it steps into a cell next to a hostile army (contact). Paths are only recalculated when the target changes or the path is blocked, to keep the tick fast. Marching through enemy land adds `DEVASTATION_MARCH` to each cell.
+
+**3. Battle.** Two hostile armies in the same or neighboring cells fight once per step. The **defender** is the army that didn't move into contact this step (if both moved, the one standing in its own land, then the larger).
+
+```
+power    = size × morale
+defender power × DEFENDER_BONUS × cell.defensibility × (1 + FORT_BONUS × settlement level)
+                × (in own land: defense trait of the cell's race × mithril bonus)
+winner   = weighted roll: P(A wins) = powerA / (powerA + powerB)
+ratio    = winner power / loser power
+loser loses  min(BATTLE_MAX_LOSS, BATTLE_LOSS × ratio) of its size
+winner loses min(BATTLE_MAX_LOSS, BATTLE_LOSS × WINNER_LOSS_SHARE / ratio) of its size
+```
+
+- Morale: loser `− MORALE_LOSS`, winner `+ MORALE_GAIN` (max 1). Armies recover `MORALE_RECOVERY` per step in their own land.
+- The loser falls back one cell toward its own land.
+- **Rout**: an army below `MIN_ARMY_SIZE` or with morale under `ROUT_MORALE` is destroyed; `ROUT_RETURN` of its soldiers straggle back to the reserve.
+- The battle cell loses `BATTLE_POP_LOSS` of its people and gains `DEVASTATION_BATTLE`.
+- War score toward the winner: `BATTLE_SCORE`, plus `ROUT_SCORE` if the enemy army was destroyed.
+- The sim records each battle this year in `WorldState.battles` (cell, winner, loser, losses) for the renderer and log.
+
+**4. Siege and occupation.** An army standing in an enemy cell, with no hostile army in or next to it, builds up `siege` on that cell:
+
+```
+steps to take it = SIEGE_STEPS × (1 + SIEGE_SETTLEMENT_K × settlement level) × defensibility × (capital ? CAPITAL_SIEGE_MULT : 1)
+```
+
+- When done, the cell is **occupied** (`occupier` = the army's nation) and gains `DEVASTATION_CAPTURE`. Taking a town or city also occupies its unsettled neighbors (the countryside falls with its town).
+- An occupied cell gives its owner no soldiers and no resource access, and gains unrest each year.
+- Occupying the enemy's **capital** costs it `CAPITAL_LOSS_STAB_HIT` stability once and scores `CAPITAL_SCORE`.
+- An army of the owner (or of an ally in the same war) entering an occupied cell frees it at once.
+
+**5. Attrition.** Armies outside supply lose `ARMY_ATTRITION` of their size per step, × 2 in desert, tundra, ice and mountains.
+
+#### War goals (at declaration)
+
+| Goal | When it's picked | Goal cells | Event text |
+|---|---|---|---|
+| **Reclaim** | The attacker has a claim (§4.5) | Its claimed cells the defender holds | *"…to reclaim its lost lands"* |
+| **Raid** | Otherwise, with chance `RAID_CHANCE × aggression` (ruling race) | None: armies go for rich cells and the enemy army | *"…to raid its lands"* |
+| **Conquer** | Otherwise | The defender's cells in the province holding its most valuable border cell (§4.11 value, as the attacker's race sees it) | *"…to seize the lands around Arvenna"* (nearest city) or *"…, coveting its iron"* |
+
+Joined allies fight in support: no goal cells; their armies hunt enemy armies and free occupied allied land.
+
+#### War score and peace
+
+`score = battle score (adds up over the war) + occupation score (worked out fresh each year)`. The occupation score is `SCORE_PER_OCCUPIED` per occupied cell (× `GOAL_SCORE_MULT` for goal cells), plus `CAPITAL_SCORE` for a held capital, attacker's minus defender's.
+
+**Peace** when any of these is true (the first is new):
+- the attacker occupies **every goal cell** (goal achieved; attacker wins)
+- `|score| ≥ PEACE_SCORE`
+- either side's war weariness ≥ `WEARINESS_PEACE`
+- the war has lasted `MAX_WAR_YEARS`
+
+**Terms.** A winner (`|score|` ≥ `PEACE_SCORE` / 3) takes:
+- the goal cells it occupies;
+- up to `PEACE_EXTRA_CELLS` other occupied cells that touch its own land, most valuable first;
+- for a **raid**, no land. Instead the loser loses `RAID_TRIBUTE` stability and the winner gains it.
+
+Taken cells go through `setOwner` (unrest jumps to `UNREST_CONQUEST`). All other occupations end; armies go home and disband. White peace: everyone keeps what they had. Truces and peace text as before.
+
+#### Rebels and allies
+
+- **Rebel armies.** A rebellion raises an army at once from the rebel region: `size = rebel region's militaryPop × REBEL_LEVY`, and the old nation loses the same share of its reserve (its soldiers defect). With chance `REBEL_WAR_PROB` the old nation goes straight to war to take them back (goal **Reclaim**). If it can't, or doesn't, it can still come back later through its claim.
+- **Allies.** A helper (§4.5) no longer has to border the enemy. It only needs to border the enemy or the ally it's helping, because its army can march through allied land.
+
+#### What changes in other sections
+
+| Section | Change |
+|---|---|
+| §2 Data model | `Nation.reserve`; `War.goal`, `War.goalCells`, `War.battleScore`; new `Army` and `WorldState.armies`; `WorldState.battles` (this year's only); `CellState.occupier` (`Int32Array`) and `CellState.siege` (`Float32Array`) |
+| §4 tick table | Step 6 *War fought* becomes **6 Campaign** (`CAMPAIGN_STEPS` × target, march, battle, siege, attrition) then **6b Peace** |
+| §4.1 Population | No more front attrition or front devastation (`WAR_ATTRITION`, `DEVASTATION_FRONT` retire); battles and marching do this instead |
+| §4.2 Totals | Manpower cap and refill; occupied cells don't count for the owner's `militaryPop` or `access` |
+| §4.5 War | Declaring compares soldiers; goals; the front contest (`FRONT_FLIPS_PER_YEAR`, `SCORE_PER_FLIP`) is replaced by campaigns |
+| §4.6 Rebellion | Rebel armies, defection, independence wars |
+| §4.7 Collapse | A dead nation's armies disband; its occupations end |
+| §4.9 Events | New `battle` type (log filter off by default): *"Year 412: at the Battle of Arvenna, Velmora routs the host of Kethar (12,000 fell)."* Named after the nearest city within 3 steps, otherwise *"in the hills of Kethar"* |
+| §5.4h | New **Armies** layer (below) |
+| §6 | Save format **v5** (reserve, armies, occupation, siege, war goals) |
+
+#### Done when (M11)
+
+- Wars show armies marching, fighting and besieging; most wars are decided by a few battles and sieges, not by grinding the whole border.
+- A nation that loses its army is visibly weak for decades; big empires in two wars are stretched.
+- Tick still under ~10 ms; history identical with every effect layer on or off; same seed = same history.
+- 10-seed balance check: no race takes over; rebellions still break up big empires (rebels win their independence war at least sometimes).
+
 ---
 
 ## 5. Rendering (`render/`)
@@ -496,6 +629,21 @@ A layer toggle (**Effects**, key E, on by default) adds animation on top of the 
 - Battles and bursts last a fixed number of real seconds, whatever the speed. Each pair of warring nations has at most one battle marker: a new year's battle restarts it at the new spot, so fast playback doesn't pile up swords. At most `MAX_BURSTS` play at once; the oldest give way.
 - The map underneath is drawn to an off-screen canvas only when the world changes; each screen frame copies it and draws the effects on top. Effects show up in recorded videos.
 
+### 5.4h Armies
+
+> **Planned for M11, not built yet** (§4.13).
+
+A layer toggle (**Armies**, key W, on by default). Like effects, it only reads the world.
+
+| What | Looks like |
+|---|---|
+| **Army** | A banner (shield shape) in the nation's color at the army's cell, with its size in men (*"12k"*). Banner size grows with the army (`ARMY_BANNER_*`). Routed armies don't show. |
+| **March** | During playback the banner slides along this year's `trail`, so armies visibly walk instead of jumping once a year. A thin dashed line points to its target. |
+| **Occupied land** | Diagonal hatch in the occupier's color over the owner's color (replaces the M10 front hatch, since fronts are now where the armies are). Sieges in progress show a small ring filling up. |
+| **Battle** | The M10 battle marker (ring + crossed swords) at each real battle in `WorldState.battles` instead of a guessed spot. |
+
+Hovering over an army shows its nation, war, size, morale and target.
+
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 5 ms, smooth at 20 years per second.
 - Run the sim on the main thread until M6; move it to a Web Worker only if it slows the screen.
@@ -533,7 +681,7 @@ Not designed yet. When one is picked up, give it its own section in §4 and matc
 - Dynasties and succession crises
 - Trade routes and economy
 - Deeper diplomacy: vassals, peace terms, betrayal (an ally refusing to help), alliances slowly cooling so kin pacts don't last forever
-- Naval expansion across water
+- Naval expansion across water (and fleets carrying armies, after M11)
 - Plagues, famines and golden ages
 - Azgaar map import
 - Rust port of `sim/` (after M5)

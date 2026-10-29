@@ -96,6 +96,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | M8 ✅ | Diplomacy | Opinion between nations from race attitudes, borders, wars and shared enemies; alliances form and break; bordering allies join defensive and offensive wars; Alliances map layer; race balance still holds | §2, §4.5, §4.6, §4.12, §5.4c, §6 |
 | M9 ✅ | Land and cell detail | Cells hold resources, unrest, devastation, development, settlements and ownership history; control replaces capital distance; rebellions start where unrest is high; wars fought over resources and claims; cities grow; 10-seed balance check still passes | §2, §3.7b, §4.1–4.9, §4.11, §5.4d–f, §6 |
 | M10 ✅ | War and unrest effects | Animated layer (key E): sliding hatch on war fronts, battle flashes with crossed swords, smoke over devastated land, embers in realms close to rebellion, rings when nations rise or fall; history unchanged with effects on or off | §5.4g |
+| M11 | Armies | Nations have a soldier reserve that refills slowly; one army per side per war marches across the map (4 seasons a year), fights battles and besieges towns; occupied land changes hands at peace by war goal (reclaim, conquer, raid); rebels raise armies; Armies layer (key W); tick < 10 ms; 10-seed balance check still passes | §4.5, §4.13, §5.4h, §6 |
 | Later | Backlog | See SPEC.md §8 | §8 |
 
 ---
@@ -178,3 +179,6 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-10-29 | Drawing split in two: the still map goes to an off-screen `base` canvas when the world changes; every screen frame copies it and draws effects on top (~3 ms). Every redraw also shows at once, without waiting for the next frame |
 | 2026-10-29 | One battle marker per pair of warring nations (restarts each year) so fast playback doesn't pile up swords. Embers only in realms below `REBEL_THRESHOLD`, sparse (`EMBER_DENSITY`) |
 | 2026-10-29 | Found while tuning effects: ~40% of owned land sits at unrest ≥ 0.9 by year 300 (unrest gains outpace `UNREST_DECAY`). Not changed; worth a sim tuning pass |
+| 2026-10-29 | M11 = armies (before the unrest tuning pass). Design in SPEC §4.13 and PARAMS "Armies", marked planned until built. User chose armies as units that move on the map (not abstract per-front shares); navies stay in the backlog; Raid goal included |
+| 2026-10-29 | M11 design: one army per side per war; `CAMPAIGN_STEPS` (4 seasons) of target → march → battle → siege inside each yearly tick; occupation ≠ ownership (cells change hands only at peace, by war goal); soldiers in `pop` units, men shown via `ARMY_MEN_PER_UNIT`; rebels raise armies and may face an independence war (`REBEL_WAR_PROB`) |
+| 2026-10-29 | M11 build order, one commit each: 1 manpower → 2 armies raised and marching + Armies layer (save v5) → 3 battles, sieges, occupation replace the front contest → 4 war goals and peace terms → 5 rebel armies, ally marching, battle events, tuning and balance check |
