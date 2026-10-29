@@ -1,5 +1,14 @@
 // Tunable numbers for world generation. See docs/PARAMS.md for what each one does.
-import { Biome, Race, type BiomeId, type PlayableRace, type RaceTraits } from "../core/types";
+import {
+  Biome,
+  Race,
+  Resource,
+  type BiomeId,
+  type PlayableRace,
+  type RaceTraits,
+  type ResourceInfo,
+  type ResourceKind,
+} from "../core/types";
 
 // --- World ---
 export const MAP_WIDTH = 1600;
@@ -45,19 +54,45 @@ export const WETLAND_MOISTURE = 0.8;
 /** Wetlands only form on low ground (land elevation below this). */
 export const WETLAND_MAX_ELEVATION = 0.12;
 
-/** Base capacity (1 = grassland) and move cost per biome. Table in docs/PARAMS.md. */
-export const BIOME_STATS: Record<BiomeId, { name: string; capacity: number; moveCost: number }> = {
-  [Biome.Water]: { name: "Water", capacity: 0, moveCost: Infinity },
-  [Biome.Grassland]: { name: "Grassland", capacity: 1.0, moveCost: 1.0 },
-  [Biome.TemperateForest]: { name: "Temperate forest", capacity: 0.8, moveCost: 1.5 },
-  [Biome.Savanna]: { name: "Savanna", capacity: 0.7, moveCost: 1.2 },
-  [Biome.TropicalForest]: { name: "Tropical forest", capacity: 0.6, moveCost: 2.5 },
-  [Biome.Shrubland]: { name: "Shrubland", capacity: 0.5, moveCost: 1.3 },
-  [Biome.Taiga]: { name: "Taiga", capacity: 0.4, moveCost: 2.0 },
-  [Biome.Wetland]: { name: "Wetland", capacity: 0.4, moveCost: 2.5 },
-  [Biome.Desert]: { name: "Desert", capacity: 0.15, moveCost: 3.0 },
-  [Biome.Tundra]: { name: "Tundra", capacity: 0.15, moveCost: 2.5 },
-  [Biome.Ice]: { name: "Ice", capacity: 0, moveCost: 10 },
+/** Base capacity (1 = grassland), move cost and defense per biome. Table in docs/PARAMS.md. */
+export const BIOME_STATS: Record<BiomeId, { name: string; capacity: number; moveCost: number; defense: number }> = {
+  [Biome.Water]: { name: "Water", capacity: 0, moveCost: Infinity, defense: 1.0 },
+  [Biome.Grassland]: { name: "Grassland", capacity: 1.0, moveCost: 1.0, defense: 1.0 },
+  [Biome.TemperateForest]: { name: "Temperate forest", capacity: 0.8, moveCost: 1.5, defense: 1.2 },
+  [Biome.Savanna]: { name: "Savanna", capacity: 0.7, moveCost: 1.2, defense: 1.0 },
+  [Biome.TropicalForest]: { name: "Tropical forest", capacity: 0.6, moveCost: 2.5, defense: 1.3 },
+  [Biome.Shrubland]: { name: "Shrubland", capacity: 0.5, moveCost: 1.3, defense: 1.0 },
+  [Biome.Taiga]: { name: "Taiga", capacity: 0.4, moveCost: 2.0, defense: 1.2 },
+  [Biome.Wetland]: { name: "Wetland", capacity: 0.4, moveCost: 2.5, defense: 1.3 },
+  [Biome.Desert]: { name: "Desert", capacity: 0.15, moveCost: 3.0, defense: 1.1 },
+  [Biome.Tundra]: { name: "Tundra", capacity: 0.15, moveCost: 2.5, defense: 1.0 },
+  [Biome.Ice]: { name: "Ice", capacity: 0, moveCost: 10, defense: 1.0 },
+};
+
+// --- Terrain defense (SPEC §4.11) ---
+/** × defensibility of mountain cells. */
+export const MOUNTAIN_DEFENSE = 1.5;
+/** × defensibility of river cells. */
+export const RIVER_DEFENSE = 1.2;
+
+// --- Resources (SPEC §4.11) ---
+/** Share of land cells with a resource deposit. */
+export const RESOURCE_PROB = 0.04;
+/** Richness = random ^ this, so higher = mostly poor deposits with a few rich ones. */
+export const RICHNESS_SKEW = 2;
+/** Land elevation (0 = coast, 1 = peak) where hills start; hills end at MOUNTAIN_H. Iron is found in hills. */
+export const HILL_H = 0.4;
+/** Land elevation where high mountains start. Mithril is only found there. */
+export const HIGH_MOUNTAIN_H = 0.8;
+
+/** Every resource type (SPEC §4.11). Where each one appears is in gen/resources.ts. */
+export const RESOURCES: Record<ResourceKind, ResourceInfo> = {
+  [Resource.Grain]: { name: "grain", effect: 1.1, weight: 1.0 }, // × capacity of all the nation's cells
+  [Resource.Timber]: { name: "timber", effect: 0.85, weight: 1.0 }, // × move cost when expanding
+  [Resource.Iron]: { name: "iron", effect: 1.15, weight: 0.8 }, // × martial
+  [Resource.Gold]: { name: "gold", effect: 1.3, weight: 0.5 }, // × STAB_RECOVERY
+  [Resource.Horses]: { name: "horses", effect: 1.15, weight: 0.8 }, // × EXPANSION_RATE
+  [Resource.Mithril]: { name: "mithril", effect: 1.2, weight: 0.15 }, // × defense on the war front
 };
 
 export const RIVER_CAP_MULT = 1.5;
@@ -101,6 +136,7 @@ export const RACES: Record<PlayableRace, RaceTraits> = {
     mountainAffinity: 1.0,
     terrainCost: {},
     mountainCost: 1.0,
+    favoredResources: [Resource.Grain, Resource.Horses],
   },
   [Race.LightElf]: {
     name: "Light Elf", plural: "Light Elves", family: "elf",
@@ -109,6 +145,7 @@ export const RACES: Record<PlayableRace, RaceTraits> = {
     mountainAffinity: 1.0,
     terrainCost: { [Biome.TemperateForest]: 0.5, [Biome.TropicalForest]: 0.5 },
     mountainCost: 1.0,
+    favoredResources: [Resource.Timber],
   },
   [Race.DarkElf]: {
     name: "Dark Elf", plural: "Dark Elves", family: "elf",
@@ -117,6 +154,7 @@ export const RACES: Record<PlayableRace, RaceTraits> = {
     mountainAffinity: 1.5,
     terrainCost: { [Biome.Taiga]: 0.6, [Biome.Wetland]: 0.6 },
     mountainCost: 0.6,
+    favoredResources: [Resource.Mithril],
   },
   [Race.Dwarf]: {
     name: "Dwarf", plural: "Dwarves", family: "dwarf",
@@ -125,6 +163,7 @@ export const RACES: Record<PlayableRace, RaceTraits> = {
     mountainAffinity: 2.5,
     terrainCost: { [Biome.Taiga]: 0.7, [Biome.TemperateForest]: 1.3, [Biome.TropicalForest]: 1.3 },
     mountainCost: 0.4,
+    favoredResources: [Resource.Iron, Resource.Gold, Resource.Mithril],
   },
   [Race.Orc]: {
     name: "Orc", plural: "Orcs", family: "orc",
@@ -133,6 +172,7 @@ export const RACES: Record<PlayableRace, RaceTraits> = {
     mountainAffinity: 1.0,
     terrainCost: { [Biome.Desert]: 0.5, [Biome.Shrubland]: 0.7, [Biome.Savanna]: 0.7 },
     mountainCost: 1.0,
+    favoredResources: [Resource.Iron, Resource.Horses],
   },
 };
 

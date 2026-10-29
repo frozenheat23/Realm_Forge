@@ -4,6 +4,7 @@ import type { Cell, CellId, Nation, NationId, RaceHome, RaceId, SimEvent } from 
 import { buildChain, generateName } from "./names";
 import { FAMILY_NAMES, NAME_CULTURES } from "./nameCorpus";
 import { PLAYABLE_RACES, raceAt, raceCapacity, traits } from "./races";
+import { RESOURCE_KINDS } from "./resources";
 import {
   NATION_LIGHTNESS,
   NATION_SATURATION,
@@ -214,6 +215,7 @@ export function createStartingNations(
       foreignShare: 0,
       unrest: traits(race).unrest,
       control: 1,
+      access: new Array<number>(RESOURCE_KINDS.length + 1).fill(0), // worked out by the simulation each year
     });
     events.push({
       year: 0,

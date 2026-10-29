@@ -1,8 +1,9 @@
 // Step 3 (SPEC §4.3): big, loosely held, war-weary or many-raced nations become unstable.
-import type { WorldState } from "../core/types";
+import { Resource, type WorldState } from "../core/types";
 import { clamp } from "../core/math";
 import { traits } from "../gen/races";
 import { SIM } from "./params";
+import { resourceBonus } from "./resources";
 
 export function updateStability(state: WorldState): void {
   const atWar = new Set(state.wars.flatMap((w) => [w.attacker, w.defender]));
@@ -26,7 +27,7 @@ export function updateStability(state: WorldState): void {
 
     nation.stability = clamp(
       nation.stability +
-        SIM.STAB_RECOVERY -
+        SIM.STAB_RECOVERY * resourceBonus(nation, Resource.Gold) - // gold pays for order
         overextension -
         nation.warWeariness * SIM.WEARINESS_STAB_K -
         controlPenalty -

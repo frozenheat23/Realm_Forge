@@ -1,9 +1,10 @@
 // Step 2 (SPEC §4.2): add up each nation's size, people, strength and grip on its land.
-import type { WorldState } from "../core/types";
+import { Resource, type WorldState } from "../core/types";
 import { traits } from "../gen/races";
 import { controlMap } from "./control";
 import { cellsByNation } from "./helpers";
 import { SIM } from "./params";
+import { emptyAccess, resourceBonus } from "./resources";
 
 /** Updates every living nation's totals. Returns this year's control map (used again later in the year). */
 export function updateTotals(state: WorldState): Float32Array {
@@ -20,6 +21,7 @@ export function updateTotals(state: WorldState): Float32Array {
     let foreign = 0; // people who aren't the ruling race
     let unrestSum = 0; // people × their race's unrest
     let controlSum = 0; // people × how firmly they're held
+    const access = emptyAccess(); // total richness of each resource the nation owns
     for (const c of cells) {
       const p = pop[c]!;
       const t = traits(race[c]!);
@@ -28,7 +30,11 @@ export function updateTotals(state: WorldState): Float32Array {
       unrestSum += p * t.unrest;
       controlSum += p * control[c]!;
       if (race[c] !== nation.race) foreign += p;
+      const deposit = state.cells[c]!.resource;
+      if (deposit !== 0) access[deposit] = access[deposit]! + state.cells[c]!.richness;
     }
+    nation.access = access;
+    militaryPop *= resourceBonus(nation, Resource.Iron); // iron arms the troops
 
     nation.area = cells.length;
     nation.pop = total;

@@ -1,9 +1,10 @@
 // Step 4 (SPEC §4.4): nations settle neighboring empty land.
 import type { Rng } from "../core/rng";
-import type { NationId, WorldState } from "../core/types";
+import { Resource, type NationId, type WorldState } from "../core/types";
 import { raceCapacity } from "../gen/races";
 import { moveCost, setOwner } from "./helpers";
 import { SIM } from "./params";
+import { resourceBonus } from "./resources";
 
 /**
  * Each empty land cell next to a nation may be claimed with chance
@@ -29,8 +30,11 @@ export function expand(state: WorldState, rng: Rng): void {
     if (nearby.length === 0) continue;
 
     const claimants: NationId[] = nearby.filter((id) => {
-      const settlers = state.nations.get(id)!.race;
-      return rng.chance(SIM.EXPANSION_RATE / moveCost(cell, settlers));
+      const nation = state.nations.get(id)!;
+      // Horses carry settlers further; timber makes rough country easier to build in.
+      const rate = SIM.EXPANSION_RATE * resourceBonus(nation, Resource.Horses);
+      const cost = moveCost(cell, nation.race) * resourceBonus(nation, Resource.Timber);
+      return rng.chance(rate / cost);
     });
     if (claimants.length === 0) continue;
 

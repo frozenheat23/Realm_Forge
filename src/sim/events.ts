@@ -42,13 +42,13 @@ export function capitalMovedEvent(year: number, nation: Nation): SimEvent {
   };
 }
 
-/** `why`, if given, finishes the sentence, e.g. "to reclaim its lost lands". */
-export function warEvent(year: number, attacker: Nation, defender: Nation, why?: string): SimEvent {
+/** `why`, if given, finishes the sentence, e.g. " to reclaim its lost lands" or ", coveting its iron". */
+export function warEvent(year: number, attacker: Nation, defender: Nation, why = ""): SimEvent {
   return {
     year,
     type: "war",
     actors: [attacker.id, defender.id],
-    text: `Year ${year}: ${attacker.name} declares war on ${defender.name}${why ? ` ${why}` : ""}.`,
+    text: `Year ${year}: ${attacker.name} declares war on ${defender.name}${why}.`,
   };
 }
 
@@ -90,11 +90,15 @@ export function allianceEndedEvent(year: number, a: Nation, b: Nation): SimEvent
   };
 }
 
-/** `winner` is null for a white peace (nobody clearly won). `cells` = land the winner gained. */
-export function peaceEvent(year: number, a: Nation, b: Nation, winner: Nation | null, cells: number): SimEvent {
+/**
+ * `winner` is null for a white peace (nobody clearly won). `cells` = land the winner gained;
+ * `prize` = a resource it took, if any.
+ */
+export function peaceEvent(year: number, a: Nation, b: Nation, winner: Nation | null, cells: number, prize?: string): SimEvent {
   const loser = winner === a ? b : a;
+  const spoils = prize ? ` and its ${prize}` : "";
   const text = winner
-    ? `Year ${year}: ${winner.name} defeats ${loser.name}, taking ${cells} province${cells === 1 ? "" : "s"}.`
+    ? `Year ${year}: ${winner.name} defeats ${loser.name}, taking ${cells} province${cells === 1 ? "" : "s"}${spoils}.`
     : `Year ${year}: ${a.name} and ${b.name} sign a white peace.`;
   return { year, type: "peace", actors: [winner?.id ?? a.id, loser.id], text };
 }

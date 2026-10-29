@@ -1,7 +1,7 @@
 // Debug helpers on screen: key toggles, and hover to inspect a cell.
 import type { GeneratedWorld } from "../gen";
-import type { NationId, WorldState } from "../core/types";
-import { BIOME_STATS } from "../gen/params";
+import type { NationId, ResourceKind, WorldState } from "../core/types";
+import { BIOME_STATS, RESOURCES } from "../gen/params";
 import { traits } from "../gen/races";
 import { alliesOf, opinion } from "../sim/diplomacy";
 
@@ -60,8 +60,13 @@ export function showCellOnHover(
     const ownerText = nation
       ? `${nation.name} (${ruler}) · ${people}, pop ${state.state.pop[cell.id]!.toFixed(2)}${diplomacyText(state, nation.id)}`
       : "unowned";
+    const s = state.state;
+    const deposit = cell.resource ? ` · ${RESOURCES[cell.resource as ResourceKind].name} (richness ${cell.richness.toFixed(2)})` : "";
+    const land = nation
+      ? ` · unrest ${s.unrest[cell.id]!.toFixed(2)} · devastation ${s.devastation[cell.id]!.toFixed(2)} · held since year ${s.ownedSince[cell.id]}`
+      : "";
     panel.textContent =
-      `${ownerText} · Cell ${cell.id} · ${BIOME_STATS[cell.biome].name}` +
+      `${ownerText}${land}${deposit} · Cell ${cell.id} · ${BIOME_STATS[cell.biome].name} · defense ${cell.defensibility.toFixed(2)}` +
       ` · ${cell.temp.toFixed(0)}°C · moisture ${cell.moisture.toFixed(2)}` +
       ` · elevation ${cell.elevation.toFixed(2)} · capacity ${cell.capacity.toFixed(2)}` +
       (tags ? ` · ${tags}` : "");

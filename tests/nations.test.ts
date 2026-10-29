@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
-import { Biome, type Cell } from "../src/core/types";
+import { Biome, Resource, type Cell } from "../src/core/types";
 import { generateWorld } from "../src/gen";
 import { buildChain, generateName } from "../src/gen/names";
 import { claimCore, hslToHex, placeCapitals } from "../src/gen/nations";
@@ -25,6 +25,9 @@ function lineMap(): Cell[] {
     riverFlow: 0,
     river: false,
     capacity: 0.1 + i * 0.1,
+    resource: Resource.None,
+    richness: 0,
+    defensibility: 1,
   }));
 }
 

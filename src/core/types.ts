@@ -37,6 +37,29 @@ export type RaceId = (typeof Race)[keyof typeof Race];
 /** Any race except None: the ones that have traits. */
 export type PlayableRace = Exclude<RaceId, typeof Race.None>;
 
+/** Resource deposits as named numbers, like Biome (SPEC §4.11). 0 = no deposit. */
+export const Resource = {
+  None: 0,
+  Grain: 1,
+  Timber: 2,
+  Iron: 3,
+  Gold: 4,
+  Horses: 5,
+  Mithril: 6,
+} as const;
+
+export type ResourceId = (typeof Resource)[keyof typeof Resource];
+export type ResourceKind = Exclude<ResourceId, typeof Resource.None>;
+
+/** One row of the RESOURCES table. */
+export interface ResourceInfo {
+  name: string;
+  /** Multiplier at full access (owning none = 1.0). See SPEC §4.11 for what each multiplies. */
+  effect: number;
+  /** How likely this type is, among the ones that fit a cell. */
+  weight: number;
+}
+
 /** Related races share a family, which decides how their nations' names sound. */
 export type RaceFamily = "human" | "elf" | "dwarf" | "orc";
 
@@ -63,6 +86,8 @@ export interface RaceTraits {
   /** Move-cost multiplier per biome when this race expands (missing = 1). */
   terrainCost: Partial<Record<BiomeId, number>>;
   mountainCost: number;
+  /** Resources this race prizes: worth more to it when picking what to fight for. */
+  favoredResources: ResourceKind[];
 }
 
 /** A map cell (one Voronoi polygon). Fixed after generation. */
@@ -92,6 +117,12 @@ export interface Cell {
   river: boolean;
   /** Max population this cell can hold. */
   capacity: number;
+  /** Resource deposit here (Resource.None = none). */
+  resource: ResourceId;
+  /** How rich the deposit is, 0..1 (0 without one). */
+  richness: number;
+  /** How hard the cell is to take in war (~0.8..2): biome × mountain × river. */
+  defensibility: number;
 }
 
 export type NationId = number; // 0 = unowned
@@ -123,6 +154,8 @@ export interface Nation {
   unrest: number;
   /** Population-weighted average control over its cells, 0..1 (SPEC §4.2). */
   control: number;
+  /** Access to each resource: sum of richness over its deposits, indexed by ResourceId (SPEC §4.11). */
+  access: number[];
 }
 
 export interface War {
@@ -134,6 +167,8 @@ export interface War {
   score: number;
   /** Set if an ally joined someone else's war: the id of that main war. Ends when it ends. */
   joined?: number;
+  /** Cells with a resource deposit captured during this war, and by whom (for the peace text). */
+  prizes?: { cell: CellId; by: NationId }[];
 }
 
 /** Two nations pledged to fight beside each other (SPEC §4.12). `a` < `b`. */

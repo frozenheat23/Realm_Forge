@@ -10,12 +10,12 @@ const GROUPS: { title: string; names: SimParamName[] }[] = [
   },
   {
     title: "Land",
-    names: ["UNREST_CONQUEST", "UNREST_CONTROL_K", "UNREST_FOREIGN_K", "UNREST_DEVASTATION_K", "UNREST_DECAY", "CORE_YEARS", "DEVASTATION_FRONT", "DEVASTATION_CAPTURE", "DEVASTATION_HEAL", "DEVASTATION_CAP_LOSS"],
+    names: ["UNREST_CONQUEST", "UNREST_CONTROL_K", "UNREST_FOREIGN_K", "UNREST_DEVASTATION_K", "UNREST_DECAY", "CORE_YEARS", "DEVASTATION_FRONT", "DEVASTATION_CAPTURE", "DEVASTATION_HEAL", "DEVASTATION_CAP_LOSS", "RESOURCE_SATURATION", "FAVORED_RESOURCE_VALUE"],
   },
   { title: "Expansion", names: ["EXPANSION_RATE"] },
   {
     title: "War",
-    names: ["WAR_BASE_PROB", "WAR_STRENGTH_EXP", "WAR_MAX_PROB", "MAX_WARS_PER_NATION", "DEFENDER_BONUS", "FRONT_FLIPS_PER_YEAR", "SCORE_PER_FLIP", "PEACE_SCORE", "WEARINESS_PEACE", "MAX_WAR_YEARS", "TRUCE_YEARS", "CLAIM_YEARS", "CLAIM_WAR_BONUS"],
+    names: ["WAR_BASE_PROB", "WAR_STRENGTH_EXP", "WAR_MAX_PROB", "MAX_WARS_PER_NATION", "DEFENDER_BONUS", "FRONT_FLIPS_PER_YEAR", "SCORE_PER_FLIP", "PEACE_SCORE", "WEARINESS_PEACE", "MAX_WAR_YEARS", "TRUCE_YEARS", "WAR_VALUE_K", "CLAIM_YEARS", "CLAIM_WAR_BONUS"],
   },
   {
     title: "Diplomacy",
@@ -31,6 +31,8 @@ export interface Layers {
   races: boolean;
   /** Lines between allied capitals (SPEC §5.4c). */
   alliances: boolean;
+  /** Resource deposit markers (SPEC §5.4e). */
+  resources: boolean;
   labels: boolean;
   cells: boolean;
 }
@@ -48,6 +50,7 @@ export function createSettings(container: HTMLElement, layers: Layers, onLayersC
     ["nations", "Nations"],
     ["races", "Races"],
     ["alliances", "Alliances"],
+    ["resources", "Resources"],
     ["labels", "Labels"],
     ["cells", "Cell outlines"],
   ];

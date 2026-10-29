@@ -112,6 +112,15 @@ export const ALLIANCE_OUTLINE = "rgba(40, 32, 20, 0.6)";
 export const ALLIANCE_WIDTH = 2;
 /** Dash pattern in pixels: [line, gap]. */
 export const ALLIANCE_DASH = [6, 4];
+/** Resources layer (SPEC §5.4e): a marker per deposit, colored by type (indexed by ResourceId; 0 unused). */
+export const RESOURCE_COLORS: string[] = ["#000000", "#e8c547", "#2e7d32", "#78909c", "#ffb300", "#8d6e63", "#80deea"];
+/** One letter drawn on each marker (indexed by ResourceId). */
+export const RESOURCE_LETTERS: string[] = ["", "G", "T", "I", "$", "H", "M"];
+/** Marker radius in pixels; rich deposits get up to RESOURCE_RICH_GROWTH extra. */
+export const RESOURCE_RADIUS = 4;
+export const RESOURCE_RICH_GROWTH = 2;
+export const RESOURCE_OUTLINE = "rgba(30, 25, 20, 0.85)";
+export const RESOURCE_FONT = "bold 7px sans-serif";
 /** Heatmap layers (SPEC §5.4d): color ramp from 0 to 1, drawn over the land at HEAT_ALPHA. */
 export const HEAT_RAMP: ColorStop[] = [
   { at: 0, color: "#fff7bc" },

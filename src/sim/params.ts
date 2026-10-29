@@ -52,6 +52,10 @@ export const SIM = {
   DEVASTATION_HEAL: 0.05,
   /** Capacity lost at full devastation. */
   DEVASTATION_CAP_LOSS: 0.5,
+  /** Total richness of one resource a nation needs for its full bonus. */
+  RESOURCE_SATURATION: 2.0,
+  /** How much more a race values a deposit of a resource it favors. */
+  FAVORED_RESOURCE_VALUE: 2,
 
   // --- Expansion ---
   EXPANSION_RATE: 0.1,
@@ -69,6 +73,8 @@ export const SIM = {
   WEARINESS_PEACE: 0.9,
   MAX_WAR_YEARS: 25,
   TRUCE_YEARS: 10,
+  /** War chance × (1 + this × value of the best enemy cell on the border). */
+  WAR_VALUE_K: 1.0,
   /** How long land lost to another nation can be claimed back. */
   CLAIM_YEARS: 100,
   /** × war chance against a nation holding land you lost within CLAIM_YEARS. */

@@ -1,11 +1,13 @@
 // Steps 5–6 (SPEC §4.5): neighbors go to war (allies may join), fronts move, and wars end in peace and a truce.
 import type { Rng } from "../core/rng";
-import type { CellId, Nation, NationId, SimEvent, War, WorldState } from "../core/types";
+import { Resource, type CellId, type Nation, type NationId, type ResourceKind, type SimEvent, type War, type WorldState } from "../core/types";
+import { RESOURCES } from "../gen/params";
 import { traits } from "../gen/races";
 import { allied, alliesOf, opinion } from "./diplomacy";
 import { joinAttackEvent, joinDefenseEvent, peaceEvent, warEvent } from "./events";
-import { moveCost, neighborPairs, pairKey, setOwner } from "./helpers";
+import { neighborPairs, pairKey, setOwner } from "./helpers";
 import { SIM } from "./params";
+import { cellValue, effectiveCapacity, resourceBonus } from "./resources";
 
 // They used to live here; other files still import them from war.ts.
 export { neighborPairs, pairKey };
@@ -67,11 +69,47 @@ export function claims(state: WorldState): Set<number> {
   return found;
 }
 
+/**
+ * For each directedKey(attacker, defender): the defender's most valuable cell on
+ * their shared border, as the attacker's race sees it. What a war would be fought for.
+ */
+export function borderPrizes(state: WorldState): Map<number, { cell: CellId; value: number }> {
+  const owner = state.state.owner;
+  const best = new Map<number, { cell: CellId; value: number }>();
+  for (const cell of state.cells) {
+    const holder = owner[cell.id]!;
+    if (holder === 0) continue;
+    let capacity = -1; // worked out only if this cell is on a border
+    for (const n of cell.neighbors) {
+      const rival = owner[n]!;
+      if (rival === 0 || rival === holder) continue;
+      if (capacity < 0) capacity = effectiveCapacity(state, cell.id);
+      const value = cellValue(state, cell.id, state.nations.get(rival)!.race, capacity);
+      const key = directedKey(rival, holder);
+      const current = best.get(key);
+      if (!current || value > current.value || (value === current.value && cell.id < current.cell)) {
+        best.set(key, { cell: cell.id, value });
+      }
+    }
+  }
+  return best;
+}
+
+/** Why `attacker` goes to war, for the event text: claims first, then a deposit its race prizes. */
+function warMotive(state: WorldState, attacker: Nation, claim: boolean, prize?: CellId): string | undefined {
+  if (claim) return " to reclaim its lost lands";
+  if (prize === undefined) return undefined;
+  const deposit = state.cells[prize]!.resource;
+  if (deposit === 0 || !traits(attacker.race).favoredResources.includes(deposit as ResourceKind)) return undefined;
+  return `, coveting its ${RESOURCES[deposit as ResourceKind].name}`;
+}
+
 export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
   const events: SimEvent[] = [];
   const pairs = neighborPairs(state);
   const touching = new Set(pairs.map(([a, b]) => pairKey(a, b)));
   const claimed = claims(state);
+  const prizes = borderPrizes(state);
   const atWar = new Set(state.wars.map((w) => pairKey(w.attacker, w.defender)));
   const warCount = new Map<NationId, number>();
   for (const w of state.wars) {
@@ -109,13 +147,15 @@ export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
     const [attacker, defender] = na.strength >= nb.strength ? [na, nb] : [nb, na];
     const attackAllies = helpers(attacker.id, defender.id);
     const defendAllies = helpers(defender.id, attacker.id);
+    // Reasons to fight: land it lost to the defender, and how much the best border cell is worth.
     const claim = claimed.has(directedKey(attacker.id, defender.id));
-    const motive = claim ? SIM.CLAIM_WAR_BONUS : 1;
+    const prize = prizes.get(directedKey(attacker.id, defender.id));
+    const motive = (claim ? SIM.CLAIM_WAR_BONUS : 1) * (1 + SIM.WAR_VALUE_K * (prize?.value ?? 0));
     const chance = warChance(state, attacker, defender, help(attackAllies, SIM.ALLY_ATTACK_PROB), help(defendAllies, SIM.ALLY_DEFEND_PROB), motive);
     if (!rng.chance(chance)) continue;
 
     const war = start(attacker, defender);
-    events.push(warEvent(state.year, attacker, defender, claim ? "to reclaim its lost lands" : undefined));
+    events.push(warEvent(state.year, attacker, defender, warMotive(state, attacker, claim, prize?.cell)));
     for (const ally of defendAllies) {
       if (!free(ally.id, attacker.id) || !rng.chance(SIM.ALLY_DEFEND_PROB)) continue;
       start(attacker, ally, war.id);
@@ -138,30 +178,44 @@ export function averageDefense(state: WorldState, cells: CellId[]): number {
   return sum / cells.length;
 }
 
+/** Average terrain defensibility of `cells` (1 if there are none). */
+export function averageDefensibility(state: WorldState, cells: CellId[]): number {
+  if (cells.length === 0) return 1;
+  let sum = 0;
+  for (const c of cells) sum += state.cells[c]!.defensibility;
+  return sum / cells.length;
+}
+
 /**
  * One year of fighting in one war. Returns how many cells changed hands.
  * The yearly winner is a weighted coin flip: the stronger side wins more often,
  * and the defender gets a home-ground bonus, bigger where its front is held by
- * a stubborn race (dwarven hill forts hold even under a human king).
+ * a stubborn race (dwarven hill forts hold even under a human king), runs
+ * through hills, forests and rivers, or is armed with mithril.
  */
 export function fightBattle(state: WorldState, war: War, rng: Rng): number {
   const attacker = state.nations.get(war.attacker)!;
   const defender = state.nations.get(war.defender)!;
   const a = attacker.strength;
-  const frontDefense = averageDefense(state, frontCells(state, defender.id, attacker.id));
+  const front = frontCells(state, defender.id, attacker.id);
+  const frontDefense = averageDefense(state, front) * averageDefensibility(state, front) * resourceBonus(defender, Resource.Mithril);
   const d = defender.strength * SIM.DEFENDER_BONUS * frontDefense;
   const attackerWins = rng.chance(a + d > 0 ? a / (a + d) : 0.5);
   const [winner, loser] = attackerWins ? [attacker, defender] : [defender, attacker];
 
-  // The winner takes the easiest loser cells along the front first. The
-  // capital is defended hardest, so it only falls once the rest of the front has.
-  const cost = (c: CellId) => (c === loser.capital ? Infinity : moveCost(state.cells[c]!));
+  // The winner takes the loser's most valuable front cells first. The capital
+  // is defended hardest, so it only falls once the rest of the front has.
+  const value = (c: CellId) =>
+    c === loser.capital ? -Infinity : cellValue(state, c, winner.race, effectiveCapacity(state, c));
   const targets = frontCells(state, loser.id, winner.id)
-    .sort((x, y) => cost(x) - cost(y) || x - y)
-    .slice(0, SIM.FRONT_FLIPS_PER_YEAR);
+    .map((c) => ({ c, v: value(c) }))
+    .sort((x, y) => y.v - x.v || x.c - y.c)
+    .slice(0, SIM.FRONT_FLIPS_PER_YEAR)
+    .map((t) => t.c);
   const { unrest, devastation } = state.state;
   for (const c of targets) {
     setOwner(state, c, winner.id);
+    if (state.cells[c]!.resource !== 0) (war.prizes ??= []).push({ cell: c, by: winner.id });
     // Conquered people resent their new rulers, and the fighting wrecks the land.
     unrest[c] = Math.max(unrest[c]!, SIM.UNREST_CONQUEST);
     devastation[c] = Math.min(1, devastation[c]! + SIM.DEVASTATION_CAPTURE);
@@ -207,7 +261,10 @@ export function fightWars(state: WorldState, rng: Rng): SimEvent[] {
     const clear = Math.abs(war.score) >= SIM.PEACE_SCORE / 3;
     const winner = !clear ? null : war.score > 0 ? attacker : defender;
     const cells = Math.round(Math.abs(war.score) / SIM.SCORE_PER_FLIP);
-    events.push(peaceEvent(state.year, attacker, defender, winner, cells));
+    // Name a deposit the winner took and still holds, if any.
+    const prize = winner ? war.prizes?.find((p) => p.by === winner.id && state.state.owner[p.cell] === winner.id) : undefined;
+    const prizeName = prize ? RESOURCES[state.cells[prize.cell]!.resource as ResourceKind].name : undefined;
+    events.push(peaceEvent(state.year, attacker, defender, winner, cells, prizeName));
     state.truces.push({ a: attacker.id, b: defender.id, until: state.year + SIM.TRUCE_YEARS });
   }
 

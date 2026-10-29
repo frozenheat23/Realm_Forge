@@ -71,20 +71,20 @@ Quickest way: open **Settings** under the map and change numbers while it runs (
 
 ## Biomes
 
-Base capacity is relative (1.0 = grassland). Move cost affects expansion and war (higher = harder to take).
+Base capacity is relative (1.0 = grassland). Move cost affects expansion and control (higher = harder to reach). Defense multiplies a cell's defensibility in war (SPEC §4.11).
 
-| Biome | Base capacity | Move cost | Notes |
-|---|---|---|---|
-| Grassland | 1.0 | 1.0 | Baseline; empires grow fastest here |
-| Temperate forest | 0.8 | 1.5 | |
-| Savanna | 0.7 | 1.2 | |
-| Tropical forest | 0.6 | 2.5 | Rich but hard to move through |
-| Shrubland | 0.5 | 1.3 | |
-| Taiga | 0.4 | 2.0 | |
-| Wetland | 0.4 | 2.5 | Natural barrier |
-| Desert | 0.15 | 3.0 | Natural barrier |
-| Tundra | 0.15 | 2.5 | |
-| Ice | 0 | 10 | Effectively uninhabitable |
+| Biome | Base capacity | Move cost | Defense | Notes |
+|---|---|---|---|---|
+| Grassland | 1.0 | 1.0 | 1.0 | Baseline; empires grow fastest here |
+| Temperate forest | 0.8 | 1.5 | 1.2 | |
+| Savanna | 0.7 | 1.2 | 1.0 | |
+| Tropical forest | 0.6 | 2.5 | 1.3 | Rich but hard to move through |
+| Shrubland | 0.5 | 1.3 | 1.0 | |
+| Taiga | 0.4 | 2.0 | 1.2 | |
+| Wetland | 0.4 | 2.5 | 1.3 | Natural barrier |
+| Desert | 0.15 | 3.0 | 1.1 | Natural barrier |
+| Tundra | 0.15 | 2.5 | 1.0 | |
+| Ice | 0 | 10 | 1.0 | Effectively uninhabitable |
 
 **Modifiers:**
 
@@ -402,7 +402,7 @@ Ideas for future rules. When one is adopted, design it in SPEC.md, move it into 
 
 Design in SPEC.md §4.11. All values are first guesses. Generation values would go in `gen/params.ts`, the rest in `SIM`.
 
-**Being built.** In code so far: control (moved up to Stability), and "Unrest, devastation, ownership" plus `CLAIM_YEARS` / `CLAIM_WAR_BONUS` (live in the Settings panel under "Land" and "War"). This section moves into the main Simulation part when M9 is done.
+**Being built.** In code so far: control (moved up to Stability); "Unrest, devastation, ownership"; resources, terrain defense (plus new `HILL_H` 0.4 and `HIGH_MOUNTAIN_H` 0.8 in `gen/params.ts`: where iron and mithril appear), cell value and war motives. Sim values are live in the Settings panel under "Land" and "War". This section moves into the main Simulation part when M9 is done.
 
 ### Resources and terrain (generation)
 

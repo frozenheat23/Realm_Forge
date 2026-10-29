@@ -1,5 +1,16 @@
 // Builds tiny hand-made worlds for simulation tests.
-import { Biome, Race, type BiomeId, type Cell, type Nation, type NationId, type RaceId, type WorldState } from "../src/core/types";
+import {
+  Biome,
+  Race,
+  Resource,
+  type BiomeId,
+  type Cell,
+  type Nation,
+  type NationId,
+  type RaceId,
+  type ResourceId,
+  type WorldState,
+} from "../src/core/types";
 
 export interface TinyCell {
   neighbors: number[];
@@ -7,6 +18,9 @@ export interface TinyCell {
   land?: boolean;
   mountain?: boolean;
   capacity?: number;
+  resource?: ResourceId;
+  richness?: number;
+  defensibility?: number;
 }
 
 /** A row of `count` land cells, each linked to the cells beside it: [0]-[1]-[2]-... */
@@ -36,6 +50,9 @@ export function makeCells(spec: TinyCell[]): Cell[] {
       riverFlow: 0,
       river: false,
       capacity: land ? (c.capacity ?? 1) : 0,
+      resource: c.resource ?? Resource.None,
+      richness: c.richness ?? 0,
+      defensibility: c.defensibility ?? 1,
     };
   });
 }
@@ -57,6 +74,7 @@ export function makeNation(id: NationId, capital: number, extra: Partial<Nation>
     foreignShare: 0,
     unrest: 1,
     control: 1,
+    access: [0, 0, 0, 0, 0, 0, 0],
     ...extra,
   };
 }

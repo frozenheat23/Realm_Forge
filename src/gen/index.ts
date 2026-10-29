@@ -1,6 +1,6 @@
 // Runs every generation step in order (SPEC §3) and returns the finished world.
 import type { Delaunay } from "d3-delaunay";
-import { Biome, type Cell, type WorldState } from "../core/types";
+import { Biome, Resource, type Cell, type WorldState } from "../core/types";
 import { createRng } from "../core/rng";
 import { cellCapacity, classifyBiome } from "./biomes";
 import { buildCellGraph, jitteredGrid } from "./cells";
@@ -9,6 +9,7 @@ import { generateHeightmap, type Heightmap } from "./heightmap";
 import { CELL_COUNT, MAP_HEIGHT, MAP_WIDTH, MOUNTAIN_H } from "./params";
 import { createStartingNations } from "./nations";
 import { placeRaceHomes } from "./races";
+import { defensibilityOf, placeResources } from "./resources";
 import { drainageMap, traceRivers } from "./rivers";
 
 export interface GeneratedWorld {
@@ -73,7 +74,7 @@ export function generateWorld(seed: string, width = MAP_WIDTH, height = MAP_HEIG
     const coastal = land && coastSteps[i] === 1;
     const mountain = land && elevation[i]! > MOUNTAIN_H;
     const river = riverFlow[i]! > 0;
-    cells.push({
+    const cell: Cell = {
       id: i,
       site: sites[i]!,
       neighbors: neighbors[i]!,
@@ -89,10 +90,18 @@ export function generateWorld(seed: string, width = MAP_WIDTH, height = MAP_HEIG
       riverFlow: riverFlow[i]!,
       river,
       capacity: land ? cellCapacity(biome, river, coastal, mountain) : 0,
-    });
+      resource: Resource.None,
+      richness: 0,
+      defensibility: 1,
+    };
+    cell.defensibility = defensibilityOf(cell);
+    cells.push(cell);
   }
 
-  // 7. Race homelands, then starting nations
+  // 7. Resource deposits
+  placeResources(rng.fork("resources"), cells);
+
+  // 8. Race homelands, then starting nations
   const raceHomes = placeRaceHomes(rng.fork("races"), cells);
   const start = createStartingNations(rng.fork("nations"), cells, width, height, raceHomes);
 

@@ -1,14 +1,9 @@
 // Step 1 (SPEC §4.1): people multiply toward what the land can hold.
-import { Race, type CellId, type WorldState } from "../core/types";
-import { raceCapacity, traits } from "../gen/races";
+import { Race, type WorldState } from "../core/types";
+import { traits } from "../gen/races";
 import { SIM } from "./params";
+import { effectiveCapacity } from "./resources";
 import { allFrontCells } from "./war";
-
-/** How many people a cell can hold right now: its race's capacity, cut by war damage. */
-export function effectiveCapacity(state: WorldState, cell: CellId): number {
-  const s = state.state;
-  return raceCapacity(state.cells[cell]!, s.race[cell]!) * (1 - s.devastation[cell]! * SIM.DEVASTATION_CAP_LOSS);
-}
 
 /**
  * Logistic growth: fast when a cell is nearly empty, slowing to zero as it

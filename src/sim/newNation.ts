@@ -4,6 +4,7 @@ import type { CellId, Nation, NationId, RaceId, WorldState } from "../core/types
 import { nameNationAt, nationColor } from "../gen/nations";
 import { traits } from "../gen/races";
 import { nextNationId, takenNames } from "./helpers";
+import { emptyAccess } from "./resources";
 
 /** Makes a new nation of `race` with a fresh name and color, adds it to the state, and returns it. */
 export function addNation(
@@ -32,6 +33,7 @@ export function addNation(
     foreignShare: 0,
     unrest: traits(race).unrest,
     control: 1,
+    access: emptyAccess(),
   };
   if (parent !== undefined) nation.parent = parent;
   state.nations.set(id, nation);
