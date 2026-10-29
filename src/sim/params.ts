@@ -75,7 +75,7 @@ export const SIM = {
   EXPANSION_RATE: 0.1,
 
   // --- War ---
-  WAR_BASE_PROB: 0.004,
+  WAR_BASE_PROB: 0.003,
   WAR_STRENGTH_EXP: 1.0,
   /** Ceiling on the yearly chance a pair goes to war, however lopsided they are. */
   WAR_MAX_PROB: 0.1,
@@ -88,7 +88,7 @@ export const SIM = {
   MAX_WAR_YEARS: 25,
   TRUCE_YEARS: 10,
   /** War chance × (1 + this × value of the best enemy cell on the border). */
-  WAR_VALUE_K: 1.0,
+  WAR_VALUE_K: 0.5,
   /** How long land lost to another nation can be claimed back. */
   CLAIM_YEARS: 100,
   /** × war chance against a nation holding land you lost within CLAIM_YEARS. */

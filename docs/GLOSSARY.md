@@ -87,4 +87,14 @@ New concepts as we meet them, with where they show up in our code.
 | **Re-export** | A file passing on something it imports, so older `import`s keep working after code moves. | `export { neighborPairs, pairKey }` in `src/sim/war.ts` |
 | **Default parameter** | A value a function uses when the caller leaves that argument out: `attackHelp = 0`. | `warChance()` in `src/sim/war.ts` |
 | **`afterEach`** | A test hook that runs after every test in the file; we use it to put changed settings back. | `tests/diplomacy.test.ts` |
+| **Dijkstra's algorithm** | Finding the cheapest path from a start to every cell, always expanding the cheapest-so-far cell next (with a min-heap). Like BFS, but steps can cost different amounts. | `controlMap()` in `src/sim/control.ts` |
+| **Multi-source search** | Starting a search from many cells at once (all capitals, all province seeds), so each cell ends up belonging to the nearest one. | `controlMap()`, `placeProvinces()` |
+| **Exponential falloff** | `exp(−cost / range)`: 1 at the start, ~37% at `range`, fading smoothly toward 0 but never reaching it. | `control` in `src/sim/control.ts` |
+| **Fisher–Yates shuffle** | Putting a list in random order fairly: swap each item with a random earlier one, from the end backwards. | `placeProvinces()` in `src/gen/provinces.ts` |
+| **Two-queue BFS** | A breadth-first search that always empties one queue (here: same province) before touching the other, so it prefers some cells without sorting. | `floodFill()` in `src/sim/rebellion.ts` |
+| **Saturation (diminishing returns)** | A bonus that grows with how much you have, then stops: `min(1, access / RESOURCE_SATURATION)`. Keeps the rich from getting endlessly richer. | `resourceBonus()` in `src/sim/resources.ts` |
+| **Profiling** | Timing each part of the code to find what's slow before trying to speed it up. M9 found war fronts and repeated lookups. | decision log, 2026-10-29 |
+| **Lookup table (caching)** | Working a value out once per pass and storing it in an array, instead of recalculating it for every cell. | `grainBonuses()` in `src/sim/resources.ts` |
+| **`??=` (nullish assignment)** | "Set this only if it's missing": `war.prizes ??= []` makes the list the first time it's needed. | `fightBattle()` in `src/sim/war.ts` |
+| **`switch`** | Picking code by the exact value of something; TypeScript checks every case is handled. | `fits()` in `src/gen/resources.ts` |
 | **Environment variable** | A setting passed to a program from outside, e.g. `RACE_BALANCE=1` turns on the slow balance test. | `tests/raceBalance.test.ts` |

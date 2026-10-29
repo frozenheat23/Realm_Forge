@@ -7,11 +7,14 @@ import { traits } from "../gen/races";
 import { cityFoundedEvent } from "./events";
 import { isCore, takenNames } from "./helpers";
 import { SIM } from "./params";
-import { effectiveCapacity } from "./resources";
+import { effectiveCapacity, grainBonuses } from "./resources";
 
-/** Development needed for each settlement level (index = level). */
+/** Development needed for each settlement level. */
 function threshold(level: number): number {
-  return [0, SIM.SETTLE_VILLAGE, SIM.SETTLE_TOWN, SIM.SETTLE_CITY][level]!;
+  if (level === Settlement.Village) return SIM.SETTLE_VILLAGE;
+  if (level === Settlement.Town) return SIM.SETTLE_TOWN;
+  if (level === Settlement.City) return SIM.SETTLE_CITY;
+  return 0;
 }
 
 /** Is there a city within CITY_MIN_SPACING − 1 steps of `cell` (over land or water)? */
@@ -49,6 +52,7 @@ export function cityNearby(state: WorldState, cell: CellId): boolean {
 export function updateLand(state: WorldState, control: Float32Array, rng: Rng): SimEvent[] {
   const events: SimEvent[] = [];
   const { owner, pop, race, unrest, devastation, development, settlement } = state.state;
+  const grain = grainBonuses(state);
   for (let c = 0; c < owner.length; c++) {
     devastation[c] = devastation[c]! * (1 - SIM.DEVASTATION_HEAL);
 
@@ -63,7 +67,7 @@ export function updateLand(state: WorldState, control: Float32Array, rng: Rng): 
       1,
     );
 
-    const capacity = effectiveCapacity(state, c);
+    const capacity = effectiveCapacity(state, c, grain);
     const full = capacity > 0 ? Math.min(1, pop[c]! / capacity) : 0;
     development[c] = clamp(
       development[c]! + SIM.DEV_GROWTH * full * control[c]! * (1 - devastation[c]!) - SIM.DEV_DEVASTATION_LOSS * devastation[c]!,

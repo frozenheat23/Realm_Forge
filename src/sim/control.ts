@@ -39,12 +39,14 @@ export function controlMap(state: WorldState): Float32Array {
     }
   }
 
+  // Each nation's reach, worked out once: CONTROL_RANGE × its ruling race's cohesion.
+  const reach = new Map<number, number>();
+  for (const nation of state.nations.values()) reach.set(nation.id, SIM.CONTROL_RANGE * traits(nation.race).cohesion);
+
   const control = new Float32Array(cells.length);
   for (let c = 0; c < cells.length; c++) {
-    const nation = state.nations.get(owner[c]!);
-    if (!nation) continue;
-    control[c] =
-      cost[c] === Infinity ? SIM.CONTROL_ISLAND : Math.exp(-cost[c]! / (SIM.CONTROL_RANGE * traits(nation.race).cohesion));
+    if (owner[c] === 0) continue;
+    control[c] = cost[c] === Infinity ? SIM.CONTROL_ISLAND : Math.exp(-cost[c]! / reach.get(owner[c]!)!);
   }
   return control;
 }

@@ -7,7 +7,7 @@ import { allied, alliesOf, opinion } from "./diplomacy";
 import { joinAttackEvent, joinDefenseEvent, peaceEvent, warEvent } from "./events";
 import { neighborPairs, pairKey, setOwner } from "./helpers";
 import { SIM } from "./params";
-import { cellValue, effectiveCapacity, resourceBonus } from "./resources";
+import { cellValue, effectiveCapacity, grainBonuses, resourceBonus } from "./resources";
 
 // They used to live here; other files still import them from war.ts.
 export { neighborPairs, pairKey };
@@ -15,17 +15,35 @@ export { neighborPairs, pairKey };
 /** Cells of `side` that touch a cell of `enemy`: where fighting happens. */
 export function frontCells(state: WorldState, side: NationId, enemy: NationId): CellId[] {
   const owner = state.state.owner;
-  return state.cells
-    .filter((c) => owner[c.id] === side && c.neighbors.some((n) => owner[n] === enemy))
-    .map((c) => c.id);
+  const front: CellId[] = [];
+  for (let c = 0; c < owner.length; c++) {
+    if (owner[c] !== side) continue;
+    for (const n of state.cells[c]!.neighbors) {
+      if (owner[n] === enemy) {
+        front.push(c);
+        break;
+      }
+    }
+  }
+  return front;
 }
 
-/** All cells on any active front (both sides). Used for war losses in the population step. */
+/** All cells on any active front (both sides), found in one pass over the map. Used in the population step. */
 export function allFrontCells(state: WorldState): Set<CellId> {
   const front = new Set<CellId>();
-  for (const war of state.wars) {
-    for (const c of frontCells(state, war.attacker, war.defender)) front.add(c);
-    for (const c of frontCells(state, war.defender, war.attacker)) front.add(c);
+  if (state.wars.length === 0) return front;
+  const atWar = new Set(state.wars.map((w) => pairKey(w.attacker, w.defender)));
+  const owner = state.state.owner;
+  for (let c = 0; c < owner.length; c++) {
+    const me = owner[c]!;
+    if (me === 0) continue;
+    for (const n of state.cells[c]!.neighbors) {
+      const other = owner[n]!;
+      if (other !== 0 && other !== me && atWar.has(pairKey(me, other))) {
+        front.add(c);
+        break;
+      }
+    }
   }
   return front;
 }
@@ -75,6 +93,7 @@ export function claims(state: WorldState): Set<number> {
  */
 export function borderPrizes(state: WorldState): Map<number, { cell: CellId; value: number }> {
   const owner = state.state.owner;
+  const grain = grainBonuses(state);
   const best = new Map<number, { cell: CellId; value: number }>();
   for (const cell of state.cells) {
     const holder = owner[cell.id]!;
@@ -83,7 +102,7 @@ export function borderPrizes(state: WorldState): Map<number, { cell: CellId; val
     for (const n of cell.neighbors) {
       const rival = owner[n]!;
       if (rival === 0 || rival === holder) continue;
-      if (capacity < 0) capacity = effectiveCapacity(state, cell.id);
+      if (capacity < 0) capacity = effectiveCapacity(state, cell.id, grain);
       const value = cellValue(state, cell.id, state.nations.get(rival)!.race, capacity);
       const key = directedKey(rival, holder);
       const current = best.get(key);

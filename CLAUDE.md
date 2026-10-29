@@ -94,7 +94,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | M6 ✅ | Polish | Speed controls, settings panel, video export, save/load. Web Worker only if needed. | §5.5, §6 |
 | M7 ✅ | Races | Five races (Humans, Light Elves, Dark Elves, Dwarves, Orcs) live in cells and rule nations; traits change growth, war, stability and rebellion; ethnic rebellions happen; Races map layer; no race takes over most of 10 test seeds | §2, §3.8–3.9, §4.1–4.10, §5.4b, §6 |
 | M8 ✅ | Diplomacy | Opinion between nations from race attitudes, borders, wars and shared enemies; alliances form and break; bordering allies join defensive and offensive wars; Alliances map layer; race balance still holds | §2, §4.5, §4.6, §4.12, §5.4c, §6 |
-| M9 | Land and cell detail (planned) | Cells hold resources, unrest, devastation, development, settlements and ownership history; control replaces capital distance; rebellions start where unrest is high; wars fought over resources and claims; cities grow; 10-seed balance check still passes | §4.11 |
+| M9 ✅ | Land and cell detail | Cells hold resources, unrest, devastation, development, settlements and ownership history; control replaces capital distance; rebellions start where unrest is high; wars fought over resources and claims; cities grow; 10-seed balance check still passes | §2, §3.7b, §4.1–4.9, §4.11, §5.4d–f, §6 |
 | Later | Backlog | See SPEC.md §8 | §8 |
 
 ---
@@ -167,3 +167,9 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-10-29 | Alliances shown as dashed lines between capitals (key A); hover lists allies and worst rival |
 | 2026-10-29 | Tuning: dropped an "allied" opinion bonus (alliances never broke); `OPINION_DRIFT` 0.03 → 0.05 and `SHARED_ENEMY_BONUS` 0.3 → 0.5 so wartime coalitions can form within one war. Result: ~4–8 alliances and ~5–12 allies joining wars per century; kin pacts (Light Elves, Dwarves, Humans) last centuries. Balance check: biggest race 40%, no takeovers |
 | 2026-10-29 | Save format v3 (opinions, alliances); M9 plan moves to v4. `pairKey` / `neighborPairs` moved to `sim/helpers.ts` (still re-exported from `war.ts`) |
+| 2026-10-29 | M9 built in the 5 planned sub-steps, one commit each. §4.11 stays as the full system description (like §4.10 Races) instead of being split up; each step's section says what changed |
+| 2026-10-29 | M9: land updates (unrest, devastation, development, settlements) run right after Totals (`sim/land.ts`), not in Population, because they need this year's control. Every owner change goes through `setOwner` (records `prevOwner`, `ownedSince`) |
+| 2026-10-29 | M9 changes from the design guesses: `UNREST_CONTROL_K` 0.02 → 0.05 (at 0.02 weak control could never beat `UNREST_DECAY`); `SETTLE_THRESHOLDS` split into `SETTLE_VILLAGE/TOWN/CITY` (Settings panel only edits single numbers); new `HILL_H` 0.4 and `HIGH_MOUNTAIN_H` 0.8 for iron and mithril; province seeds √`PROVINCE_SIZE` steps apart (measured) |
+| 2026-10-29 | M9 extras: rebels' unrest resets to 0 and their capital is their biggest settlement; rebel land gives the old nation a claim (reconquest wars); war events say why ("to reclaim its lost lands", ", coveting its iron"); peace names a captured resource |
+| 2026-10-29 | M9 tuning: war motives raised wars to ~70–110/century, so `WAR_VALUE_K` 1.0 → 0.5 and `WAR_BASE_PROB` 0.004 → 0.003 (back to ~60–85). Balance check: biggest race 41%, no takeovers. ~1/3 of wars are claim wars; 40–55 cities by year 1000 |
+| 2026-10-29 | M9 performance: tick went 4.8 → 18 ms; fixed with one-pass war fronts, per-pass grain lookup tables and no per-cell allocations → ~5.5 ms. Keys: H heatmaps, M resources, T towns |

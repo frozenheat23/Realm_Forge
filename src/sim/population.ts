@@ -2,7 +2,7 @@
 import { Race, type WorldState } from "../core/types";
 import { traits } from "../gen/races";
 import { SIM } from "./params";
-import { effectiveCapacity } from "./resources";
+import { effectiveCapacity, grainBonuses } from "./resources";
 import { allFrontCells } from "./war";
 
 /**
@@ -13,7 +13,8 @@ import { allFrontCells } from "./war";
  */
 export function growPopulation(state: WorldState): void {
   const { pop, owner, race, unrest, devastation, development, settlement } = state.state;
-  const front = state.wars.length > 0 ? allFrontCells(state) : new Set<number>();
+  const front = allFrontCells(state);
+  const grain = grainBonuses(state);
   for (let i = 0; i < pop.length; i++) {
     // Abandoned land is emptied of people, unrest and what they built; war damage stays and heals.
     if (owner[i] === 0) {
@@ -21,9 +22,11 @@ export function growPopulation(state: WorldState): void {
       unrest[i] = 0;
       development[i] = 0;
       settlement[i] = 0;
+      pop[i] = 0;
+      continue;
     }
-    const capacity = effectiveCapacity(state, i);
-    if (owner[i] === 0 || capacity <= 0) {
+    const capacity = effectiveCapacity(state, i, grain);
+    if (capacity <= 0) {
       pop[i] = 0;
       continue;
     }

@@ -21,14 +21,25 @@ export function resourceBonus(nation: Nation | undefined, resource: ResourceKind
   return 1 + (RESOURCES[resource].effect - 1) * share;
 }
 
-/** How many people a cell can hold right now: its race's capacity, cut by war damage, raised by the owner's grain. */
-export function effectiveCapacity(state: WorldState, cell: CellId): number {
+/** Every nation's grain bonus, indexed by nation id (1 for nobody), worked out once for a whole pass over the map. */
+export function grainBonuses(state: WorldState): Float64Array {
+  let maxId = 0;
+  for (const id of state.nations.keys()) maxId = Math.max(maxId, id);
+  const bonus = new Float64Array(maxId + 1).fill(1);
+  for (const nation of state.nations.values()) bonus[nation.id] = resourceBonus(nation, Resource.Grain);
+  return bonus;
+}
+
+/**
+ * How many people a cell can hold right now: its race's capacity, cut by war
+ * damage, raised by the owner's grain. Pass `grain` (from grainBonuses) when
+ * calling this for many cells; it saves looking the owner up each time.
+ */
+export function effectiveCapacity(state: WorldState, cell: CellId, grain?: Float64Array): number {
   const s = state.state;
-  return (
-    raceCapacity(state.cells[cell]!, s.race[cell]!) *
-    (1 - s.devastation[cell]! * SIM.DEVASTATION_CAP_LOSS) *
-    resourceBonus(state.nations.get(s.owner[cell]!), Resource.Grain)
-  );
+  const owner = s.owner[cell]!;
+  const grainBonus = grain ? (grain[owner] ?? 1) : resourceBonus(state.nations.get(owner), Resource.Grain);
+  return raceCapacity(state.cells[cell]!, s.race[cell]!) * (1 - s.devastation[cell]! * SIM.DEVASTATION_CAP_LOSS) * grainBonus;
 }
 
 /** How much a nation of `race` wants this cell: how full and developed it is, plus any deposit it prizes. */

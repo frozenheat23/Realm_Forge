@@ -175,7 +175,7 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `WAR_BASE_PROB` | 0.004 | 0.001–0.02 | Base yearly chance a neighbor pair goes to war | Constant warfare | Peaceful eras |
+| `WAR_BASE_PROB` | 0.003 | 0.001–0.02 | Base yearly chance a neighbor pair goes to war (was 0.004 before M9's war motives) | Constant warfare | Peaceful eras |
 | `WAR_STRENGTH_EXP` | 1.0 | 0.5–2.0 | How much a power gap encourages war | Strong prey on weak | Wars between equals too |
 | `WAR_MAX_PROB` | 0.1 | 0.02–0.3 | Ceiling on a pair's yearly war chance, however lopsided | Bullies attack almost at once | Even giants hesitate |
 | `MAX_WARS_PER_NATION` | 2 | 1–4 | Concurrent wars per nation | Multi-front collapses | Focused wars |
@@ -186,6 +186,9 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 | `WEARINESS_PEACE` | 0.9 | 0.6–1.0 | Weariness that forces peace | Wars fought to exhaustion | Quick white peace |
 | `MAX_WAR_YEARS` | 25 | 10–50 | Hard cap on war length | Generational wars | Short conflicts |
 | `TRUCE_YEARS` | 10 | 0–30 | Years before the same pair can fight again | Calmer rivalries | Constant re-matches |
+| `WAR_VALUE_K` | 0.5 | 0–3 | War chance × (1 + this × value of the best enemy border cell) | Wars chase rich land | Land value ignored (0) |
+| `CLAIM_YEARS` | 100 | 30–300 | How long land lost to a nation can be claimed back | Old grudges drive wars for centuries | Lost land is soon forgotten |
+| `CLAIM_WAR_BONUS` | 2.0 | 1–4 | × war chance against a nation holding your claimed land | Reconquest wars dominate; rebels get swallowed back | Claims don't matter (1) |
 
 ## Rebellion
 
@@ -270,6 +273,68 @@ Affinity multiplies a cell's capacity for that race; terrain cost multiplies mov
 | **Dwarves** | 0 | −0.1 | −0.6 | 0.3 | −0.6 |
 | **Orcs** | −0.3 | −0.6 | −0.3 | −0.6 | 0.1 |
 
+## Land and cell detail
+
+SPEC §4.11. Generation values (first table) are in `gen/params.ts` and need a new world; the rest are in `SIM` and live in the Settings panel ("Land"). Control is under Stability; `WAR_VALUE_K` and the claim values are under War.
+
+### Resources, terrain and provinces (generation)
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `RESOURCE_PROB` | 0.04 | 0.01–0.1 | Share of land cells with a deposit (~160 on a 10k-cell map) | Resources everywhere, less worth fighting over | Rare, fought-over deposits |
+| `RICHNESS_SKEW` | 2 | 1–4 | Richness = random ^ this | Mostly poor deposits, a few rich ones | Evenly rich deposits |
+| `HILL_H` | 0.4 | 0.2–0.55 | Land elevation where hills (and iron) start; hills end at `MOUNTAIN_H` | Less iron, high up | Iron in low hills too |
+| `HIGH_MOUNTAIN_H` | 0.8 | 0.65–0.95 | Land elevation where mithril can appear | Mithril almost never | Mithril on most mountains |
+| `MOUNTAIN_DEFENSE` | 1.5 | 1–2.5 | × defensibility of mountain cells | Mountain realms near-impregnable | Mountains don't help in war |
+| `RIVER_DEFENSE` | 1.2 | 1–1.5 | × defensibility of river cells | Rivers become defensive lines | Rivers don't matter in war |
+| `PROVINCE_SIZE` | 20 | 10–40 | Rough cells per province (comes out ~17 at 20) | Bigger regions; rebellions take whole large provinces | Smaller provinces |
+
+The biome `defense` column is in the Biomes table above.
+
+**`RESOURCES` table** (effect = multiplier at full access; owning none = 1.0):
+
+| Resource | Multiplies | Full-access effect | Rarity weight | Favored by |
+|---|---|---|---|---|
+| Grain | Capacity of all the nation's cells | 1.10 | 1.0 | Humans |
+| Timber | Move cost when expanding | 0.85 | 1.0 | Light Elves |
+| Iron | `martial` (army strength) | 1.15 | 0.8 | Dwarves, Orcs |
+| Gold | `STAB_RECOVERY` | 1.30 | 0.5 | Dwarves |
+| Horses | `EXPANSION_RATE` | 1.15 | 0.8 | Humans, Orcs |
+| Mithril | Front-line `defense` | 1.20 | 0.15 | Dwarves, Dark Elves |
+
+### Unrest, devastation, ownership
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `UNREST_CONQUEST` | 0.6 | 0.2–1 | Unrest a cell jumps to (at least) when captured | Conquests rebel soon | Conquered land settles quietly |
+| `UNREST_CONTROL_K` | 0.05 | 0.02–0.1 | Unrest gained per year × (1 − control). Must beat `UNREST_DECAY` or weak control alone never builds unrest (at 0.05: builds where control < 0.6, or < 0.2 in core land) | Far provinces seethe | Only conquest and foreign rule cause unrest |
+| `UNREST_FOREIGN_K` | 0.01 | 0–0.03 | Unrest gained per year under rulers of another race (÷ tolerance) | Subject peoples always restless | Race of the ruler doesn't matter |
+| `UNREST_DEVASTATION_K` | 0.02 | 0–0.05 | Unrest gained per year × devastation | War-torn land rises | War damage doesn't anger people |
+| `UNREST_DECAY` | 0.02 | 0.005–0.05 | Unrest lost per year (doubled in core land) | Grievances fade fast | Grievances linger |
+| `CORE_YEARS` | 50 | 20–150 | Years of ownership before a cell is core land | Conquests stay restless longer | Conquests settle in fast |
+| `DEVASTATION_FRONT` | 0.1 | 0.02–0.3 | Devastation gained per year on a war front | Long wars ruin the borderlands | Fronts barely scarred |
+| `DEVASTATION_CAPTURE` | 0.5 | 0.1–1 | Devastation added when a cell changes hands in war | Conquest wrecks land | Conquest is clean |
+| `DEVASTATION_HEAL` | 0.05 | 0.01–0.2 | Share of devastation healed per year (half heals in ~14 years) | Quick recovery | Scars last generations |
+| `DEVASTATION_CAP_LOSS` | 0.5 | 0.2–0.9 | Capacity lost at full devastation | War empties regions | War damage barely matters |
+
+### Development and settlements
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `DEV_GROWTH` | 0.005 | 0.001–0.02 | Yearly development gain in ideal conditions (~200 years to full) | Cities spring up fast | Cities only in ancient heartlands |
+| `DEV_DEVASTATION_LOSS` | 0.05 | 0.01–0.2 | Development lost per year × devastation | War razes cities | Cities survive wars |
+| `SETTLE_VILLAGE` / `SETTLE_TOWN` / `SETTLE_CITY` | 0.15 / 0.4 / 0.7 | 0–1, rising | Development needed for each level | Fewer, older settlements | Settlements everywhere |
+| `SETTLE_MIN_POP_FRACTION` | 0.6 | 0.3–0.9 | Pop / capacity a town or city also needs | Only crowded land urbanizes | Empty land can hold towns |
+| `SETTLE_DOWN_FACTOR` | 0.8 | 0.5–1 | A level is lost only below threshold × this (stops flicker) | Settlements shrink quickly | Settlements cling on |
+| `CITY_MIN_SPACING` | 6 | 3–12 | Fewest cell-steps between cities | Few, spread-out cities | Many cities |
+
+### Resource use and cell value
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `RESOURCE_SATURATION` | 2.0 | 0.5–5 | Total richness of one resource needed for its full bonus | Big empires keep gaining from more deposits (more snowball) | One deposit is enough |
+| `FAVORED_RESOURCE_VALUE` | 2 | 1–4 | How much more a race values deposits it favors | Races fight hard for their resource | Races don't care which resource |
+
 ## Diplomacy
 
 Opinion between two nations moves `OPINION_DRIFT` of the way toward a target each year (race attitude, border friction, war, shared enemies; SPEC §4.12). Useful sums with the defaults: neighboring kin of Humans settle at 0.1, Light Elves and Dwarves at 0.2, Dark Elves and Orcs at 0.0. So only Light Elf and Dwarf kin reach `ALLIANCE_MIN_OPINION` (0.15) in peacetime; everyone else needs a shared enemy.
@@ -343,6 +408,10 @@ Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shadi
 | `ALLIANCE_COLOR` / `ALLIANCE_OUTLINE` | light cream / dark brown, see code | — | Dashed line between allied capitals and its outline | — | — |
 | `ALLIANCE_WIDTH` | 2 | 1–4 | Alliance line width (pixels) | Bolder lines | Subtler lines |
 | `ALLIANCE_DASH` | [6, 4] | — | Dash and gap length (pixels) | — | — |
+| `HEAT_RAMP` / `HEAT_ALPHA` | pale yellow → orange → dark red / 0.75 | — / 0.4–1 | Heatmap colors (low → high) and opacity | Heatmap hides the map | Faint heatmap |
+| `RESOURCE_COLORS` / `RESOURCE_LETTERS` | see code | — | Marker color and letter per resource (G grain, T timber, I iron, $ gold, H horses, M mithril) | — | — |
+| `RESOURCE_RADIUS` / `RESOURCE_RICH_GROWTH` | 4 / 2 | 2–6 / 0–4 | Marker size, and extra size for the richest deposits | Bigger markers | Smaller markers |
+| `TOWN_RADIUS`, `CITY_SIZE`, `CITY_FONT` | 1.8, 5, italic 10px | — | Town dot, city square and city name | — | — |
 
 ---
 
@@ -378,6 +447,10 @@ Common problems and which knobs to try first.
 | Alliances never change | ↑ `ALLIANCE_BREAK_OPINION`, ↑ `BORDER_FRICTION` |
 | Allied blocs snowball | ↓ `ALLY_ATTACK_PROB`, ↓ `MAX_ALLIES` |
 | Racial feuds don't show | ↑ `OPINION_WAR_K`, ↑ `WAR_OPINION_HIT` |
+| Rebels are always swallowed back | ↓ `CLAIM_WAR_BONUS`, ↓ `CLAIM_YEARS`, ↑ `REBEL_START_STABILITY` |
+| Rebellions start in random places | ↑ `UNREST_CONTROL_K` (check the unrest heatmap, key H) |
+| No cities / cities everywhere | ↑ / ↓ `DEV_GROWTH`, ↓ / ↑ `SETTLE_CITY`, `CITY_MIN_SPACING` |
+| Wars too frequent since M9 | ↓ `WAR_VALUE_K`, ↓ `CLAIM_WAR_BONUS` before touching `WAR_BASE_PROB` |
 
 ---
 
@@ -387,82 +460,11 @@ Ideas for future rules. When one is adopted, design it in SPEC.md, move it into 
 
 | Idea | Parameter(s) | Effect |
 |---|---|---|
-| Terrain defense | see "Land and cell detail" below | Mountain/forest front cells harder to capture |
 | River crossings | `RIVER_CROSSING_PENALTY` | Attacks across rivers slower |
 | Naval expansion | `NAVAL_RANGE`, `NAVAL_EXPANSION_RATE` | Coastal nations claim islands across water |
-| Alliances | `ALLIANCE_PROB`, `ALLY_JOIN_PROB` | Wars pull in allies; bigger conflicts |
 | Culture affinity | `CULTURE_REBEL_BONUS`, `CULTURE_WAR_PENALTY` | Foreign-culture provinces rebel more; kin nations fight less |
 | Dynasties | `SUCCESSION_CRISIS_PROB` | Random stability shocks on ruler death |
 | Plague | `PLAGUE_PROB`, `PLAGUE_DEATH_RATE`, `PLAGUE_SPREAD` | Population crashes that spread through neighbors |
 | Golden age | `GOLDEN_AGE_PROB`, `GOLDEN_AGE_BONUS` | Temporary stability and strength boost |
 | Trade | `TRADE_ROUTE_BONUS` | Connected coastal/river cells gain capacity |
 | Time slowdown | `SLOWDOWN_ON_EVENTS`, `SLOWDOWN_FACTOR` | Playback slows for major wars and collapses |
-
-## Land and cell detail (planned, M9)
-
-Design in SPEC.md §4.11. All values are first guesses. Generation values would go in `gen/params.ts`, the rest in `SIM`.
-
-**Being built.** In code so far: control (moved up to Stability); "Unrest, devastation, ownership"; resources, terrain defense (plus new `HILL_H` 0.4 and `HIGH_MOUNTAIN_H` 0.8 in `gen/params.ts`: where iron and mithril appear), cell value and war motives; development and settlements (`SETTLE_THRESHOLDS` became three numbers, `SETTLE_VILLAGE` / `SETTLE_TOWN` / `SETTLE_CITY`, so the Settings panel can edit them); provinces (seeds √`PROVINCE_SIZE` land steps apart, which measured out at ~17 cells for 20). Sim values are live in the Settings panel under "Land" and "War". This section moves into the main Simulation part when M9 is done.
-
-### Resources and terrain (generation)
-
-| Parameter | Default | Range | Effect |
-|---|---|---|---|
-| `RESOURCE_PROB` | 0.04 | 0.01–0.1 | Share of land cells with a deposit (~160 on a 10k-cell map). ↑ = resources everywhere, less worth fighting over |
-| `RICHNESS_SKEW` | 2 | 1–4 | ↑ = more poor deposits, rarer rich ones |
-| `PROVINCE_SIZE` | 20 | 10–40 | Cells per province. ↓ = smaller rebellions and more named regions |
-| `MOUNTAIN_DEFENSE` | 1.5 | 1–2.5 | × defensibility of mountain cells |
-| `RIVER_DEFENSE` | 1.2 | 1–1.5 | × defensibility of river cells |
-| Biome `defense` column | 1.0; forests 1.2, tropical forest and wetland 1.3, desert 1.1 | 0.8–1.5 | × defensibility by biome |
-
-**`RESOURCES` table** (effect = multiplier at full access; owning none = 1.0, so a world without resources behaves as before):
-
-| Resource | Multiplies | Full-access effect | Rarity weight |
-|---|---|---|---|
-| Grain | Cell capacity (all cells) | 1.10 | 1.0 |
-| Timber | Expansion move cost | 0.85 | 1.0 |
-| Iron | `martial` | 1.15 | 0.8 |
-| Gold | `STAB_RECOVERY` | 1.30 | 0.5 |
-| Horses | `EXPANSION_RATE` | 1.15 | 0.8 |
-| Mithril | Front-line `defense` | 1.20 | 0.15 |
-
-### Resource use and cell value
-
-| Parameter | Default | Range | Effect |
-|---|---|---|---|
-| `RESOURCE_SATURATION` | 2.0 | 0.5–5 | Total richness needed for the full bonus. ↑ = big empires keep gaining from more deposits (more snowball) |
-| `FAVORED_RESOURCE_VALUE` | 2 | 1–4 | How much more a race values its favored resources when picking war targets |
-
-### Unrest, devastation, ownership
-
-| Parameter | Default | Range | Effect |
-|---|---|---|---|
-| `UNREST_CONQUEST` | 0.6 | 0.2–1 | Unrest a cell jumps to when captured |
-| `UNREST_CONTROL_K` | 0.05 | 0.02–0.1 | Unrest gained per year × (1 − control). Must beat `UNREST_DECAY`, or weak control alone never builds unrest (at 0.05 it builds where control < 0.6, or < 0.2 in core land) |
-| `UNREST_FOREIGN_K` | 0.01 | 0–0.03 | Unrest gained per year when the ruler is another race (÷ tolerance) |
-| `UNREST_DEVASTATION_K` | 0.02 | 0–0.05 | Unrest gained per year × devastation |
-| `UNREST_DECAY` | 0.02 | 0.005–0.05 | Unrest lost per year (doubled in core land) |
-| `CORE_YEARS` | 50 | 20–150 | Years of ownership before a cell counts as core |
-| `DEVASTATION_FRONT` | 0.1 | 0.02–0.3 | Devastation gained per year on a war front |
-| `DEVASTATION_CAPTURE` | 0.5 | 0.1–1 | Devastation added when a cell changes hands |
-| `DEVASTATION_HEAL` | 0.05 | 0.01–0.2 | Share of devastation healed per year (at 0.05, half heals in ~14 years) |
-| `DEVASTATION_CAP_LOSS` | 0.5 | 0.2–0.9 | Capacity lost at full devastation |
-
-### Development and settlements
-
-| Parameter | Default | Range | Effect |
-|---|---|---|---|
-| `DEV_GROWTH` | 0.005 | 0.001–0.02 | Yearly development gain in ideal conditions (~200 years to full) |
-| `DEV_DEVASTATION_LOSS` | 0.05 | 0.01–0.2 | Development lost per year × devastation |
-| `SETTLE_THRESHOLDS` | [0.15, 0.4, 0.7] | — | Development for village, town, city |
-| `SETTLE_MIN_POP_FRACTION` | 0.6 | 0.3–0.9 | Pop / capacity a town or city also needs |
-| `SETTLE_DOWN_FACTOR` | 0.8 | 0.5–1 | A level is lost only below threshold × this (stops flicker) |
-| `CITY_MIN_SPACING` | 6 | 3–12 | Cell-steps between cities. ↓ = more cities |
-
-### War motives
-
-| Parameter | Default | Range | Effect |
-|---|---|---|---|
-| `WAR_VALUE_K` | 1.0 | 0–3 | How much a valuable border cell raises the chance of war |
-| `CLAIM_YEARS` | 100 | 30–300 | How long lost land can be claimed |
-| `CLAIM_WAR_BONUS` | 2.0 | 1–4 | × war chance against a nation holding your claimed land |
