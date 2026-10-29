@@ -9,20 +9,27 @@ import { addNation, bestCapital } from "./newNation";
 /**
  * Grows a region outward from `seed` through `nation`'s cells, up to `max` cells,
  * never taking the capital. Only enters cells of the seed's race: rebels are one people.
+ * Fills the seed's own province first and only then spills into neighboring ones,
+ * so breakaways follow old regional lines.
  */
 export function floodFill(state: WorldState, nation: Nation, seed: CellId, max: number): CellId[] {
   const { owner, race } = state.state;
   const people = race[seed];
+  const home = state.cells[seed]!.province;
   const region: CellId[] = [];
   const seen = new Set<CellId>([seed]);
-  const queue = [seed];
-  for (let head = 0; head < queue.length && region.length < max; head++) {
-    const cell = queue[head]!;
+  // Two queues: cells in the seed's province are always taken before cells outside it.
+  const near = [seed];
+  const far: CellId[] = [];
+  let nearHead = 0;
+  let farHead = 0;
+  while (region.length < max && (nearHead < near.length || farHead < far.length)) {
+    const cell = nearHead < near.length ? near[nearHead++]! : far[farHead++]!;
     region.push(cell);
     for (const n of state.cells[cell]!.neighbors) {
       if (!seen.has(n) && owner[n] === nation.id && race[n] === people && n !== nation.capital) {
         seen.add(n);
-        queue.push(n);
+        (state.cells[n]!.province === home ? near : far).push(n);
       }
     }
   }

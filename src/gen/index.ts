@@ -8,6 +8,7 @@ import { moistureForCells, stepsFromWater, temperatureAt } from "./climate";
 import { generateHeightmap, type Heightmap } from "./heightmap";
 import { CELL_COUNT, MAP_HEIGHT, MAP_WIDTH, MOUNTAIN_H } from "./params";
 import { createStartingNations } from "./nations";
+import { placeProvinces } from "./provinces";
 import { placeRaceHomes } from "./races";
 import { defensibilityOf, placeResources } from "./resources";
 import { drainageMap, traceRivers } from "./rivers";
@@ -93,13 +94,15 @@ export function generateWorld(seed: string, width = MAP_WIDTH, height = MAP_HEIG
       resource: Resource.None,
       richness: 0,
       defensibility: 1,
+      province: -1,
     };
     cell.defensibility = defensibilityOf(cell);
     cells.push(cell);
   }
 
-  // 7. Resource deposits
+  // 7. Resource deposits and provinces
   placeResources(rng.fork("resources"), cells);
+  placeProvinces(rng.fork("provinces"), cells);
 
   // 8. Race homelands, then starting nations
   const raceHomes = placeRaceHomes(rng.fork("races"), cells);

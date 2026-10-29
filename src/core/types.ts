@@ -123,6 +123,8 @@ export interface Cell {
   richness: number;
   /** How hard the cell is to take in war (~0.8..2): biome × mountain × river. */
   defensibility: number;
+  /** Province id (−1 for water). Rebellions break along provinces. */
+  province: number;
 }
 
 export type NationId = number; // 0 = unowned

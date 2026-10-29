@@ -21,6 +21,7 @@ export interface TinyCell {
   resource?: ResourceId;
   richness?: number;
   defensibility?: number;
+  province?: number;
 }
 
 /** A row of `count` land cells, each linked to the cells beside it: [0]-[1]-[2]-... */
@@ -53,6 +54,7 @@ export function makeCells(spec: TinyCell[]): Cell[] {
       resource: c.resource ?? Resource.None,
       richness: c.richness ?? 0,
       defensibility: c.defensibility ?? 1,
+      province: land ? (c.province ?? 0) : -1,
     };
   });
 }

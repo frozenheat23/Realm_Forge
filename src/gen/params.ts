@@ -75,6 +75,10 @@ export const MOUNTAIN_DEFENSE = 1.5;
 /** × defensibility of river cells. */
 export const RIVER_DEFENSE = 1.2;
 
+// --- Provinces (SPEC §4.11) ---
+/** Rough number of cells per province. */
+export const PROVINCE_SIZE = 20;
+
 // --- Resources (SPEC §4.11) ---
 /** Share of land cells with a resource deposit. */
 export const RESOURCE_PROB = 0.04;

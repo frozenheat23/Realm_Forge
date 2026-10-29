@@ -402,7 +402,7 @@ Ideas for future rules. When one is adopted, design it in SPEC.md, move it into 
 
 Design in SPEC.md §4.11. All values are first guesses. Generation values would go in `gen/params.ts`, the rest in `SIM`.
 
-**Being built.** In code so far: control (moved up to Stability); "Unrest, devastation, ownership"; resources, terrain defense (plus new `HILL_H` 0.4 and `HIGH_MOUNTAIN_H` 0.8 in `gen/params.ts`: where iron and mithril appear), cell value and war motives; development and settlements (`SETTLE_THRESHOLDS` became three numbers, `SETTLE_VILLAGE` / `SETTLE_TOWN` / `SETTLE_CITY`, so the Settings panel can edit them). Sim values are live in the Settings panel under "Land" and "War". This section moves into the main Simulation part when M9 is done.
+**Being built.** In code so far: control (moved up to Stability); "Unrest, devastation, ownership"; resources, terrain defense (plus new `HILL_H` 0.4 and `HIGH_MOUNTAIN_H` 0.8 in `gen/params.ts`: where iron and mithril appear), cell value and war motives; development and settlements (`SETTLE_THRESHOLDS` became three numbers, `SETTLE_VILLAGE` / `SETTLE_TOWN` / `SETTLE_CITY`, so the Settings panel can edit them); provinces (seeds √`PROVINCE_SIZE` land steps apart, which measured out at ~17 cells for 20). Sim values are live in the Settings panel under "Land" and "War". This section moves into the main Simulation part when M9 is done.
 
 ### Resources and terrain (generation)
 

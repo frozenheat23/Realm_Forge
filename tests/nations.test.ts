@@ -28,6 +28,7 @@ function lineMap(): Cell[] {
     resource: Resource.None,
     richness: 0,
     defensibility: 1,
+    province: 0,
   }));
 }
 

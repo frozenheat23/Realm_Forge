@@ -73,7 +73,7 @@ export function showCellOnHover(
         ` · devastation ${s.devastation[cell.id]!.toFixed(2)} · held since year ${s.ownedSince[cell.id]}`
       : "";
     panel.textContent =
-      `${ownerText}${land}${deposit} · Cell ${cell.id} · ${BIOME_STATS[cell.biome].name} · defense ${cell.defensibility.toFixed(2)}` +
+      `${ownerText}${land}${deposit} · Cell ${cell.id} · ${BIOME_STATS[cell.biome].name} · province ${cell.province} · defense ${cell.defensibility.toFixed(2)}` +
       ` · ${cell.temp.toFixed(0)}°C · moisture ${cell.moisture.toFixed(2)}` +
       ` · elevation ${cell.elevation.toFixed(2)} · capacity ${cell.capacity.toFixed(2)}` +
       (tags ? ` · ${tags}` : "");
