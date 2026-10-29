@@ -20,6 +20,10 @@ export const SIM = {
   CAPITAL_DIST_K: 0.001,
   WEARINESS_GAIN: 0.03,
   WEARINESS_DECAY: 0.05,
+  /** Share of foreign-race population a nation can hold before it hurts stability. */
+  FOREIGN_FREE: 0.2,
+  /** Stability lost per year at 100% foreign population (divided by the ruler's tolerance). */
+  FOREIGN_K: 0.02,
 
   // --- Expansion ---
   EXPANSION_RATE: 0.1,

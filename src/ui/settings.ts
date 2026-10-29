@@ -6,7 +6,7 @@ const GROUPS: { title: string; names: SimParamName[] }[] = [
   { title: "Population", names: ["POP_GROWTH", "WAR_ATTRITION", "NEW_CELL_POP_FRACTION", "STRENGTH_POP_EXP"] },
   {
     title: "Stability",
-    names: ["STAB_RECOVERY", "ADMIN_CAP_BASE", "OVEREXT_K", "WEARINESS_STAB_K", "CAPITAL_DIST_FREE", "CAPITAL_DIST_K", "WEARINESS_GAIN", "WEARINESS_DECAY"],
+    names: ["STAB_RECOVERY", "ADMIN_CAP_BASE", "OVEREXT_K", "WEARINESS_STAB_K", "CAPITAL_DIST_FREE", "CAPITAL_DIST_K", "WEARINESS_GAIN", "WEARINESS_DECAY", "FOREIGN_FREE", "FOREIGN_K"],
   },
   { title: "Expansion", names: ["EXPANSION_RATE"] },
   {
@@ -19,6 +19,8 @@ const GROUPS: { title: string; names: SimParamName[] }[] = [
 
 export interface Layers {
   nations: boolean;
+  /** Tint land by race instead of by nation (SPEC §5.4b). */
+  races: boolean;
   labels: boolean;
   cells: boolean;
 }
@@ -34,6 +36,7 @@ export function createSettings(container: HTMLElement, layers: Layers, onLayersC
   layerRow.className = "settings-row";
   const layerNames: [keyof Layers, string][] = [
     ["nations", "Nations"],
+    ["races", "Races"],
     ["labels", "Labels"],
     ["cells", "Cell outlines"],
   ];

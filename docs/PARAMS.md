@@ -6,8 +6,8 @@ What every tunable number does, a sensible range, and what happens when you chan
 
 | Code file | Covers |
 |---|---|
-| `src/gen/params.ts` | World, Terrain, Climate, Biomes, Rivers, Starting nations, `RACE_HOMES_PER_RACE` |
-| `src/sim/params.ts` | Population through Emergence (one `SIM` object, editable live in the Settings panel), plus the `RACES` table |
+| `src/gen/params.ts` | World, Terrain, Climate, Biomes, Rivers, Starting nations, Races (`RACES` table and homelands) |
+| `src/sim/params.ts` | Population through Emergence (one `SIM` object, editable live in the Settings panel) |
 | `src/render/palette.ts` | Rendering |
 | `src/ui/config.ts` | Playback |
 
@@ -212,13 +212,14 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 
 ## Races
 
-The race table is `RACES` in `src/sim/params.ts` (not editable in the Settings panel; change it in code). Every trait is a **multiplier**: 1.0 = Human, the baseline. SPEC §4.10 says which step uses each one.
+The race table is `RACES` in `src/gen/params.ts` (not editable in the Settings panel; change it in code). Check balance after changing it: in Command Prompt, `set RACE_BALANCE=1 && npx vitest run tests/raceBalance.test.ts` prints each race's share of the land on 10 worlds after 1,000 years. Every trait is a **multiplier**: 1.0 = Human, the baseline. SPEC §4.10 says which step uses each one.
 
 **Rule of thumb:** keep traits between about 0.5 and 1.6, and give each race one clear strength paired with one weakness. Effects stack: a race 1.3× better at three things is about 2× stronger overall.
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
 | `RACE_HOMES_PER_RACE` | 2 | 1–4 (in `gen/params.ts`) | Homeland points per race | Each race spread over more regions | Each race in one heartland |
+| `RACE_HOME_FOCUS` | 3 | 1–6 (in `gen/params.ts`) | How strongly homelands favor land the race likes | Dwarves almost always start in mountains, Orcs in deserts | Homelands land almost anywhere |
 
 ### Traits
 
@@ -247,7 +248,7 @@ Affinity multiplies a cell's capacity for that race; terrain cost multiplies mov
 
 | Race | Affinity (capacity ×) | Terrain cost (move cost ×) |
 |---|---|---|
-| Humans | Grassland 1.1 | — |
+| Humans | — (baseline, so a human-only world matches pre-M7) | — |
 | Light Elves | Temperate forest 1.5, Tropical forest 1.4, Grassland 0.8, Desert 0.5 | Temperate forest 0.5, Tropical forest 0.5 |
 | Dark Elves | Taiga 1.6, Wetland 1.4, Mountains 1.5, Grassland 0.8 | Taiga 0.6, Wetland 0.6, Mountains 0.6 |
 | Dwarves | Mountains 2.5, Taiga 1.3, Grassland 0.8, Tropical forest 0.5 | Mountains 0.4, Taiga 0.7, Temperate forest 1.3, Tropical forest 1.3 |

@@ -123,7 +123,7 @@ interface WorldState {
 }
 ```
 
-Races themselves are a fixed data table (`RACES` in `sim/params.ts`), described in §4.10.
+Races themselves are a fixed data table (`RACES` in `gen/params.ts`), described in §4.10.
 
 **Render helpers** (built once during generation):
 - `heightmap: Float32Array` (width × height) for terrain shading
@@ -279,10 +279,10 @@ If a connected unowned land region has at least `EMERGENCE_MIN_REGION` habitable
 ### 4.9 Events
 Emit a `SimEvent` for: nation founded, war declared, peace signed, rebellion, collapse, annexation, capital moved. Each event gets a short readable sentence, e.g. *"Year 412: Velmora declares war on the Kethari Reach."*
 
-Race shows in the text where it adds to the story: *"Year 88: the Dwarves of Khazrum found a realm."* and, when rebels are of a different race than their rulers, *"Year 412: the Dark Elves of Vael rise against Kethar."*
+Race shows in the text where it adds to the story: *"Year 88: Kazdrum, a realm of Dwarves, rises in the wilderness."* and, when rebels are of a different race than their rulers, *"Year 412: the Dark Elves of Vael rise against Kethar."*
 
 ### 4.10 Races
-Every cell's people belong to one race, and every nation is ruled by one race. Each race is a row in the `RACES` table (`sim/params.ts`) with traits that **multiply existing parameters**. Humans are 1.0 everywhere, so a human-only world behaves exactly as before races existed.
+Every cell's people belong to one race, and every nation is ruled by one race. Each race is a row in the `RACES` table (`gen/params.ts`, next to `BIOME_STATS`, because generation needs it too and `gen/` may not import from `sim/`) with traits that **multiply existing parameters**. Lookups live in `gen/races.ts`. Humans are 1.0 everywhere, so a human-only world behaves exactly as before races existed.
 
 **Who supplies which trait**
 - **The people living in a cell:** `growth`, affinity (capacity), `martial`, `defense`, `unrest`. Subjects of another race keep their own nature.
@@ -304,7 +304,7 @@ Every cell's people belong to one race, and every nation is ruled by one race. E
 
 **Families.** Each race has a `family` (`human`, `elf`, `dwarf`, `orc`). Light and Dark Elves are one family with different traits; the family decides which name list a nation uses (§3.9). Orcs are one race for now (Green Orc values); Red Orcs can be split off later as a second orc race.
 
-**Homelands (generation).** For each race, pick `RACE_HOMES_PER_RACE` land cells as homeland points, each chosen at random weighted by `capacity × affinity` for that race (seeded stream `races`), so races start in land that suits them. Stored as `raceHomes`. Starting nations (§3.8) and emerging nations (§4.8) take the race of the nearest homeland point.
+**Homelands (generation).** For each race, pick `RACE_HOMES_PER_RACE` land cells as homeland points, each chosen at random weighted by `capacity × affinity ^ RACE_HOME_FOCUS` for that race (seeded stream `races`), so races start in land that suits them. Stored as `raceHomes`. Starting nations (§3.8) and emerging nations (§4.8) take the race of the nearest homeland point.
 
 **Where races live.** A cell's race changes in only two ways:
 1. A nation claims an empty cell: it's settled by the nation's race (§4.4).

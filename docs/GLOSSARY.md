@@ -75,3 +75,11 @@ New concepts as we meet them, with where they show up in our code.
 | **Event delegation** | One click listener on a parent instead of one per child; it checks which child was clicked. | event log in `src/ui/eventLog.ts` |
 | **Generic (`<T>`)** | A placeholder type filled in when used, e.g. `element<HTMLCanvasElement>("#map")`. | `element()` in `src/main.ts` |
 | **`keyof` / `typeof`** | TypeScript tools to get a type from a value: `keyof typeof SIM` = all parameter names. | `SimParamName` in `src/sim/params.ts` |
+| **Data table (data-driven design)** | Describing things as rows of numbers instead of separate code, so adding a race means adding a row, not new logic. | `RACES` in `src/gen/params.ts` |
+| **`Partial<T>`** | A version of type T where every property is optional. Lets a race list only the biomes it cares about. | `affinity`, `terrainCost` in `RaceTraits` |
+| **`Exclude<T, U>`** | A type with some options removed, e.g. every race except `None`. | `PlayableRace` in `src/core/types.ts` |
+| **`??` (nullish coalescing)** | "Use the left value, or the right one if the left is missing": `affinity[biome] ?? 1`. | `affinityFactor()` in `src/gen/races.ts` |
+| **Type assertion (`as`)** | Telling TypeScript "trust me, this number is a RaceId". Use sparingly: it skips a check. | `rebel()` in `src/sim/rebellion.ts` |
+| **Weighted random pick** | Choosing randomly where some options are likelier: walk the list subtracting weights until a random point is passed. | `placeRaceHomes()` in `src/gen/races.ts` |
+| **Multiplier baseline** | Making 1.0 mean "normal" so a new rule changes nothing until a value moves away from 1. Humans are all 1.0. | race traits |
+| **Environment variable** | A setting passed to a program from outside, e.g. `RACE_BALANCE=1` turns on the slow balance test. | `tests/raceBalance.test.ts` |

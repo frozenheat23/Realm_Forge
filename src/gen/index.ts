@@ -8,6 +8,7 @@ import { moistureForCells, stepsFromWater, temperatureAt } from "./climate";
 import { generateHeightmap, type Heightmap } from "./heightmap";
 import { CELL_COUNT, MAP_HEIGHT, MAP_WIDTH, MOUNTAIN_H } from "./params";
 import { createStartingNations } from "./nations";
+import { placeRaceHomes } from "./races";
 import { drainageMap, traceRivers } from "./rivers";
 
 export interface GeneratedWorld {
@@ -91,21 +92,23 @@ export function generateWorld(seed: string, width = MAP_WIDTH, height = MAP_HEIG
     });
   }
 
-  // 7. Starting nations
-  const start = createStartingNations(rng.fork("nations"), cells, width, height);
+  // 7. Race homelands, then starting nations
+  const raceHomes = placeRaceHomes(rng.fork("races"), cells);
+  const start = createStartingNations(rng.fork("nations"), cells, width, height, raceHomes);
 
   const world: GeneratedWorld = { seed, width, height, heightmap, cells, pixelToCell, delaunay };
   const state: WorldState = {
     seed,
     year: 0,
     cells,
-    state: { pop: start.pop, owner: start.owner },
+    state: { pop: start.pop, owner: start.owner, race: start.race },
     nations: start.nations,
     wars: [],
     truces: [],
     events: start.events,
     cultureHomes: start.cultureHomes,
     colorHue: start.colorHue,
+    raceHomes,
   };
   return { world, state };
 }

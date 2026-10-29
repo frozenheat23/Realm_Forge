@@ -104,6 +104,8 @@ export const BORDER_DARKEN = 0.4;
 export const WAR_FRONT_COLOR = "#c8312b";
 /** When nations are highlighted (click an event), others keep this share of their opacity. */
 export const HIGHLIGHT_DIM = 0.2;
+/** Tint per race in the Races map layer (SPEC §5.4b), indexed by RaceId (0 = nobody, unused). */
+export const RACE_COLORS: string[] = ["#000000", "#d9a441", "#9fd8e8", "#6a4c93", "#a0522d", "#6b8e23"];
 /** Year counter drawn on the map (so it shows up in recorded videos). */
 export const YEAR_FONT = "34px Georgia, serif";
 export const YEAR_COLOR = "#fbf6e9";

@@ -21,6 +21,50 @@ export const Biome = {
 /** One of the numbers in `Biome`, e.g. Biome.Desert (8). */
 export type BiomeId = (typeof Biome)[keyof typeof Biome];
 
+/** Races as named numbers, like Biome. 0 = nobody lives there. */
+export const Race = {
+  None: 0,
+  Human: 1,
+  LightElf: 2,
+  DarkElf: 3,
+  Dwarf: 4,
+  Orc: 5,
+} as const;
+
+/** One of the numbers in `Race`, e.g. Race.Dwarf (4). */
+export type RaceId = (typeof Race)[keyof typeof Race];
+
+/** Any race except None: the ones that have traits. */
+export type PlayableRace = Exclude<RaceId, typeof Race.None>;
+
+/** Related races share a family, which decides how their nations' names sound. */
+export type RaceFamily = "human" | "elf" | "dwarf" | "orc";
+
+/**
+ * What makes a race different (SPEC §4.10). Every number is a multiplier:
+ * 1.0 = the same as Humans. Table and meanings in docs/PARAMS.md "Races".
+ */
+export interface RaceTraits {
+  name: string;
+  /** Plural used in event text, e.g. "Dark Elves". */
+  plural: string;
+  family: RaceFamily;
+  growth: number;
+  martial: number;
+  defense: number;
+  aggression: number;
+  endurance: number;
+  cohesion: number;
+  unrest: number;
+  tolerance: number;
+  /** Capacity multiplier per biome (missing = 1). */
+  affinity: Partial<Record<BiomeId, number>>;
+  mountainAffinity: number;
+  /** Move-cost multiplier per biome when this race expands (missing = 1). */
+  terrainCost: Partial<Record<BiomeId, number>>;
+  mountainCost: number;
+}
+
 /** A map cell (one Voronoi polygon). Fixed after generation. */
 export interface Cell {
   id: CellId;
@@ -62,6 +106,8 @@ export interface Nation {
   founded: number;
   /** Set if born from a rebellion. */
   parent?: NationId;
+  /** The ruling race. Fixed for the nation's whole life. */
+  race: RaceId;
   alive: boolean;
   /** 0..1 */
   stability: number;
@@ -71,6 +117,10 @@ export interface Nation {
   area: number;
   pop: number;
   strength: number;
+  /** Share of the population that isn't the ruling race, 0..1. */
+  foreignShare: number;
+  /** Population-weighted average of the `unrest` trait of everyone living there. */
+  unrest: number;
 }
 
 export interface War {
@@ -95,6 +145,14 @@ export interface CellState {
   pop: Float32Array;
   /** NationId per cell (0 = unowned). */
   owner: Int32Array;
+  /** RaceId of the people living in each cell (0 = nobody). */
+  race: Uint8Array;
+}
+
+/** A race's homeland point: new nations nearby are of that race. */
+export interface RaceHome {
+  race: RaceId;
+  at: [number, number];
 }
 
 /** Everything the simulation reads and changes, year by year. */
@@ -111,4 +169,6 @@ export interface WorldState {
   cultureHomes: [number, number][];
   /** Starting hue (0..360) for nation colors, so new nations' colors follow on from the first ones. */
   colorHue: number;
+  /** Each race's homeland points (SPEC §4.10). */
+  raceHomes: RaceHome[];
 }

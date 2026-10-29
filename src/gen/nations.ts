@@ -1,8 +1,9 @@
 // Places the starting nations (SPEC §3.8): capitals, small home territories, names and colors.
 import type { Rng } from "../core/rng";
-import type { Cell, CellId, Nation, NationId, SimEvent } from "../core/types";
+import type { Cell, CellId, Nation, NationId, RaceHome, RaceId, SimEvent } from "../core/types";
 import { buildChain, generateName } from "./names";
-import { NAME_CULTURES } from "./nameCorpus";
+import { FAMILY_NAMES, NAME_CULTURES } from "./nameCorpus";
+import { PLAYABLE_RACES, raceAt, raceCapacity, traits } from "./races";
 import {
   NATION_LIGHTNESS,
   NATION_SATURATION,
@@ -104,34 +105,77 @@ export function cultureAt(cultureHomes: [number, number][], x: number, y: number
   return culture;
 }
 
-/** Makes a new nation name for a nation whose capital is at (x, y). */
+/**
+ * Makes a new nation name for a nation of `race` whose capital is at (x, y).
+ * Humans use the culture of the nearest home point; other races use their family's names.
+ */
 export function nameNationAt(
   rng: Rng,
   cultureHomes: [number, number][],
   taken: Set<string>,
   x: number,
   y: number,
+  race: RaceId,
 ): string {
-  const culture = NAME_CULTURES[cultureAt(cultureHomes, x, y)]!;
-  return generateName(rng, buildChain(culture.examples), taken, culture.examples);
+  const family = traits(race).family;
+  const examples = family === "human" ? NAME_CULTURES[cultureAt(cultureHomes, x, y)]!.examples : FAMILY_NAMES[family];
+  return generateName(rng, buildChain(examples), taken, examples);
+}
+
+/**
+ * Which race each capital gets: the race of the nearest homeland. Then any race
+ * left without a nation takes over the capital nearest its first homeland, so
+ * every race is on the map at year 0 (SPEC §3.8).
+ */
+export function assignCapitalRaces(capitals: CellId[], cells: Cell[], homes: RaceHome[]): RaceId[] {
+  const races = capitals.map((c) => raceAt(homes, ...cells[c]!.site));
+  const counts = new Map<RaceId, number>();
+  for (const r of races) counts.set(r, (counts.get(r) ?? 0) + 1);
+
+  for (const race of PLAYABLE_RACES) {
+    if (counts.get(race)) continue;
+    const home = homes.find((h) => h.race === race)!;
+    // Nearest capital whose race can spare one (so we never leave another race empty).
+    let best = -1;
+    let bestDist = Infinity;
+    capitals.forEach((c, i) => {
+      if ((counts.get(races[i]!) ?? 0) < 2) return;
+      const [x, y] = cells[c]!.site;
+      const d = (x - home.at[0]) ** 2 + (y - home.at[1]) ** 2;
+      if (d < bestDist) [bestDist, best] = [d, i];
+    });
+    if (best < 0) continue; // fewer capitals than races: nothing to spare
+    counts.set(races[best]!, counts.get(races[best]!)! - 1);
+    counts.set(race, 1);
+    races[best] = race;
+  }
+  return races;
 }
 
 export interface StartingNations {
   nations: Map<NationId, Nation>;
   owner: Int32Array;
   pop: Float32Array;
+  race: Uint8Array;
   events: SimEvent[];
   cultureHomes: [number, number][];
   colorHue: number;
 }
 
-export function createStartingNations(rng: Rng, cells: Cell[], width: number, height: number): StartingNations {
+export function createStartingNations(
+  rng: Rng,
+  cells: Cell[],
+  width: number,
+  height: number,
+  raceHomes: RaceHome[],
+): StartingNations {
   const owner = new Int32Array(cells.length);
   const pop = new Float32Array(cells.length);
+  const cellRace = new Uint8Array(cells.length);
   const nations = new Map<NationId, Nation>();
   const events: SimEvent[] = [];
 
-  // Each culture gets a home point on the map; a nation speaks the culture of the
+  // Each culture gets a home point on the map; a human nation speaks the culture of the
   // nearest home point, so neighbors end up with related-sounding names.
   const cultureHomes = NAME_CULTURES.map((): [number, number] => [rng.range(0, width), rng.range(0, height)]);
   const takenNames = new Set<string>();
@@ -139,33 +183,44 @@ export function createStartingNations(rng: Rng, cells: Cell[], width: number, he
   const colorHue = rng.range(0, 360);
 
   const capitals = placeCapitals(rng.fork("capitals"), cells, START_NATIONS, START_MIN_SPACING);
+  const capitalRaces = assignCapitalRaces(capitals, cells, raceHomes);
   capitals.forEach((capital, index) => {
     const id: NationId = index + 1; // 0 means "unowned"
+    const race = capitalRaces[index]!;
     const [x, y] = cells[capital]!.site;
 
     const territory = claimCore(capital, id, START_CORE_SIZE, cells, owner);
     let totalPop = 0;
     for (const cell of territory) {
-      pop[cell] = cells[cell]!.capacity * START_POP_FRACTION;
+      cellRace[cell] = race;
+      pop[cell] = raceCapacity(cells[cell]!, race) * START_POP_FRACTION;
       totalPop += pop[cell]!;
     }
 
-    const name = nameNationAt(nameRng, cultureHomes, takenNames, x, y);
+    const name = nameNationAt(nameRng, cultureHomes, takenNames, x, y, race);
     nations.set(id, {
       id,
       name,
       color: nationColor(colorHue, id),
       capital,
       founded: 0,
+      race,
       alive: true,
       stability: START_STABILITY,
       warWeariness: 0,
       area: territory.length,
       pop: totalPop,
       strength: 0, // worked out by the simulation each year (M4a)
+      foreignShare: 0,
+      unrest: traits(race).unrest,
     });
-    events.push({ year: 0, type: "founded", actors: [id], text: `Year 0: ${name} is founded.` });
+    events.push({
+      year: 0,
+      type: "founded",
+      actors: [id],
+      text: `Year 0: ${name}, a realm of ${traits(race).plural}, is founded.`,
+    });
   });
 
-  return { nations, owner, pop, events, cultureHomes, colorHue };
+  return { nations, owner, pop, race: cellRace, events, cultureHomes, colorHue };
 }

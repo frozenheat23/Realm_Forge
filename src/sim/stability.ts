@@ -1,6 +1,7 @@
-// Step 3 (SPEC §4.3): big, sprawling or war-weary nations become unstable.
+// Step 3 (SPEC §4.3): big, sprawling, war-weary or many-raced nations become unstable.
 import type { Nation, WorldState } from "../core/types";
 import { clamp } from "../core/math";
+import { traits } from "../gen/races";
 import { cellsByNation, hopsFromCapital } from "./helpers";
 import { SIM } from "./params";
 
@@ -25,24 +26,28 @@ export function updateStability(state: WorldState): void {
 
   for (const nation of state.nations.values()) {
     if (!nation.alive) continue;
+    const ruler = traits(nation.race);
 
-    // War weariness builds up during war and fades in peace.
+    // War weariness builds up during war (slower for enduring races) and fades in peace.
     nation.warWeariness = clamp(
-      nation.warWeariness + (atWar.has(nation.id) ? SIM.WEARINESS_GAIN : -SIM.WEARINESS_DECAY),
+      nation.warWeariness + (atWar.has(nation.id) ? SIM.WEARINESS_GAIN / ruler.endurance : -SIM.WEARINESS_DECAY),
       0,
       1,
     );
 
-    const overextension = Math.max(0, nation.area - SIM.ADMIN_CAP_BASE) * SIM.OVEREXT_K;
+    const overextension = Math.max(0, nation.area - SIM.ADMIN_CAP_BASE * ruler.cohesion) * SIM.OVEREXT_K;
     const avgHops = averageHopsToCapital(state, nation, groups.get(nation.id) ?? []);
     const distancePenalty = Math.max(0, avgHops - SIM.CAPITAL_DIST_FREE) * SIM.CAPITAL_DIST_K;
+    // Ruling many people of other races is hard, less so for tolerant rulers.
+    const foreignPenalty = (Math.max(0, nation.foreignShare - SIM.FOREIGN_FREE) * SIM.FOREIGN_K) / ruler.tolerance;
 
     nation.stability = clamp(
       nation.stability +
         SIM.STAB_RECOVERY -
         overextension -
         nation.warWeariness * SIM.WEARINESS_STAB_K -
-        distancePenalty,
+        distancePenalty -
+        foreignPenalty,
       0,
       1,
     );

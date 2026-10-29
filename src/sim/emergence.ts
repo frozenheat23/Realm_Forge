@@ -3,6 +3,7 @@ import type { Rng } from "../core/rng";
 import type { CellId, SimEvent, WorldState } from "../core/types";
 import { claimCore } from "../gen/nations";
 import { START_POP_FRACTION, START_STABILITY } from "../gen/params";
+import { raceAt, raceCapacity } from "../gen/races";
 import { foundedEvent } from "./events";
 import { SIM } from "./params";
 import { addNation } from "./newNation";
@@ -46,9 +47,12 @@ export function emergence(state: WorldState, rng: Rng): SimEvent[] {
     let capital = region[0]!;
     for (const c of region) if (state.cells[c]!.capacity > state.cells[capital]!.capacity) capital = c;
 
-    const nation = addNation(state, regionRng, capital, START_STABILITY);
+    // The people who rise here are the race whose homeland is nearest.
+    const race = raceAt(state.raceHomes, ...state.cells[capital]!.site);
+    const nation = addNation(state, regionRng, capital, START_STABILITY, race);
     for (const c of claimCore(capital, nation.id, SIM.EMERGENCE_CORE_SIZE, state.cells, state.state.owner)) {
-      state.state.pop[c] = state.cells[c]!.capacity * START_POP_FRACTION;
+      state.state.race[c] = race;
+      state.state.pop[c] = raceCapacity(state.cells[c]!, race) * START_POP_FRACTION;
     }
     events.push(foundedEvent(state.year, nation, "in the wilderness"));
   });

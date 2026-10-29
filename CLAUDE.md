@@ -92,7 +92,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | M4b ✅ | Instability | Stability, rebellion, collapse and emergence; empires break apart; event log | §4.3, §4.6–4.9, §6 |
 | M5 ✅ | War | Wars start, play out and end; a 1,000-year run tells a believable story | §4.5 |
 | M6 ✅ | Polish | Speed controls, settings panel, video export, save/load. Web Worker only if needed. | §5.5, §6 |
-| M7 | Races | Five races (Humans, Light Elves, Dark Elves, Dwarves, Orcs) live in cells and rule nations; traits change growth, war, stability and rebellion; ethnic rebellions happen; Races map layer; no race takes over most of 10 test seeds | §2, §3.8–3.9, §4.1–4.10, §5.4b, §6 |
+| M7 ✅ | Races | Five races (Humans, Light Elves, Dark Elves, Dwarves, Orcs) live in cells and rule nations; traits change growth, war, stability and rebellion; ethnic rebellions happen; Races map layer; no race takes over most of 10 test seeds | §2, §3.8–3.9, §4.1–4.10, §5.4b, §6 |
 | M8 | Diplomacy (planned) | Opinion between nations from race attitudes, borders and past wars; alliances join defensive wars | §8 |
 | Later | Backlog | See SPEC.md §8 | §8 |
 
@@ -153,7 +153,10 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-10-29 | Not done in M6: label fade in/out, neighbor-aware nation colors, hatching on war fronts |
 | 2026-10-29 | Next direction: deeper civilization sim. Order: M7 Races → M8 Diplomacy → armies & war goals → economy & eras |
 | 2026-10-29 | M7 design: 5 races (Humans, Light Elves, Dark Elves, Dwarves, Orcs). Orcs are one race using Green Orc values; Red Orcs parked in backlog. No Halflings |
-| 2026-10-29 | Race traits are multipliers on existing params with Humans = 1.0, so a human-only world matches pre-M7 behavior. Table `RACES` lives in `sim/params.ts` |
+| 2026-10-29 | Race traits are multipliers on existing params with Humans = 1.0, so a human-only world matches pre-M7 behavior. Table `RACES` lives in `gen/params.ts` (like `BIOME_STATS`: generation needs it and `gen/` can't import `sim/`); lookups in `gen/races.ts` |
 | 2026-10-29 | Cell people supply growth/capacity/martial/defense/unrest; the ruling race supplies aggression/endurance/cohesion/tolerance/terrain cost |
 | 2026-10-29 | A cell's race only changes when an empty cell is settled or a cell is left empty; conquest keeps the people. Cultural blending is a later milestone |
 | 2026-10-29 | Race attitudes are stored in M7 but only used from M8 diplomacy |
+| 2026-10-29 | M7 built. Humans got no grassland bonus after all (it broke the "Humans = old behavior" promise). Homelands weighted by `capacity × affinity ^ RACE_HOME_FOCUS` (3) |
+| 2026-10-29 | Save format v2 (adds per-cell race and race homelands); v1 saves are refused with a message |
+| 2026-10-29 | Balance check (`RACE_BALANCE=1`, 10 seeds × 1,000 years): biggest race share 41%, no takeovers. Orcs and Light Elves tend to come out on top; Dark Elves smallest (8–27%) |

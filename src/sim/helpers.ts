@@ -1,6 +1,7 @@
 // Small lookups several simulation steps need.
-import type { Cell, CellId, Nation, NationId, WorldState } from "../core/types";
+import { Race, type Cell, type CellId, type Nation, type NationId, type RaceId, type WorldState } from "../core/types";
 import { BIOME_STATS, MOUNTAIN_COST_MULT, RIVER_COST_MULT } from "../gen/params";
+import { raceTerrainCost } from "../gen/races";
 
 /** Every living nation's cells, grouped by nation. */
 export function cellsByNation(state: WorldState): Map<NationId, CellId[]> {
@@ -17,12 +18,16 @@ export function livingNations(state: WorldState): Nation[] {
   return [...state.nations.values()].filter((n) => n.alive).sort((a, b) => a.id - b.id);
 }
 
-/** How hard a cell is to move into (SPEC §4.4). Higher = harder. */
-export function moveCost(cell: Cell): number {
+/**
+ * How hard a cell is to move into (SPEC §4.4). Higher = harder.
+ * With a race, that race's terrain cost applies too (dwarves cross mountains easily).
+ */
+export function moveCost(cell: Cell, race: RaceId = Race.None): number {
   return (
     BIOME_STATS[cell.biome].moveCost *
     (cell.mountain ? MOUNTAIN_COST_MULT : 1) *
-    (cell.river ? RIVER_COST_MULT : 1)
+    (cell.river ? RIVER_COST_MULT : 1) *
+    (race === Race.None ? 1 : raceTerrainCost(cell, race))
   );
 }
 

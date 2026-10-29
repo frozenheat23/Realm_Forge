@@ -4,7 +4,7 @@ import type { GeneratedWorld } from "../gen";
 import type { NationId, WorldState } from "../core/types";
 import { hexToRgb, scaleRgb, type Rgb } from "./color";
 import { pairKey } from "../sim/war";
-import { BORDER_ALPHA, BORDER_DARKEN, HIGHLIGHT_DIM, OVERLAY_ALPHA, WAR_FRONT_COLOR } from "./palette";
+import { BORDER_ALPHA, BORDER_DARKEN, HIGHLIGHT_DIM, OVERLAY_ALPHA, RACE_COLORS, WAR_FRONT_COLOR } from "./palette";
 
 /** Packs a color and alpha into one 32-bit number, the way ImageData stores a pixel. */
 function packPixel(rgb: Rgb, alpha: number): number {
@@ -12,12 +12,17 @@ function packPixel(rgb: Rgb, alpha: number): number {
   return ((alpha << 24) | (Math.round(rgb[2]) << 16) | (Math.round(rgb[1]) << 8) | Math.round(rgb[0])) >>> 0;
 }
 
-/** If `highlight` has nations in it, every other nation is drawn faded. */
+/**
+ * If `highlight` has nations in it, every other nation is drawn faded.
+ * With `byRace`, land is tinted by the race living there instead of by nation
+ * (the Races layer, SPEC §5.4b); borders are drawn the same either way.
+ */
 export function renderNationOverlay(
   world: GeneratedWorld,
   displayCells: Int32Array,
   state: WorldState,
   highlight: Set<NationId> = new Set(),
+  byRace = false,
 ): ImageData {
   const { width, height, cells } = world;
   const owner = state.state.owner;
@@ -38,6 +43,10 @@ export function renderNationOverlay(
     fill[nation.id] = packPixel(rgb, Math.round(fillAlpha * fade));
     border[nation.id] = packPixel(scaleRgb(rgb, 1 - BORDER_DARKEN), Math.round(borderAlpha * fade));
   }
+
+  // Each race's fill color, packed once (index = race id).
+  const raceFill = Uint32Array.from(RACE_COLORS, (hex, r) => (r === 0 ? 0 : packPixel(hexToRgb(hex), fillAlpha)));
+  const race = state.state.race;
 
   // Borders between nations at war are drawn in red.
   const warFront = packPixel(hexToRgb(WAR_FRONT_COLOR), 255);
@@ -79,7 +88,8 @@ export function renderNationOverlay(
           (y < height - 2 && isEnemy(me, pixelOwner[i + 2 * width]!)));
 
       if (!onBorder) {
-        px[i] = nearEnemy2 ? warFront : fill[me]!;
+        const inside = byRace ? raceFill[race[displayCells[i]!]!]! : fill[me]!;
+        px[i] = nearEnemy2 ? warFront : inside;
       } else if (
         atWar.size > 0 &&
         (isEnemy(me, left) || isEnemy(me, right) || isEnemy(me, up) || isEnemy(me, down))

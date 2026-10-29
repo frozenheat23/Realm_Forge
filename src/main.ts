@@ -1,6 +1,6 @@
 // Entry point: generates a world from a seed, draws it, and plays its history.
 // Page address options: ?seed=anything picks the world, ?style=painted switches the look.
-// Keys: Space play/pause, → step, C cell outlines, N nations. Hover the map to inspect a cell.
+// Keys: Space play/pause, → step, C cell outlines, N nations, R races. Hover the map to inspect a cell.
 import { createRng } from "./core/rng";
 import type { NationId, WorldState } from "./core/types";
 import { generateWorld } from "./gen";
@@ -85,14 +85,14 @@ terrainCtx.putImageData(terrainImage, 0, 0);
 drawRivers(terrainCtx, world);
 
 // --- Drawing ---
-const layers: Layers = { nations: true, labels: true, cells: query.get("debug") === "cells" };
+const layers: Layers = { nations: true, races: false, labels: true, cells: query.get("debug") === "cells" };
 let highlight = new Set<NationId>();
 let highlightTimer = 0;
 
 // Nation colors are redrawn only when borders may have changed.
 const [nationLayer, nationCtx] = offscreen();
 function redrawNations(): void {
-  nationCtx.putImageData(renderNationOverlay(world, displayCells, state, highlight), 0, 0);
+  nationCtx.putImageData(renderNationOverlay(world, displayCells, state, highlight, layers.races), 0, 0);
 }
 
 function draw(): void {
@@ -201,7 +201,15 @@ bar.append(
 );
 
 // --- Settings, keys, hover ---
-createSettings(settingsPanel, layers, () => draw());
+createSettings(settingsPanel, layers, () => {
+  redrawNations(); // the Races toggle changes the overlay itself
+  draw();
+});
+onKey("r", () => {
+  layers.races = !layers.races;
+  redrawNations();
+  draw();
+});
 onKey("c", () => {
   layers.cells = !layers.cells;
   draw();

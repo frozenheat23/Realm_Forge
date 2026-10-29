@@ -2,6 +2,7 @@
 import type { GeneratedWorld } from "../gen";
 import type { WorldState } from "../core/types";
 import { BIOME_STATS } from "../gen/params";
+import { traits } from "../gen/races";
 
 /** Calls `action` each time `key` is pressed (upper or lower case). */
 export function onKey(key: string, action: () => void): void {
@@ -32,7 +33,11 @@ export function showCellOnHover(
       .join(", ");
     const state = getState();
     const nation = state.nations.get(state.state.owner[cell.id]!);
-    const ownerText = nation ? `${nation.name} (pop ${state.state.pop[cell.id]!.toFixed(2)})` : "unowned";
+    const people = traits(state.state.race[cell.id]!).plural;
+    const ruler = nation ? traits(nation.race).plural : "";
+    const ownerText = nation
+      ? `${nation.name} (${ruler}) · ${people}, pop ${state.state.pop[cell.id]!.toFixed(2)}`
+      : "unowned";
     panel.textContent =
       `${ownerText} · Cell ${cell.id} · ${BIOME_STATS[cell.biome].name}` +
       ` · ${cell.temp.toFixed(0)}°C · moisture ${cell.moisture.toFixed(2)}` +

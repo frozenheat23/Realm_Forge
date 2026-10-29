@@ -1,19 +1,21 @@
 // Step 4 (SPEC §4.4): nations settle neighboring empty land.
 import type { Rng } from "../core/rng";
 import type { NationId, WorldState } from "../core/types";
+import { raceCapacity } from "../gen/races";
 import { moveCost } from "./helpers";
 import { SIM } from "./params";
 
 /**
  * Each empty land cell next to a nation may be claimed with chance
- * SIM.EXPANSION_RATE / moveCost (easy on plains, hard in mountains and deserts).
+ * SIM.EXPANSION_RATE / moveCost (easy on plains, hard in mountains and deserts;
+ * each race finds some land easier than others).
  * If several neighbors claim the same cell in one year, one wins at random.
- * Decisions use ownership from the start of the year, so a nation can only
- * grow one ring of cells per year.
+ * The winner's race settles it. Decisions use ownership from the start of the
+ * year, so a nation can only grow one ring of cells per year.
  */
 export function expand(state: WorldState, rng: Rng): void {
   const { cells } = state;
-  const { owner, pop } = state.state;
+  const { owner, pop, race } = state.state;
   const before = owner.slice(); // snapshot of who owned what at the start of the year
 
   for (const cell of cells) {
@@ -25,11 +27,15 @@ export function expand(state: WorldState, rng: Rng): void {
     );
     if (nearby.length === 0) continue;
 
-    const chance = SIM.EXPANSION_RATE / moveCost(cell);
-    const claimants: NationId[] = nearby.filter(() => rng.chance(chance));
+    const claimants: NationId[] = nearby.filter((id) => {
+      const settlers = state.nations.get(id)!.race;
+      return rng.chance(SIM.EXPANSION_RATE / moveCost(cell, settlers));
+    });
     if (claimants.length === 0) continue;
 
-    owner[cell.id] = rng.pick(claimants);
-    pop[cell.id] = cell.capacity * SIM.NEW_CELL_POP_FRACTION;
+    const winner = state.nations.get(rng.pick(claimants))!;
+    owner[cell.id] = winner.id;
+    race[cell.id] = winner.race;
+    pop[cell.id] = raceCapacity(cell, winner.race) * SIM.NEW_CELL_POP_FRACTION;
   }
 }

@@ -1,5 +1,25 @@
 // Example names the name generator learns from, one list per "culture".
 // All invented for this project. Add or change names to change how a culture sounds.
+import type { RaceFamily } from "../core/types";
+
+/** Names for non-human race families (SPEC §3.9). Humans use the regional NAME_CULTURES below. */
+export const FAMILY_NAMES: Record<Exclude<RaceFamily, "human">, string[]> = {
+  elf: [
+    "Aelindor", "Sylvaris", "Elenwe", "Thalanor", "Lirael", "Caladrel", "Ithrenel", "Faelorn",
+    "Aervanil", "Nimrael", "Silvathe", "Eloriel", "Valindra", "Mirethil", "Celevrin", "Aranwe",
+    "Lothaniel", "Sereluin", "Galathor", "Ynnareth",
+  ],
+  dwarf: [
+    "Kazdrun", "Durnhal", "Barazor", "Thrumgar", "Grondak", "Kharuk", "Dolgrin", "Bronzhal",
+    "Ironvek", "Azkadur", "Mordhun", "Tharbek", "Gundrak", "Hammerdun", "Krogmar", "Dvalgrim",
+    "Orzund", "Brokkhal", "Zhardum", "Felgrund",
+  ],
+  orc: [
+    "Gorzug", "Urkhal", "Mogrash", "Skarnak", "Grubash", "Zugrot", "Thrakka", "Bolgruk",
+    "Narzug", "Kragmok", "Ushnak", "Durgash", "Grimnar", "Morgruk", "Vrokka", "Gazhul",
+    "Rukhar", "Zogmar", "Brakhul", "Uglok",
+  ],
+};
 
 export const NAME_CULTURES: { label: string; examples: string[] }[] = [
   {

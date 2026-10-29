@@ -1,6 +1,7 @@
 // Steps 5–6 (SPEC §4.5): neighbors go to war, fronts move, and wars end in peace and a truce.
 import type { Rng } from "../core/rng";
 import type { CellId, Nation, NationId, SimEvent, War, WorldState } from "../core/types";
+import { traits } from "../gen/races";
 import { peaceEvent, warEvent } from "./events";
 import { moveCost } from "./helpers";
 import { SIM } from "./params";
@@ -66,12 +67,12 @@ export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
     if (atWar.has(pairKey(a, b)) || inTruce(state, a, b) || busy(a) || busy(b)) continue;
     const na = state.nations.get(a)!;
     const nb = state.nations.get(b)!;
-    // The stronger side attacks; a bigger gap makes war more tempting.
+    // The stronger side attacks; a bigger gap makes war more tempting, and so does an aggressive ruling race.
     const [attacker, defender] = na.strength >= nb.strength ? [na, nb] : [nb, na];
     const ratio = attacker.strength / Math.max(defender.strength, 1e-6);
     const chance = Math.min(
       SIM.WAR_MAX_PROB,
-      SIM.WAR_BASE_PROB * ratio ** SIM.WAR_STRENGTH_EXP * (1 - attacker.warWeariness),
+      SIM.WAR_BASE_PROB * traits(attacker.race).aggression * ratio ** SIM.WAR_STRENGTH_EXP * (1 - attacker.warWeariness),
     );
     if (!rng.chance(chance)) continue;
 
@@ -85,16 +86,26 @@ export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
   return events;
 }
 
+/** Average `defense` trait of the races living in `cells` (1 if there are none). */
+export function averageDefense(state: WorldState, cells: CellId[]): number {
+  if (cells.length === 0) return 1;
+  let sum = 0;
+  for (const c of cells) sum += traits(state.state.race[c]!).defense;
+  return sum / cells.length;
+}
+
 /**
  * One year of fighting in one war. Returns how many cells changed hands.
  * The yearly winner is a weighted coin flip: the stronger side wins more often,
- * and the defender gets a home-ground bonus.
+ * and the defender gets a home-ground bonus, bigger where its front is held by
+ * a stubborn race (dwarven hill forts hold even under a human king).
  */
 export function fightBattle(state: WorldState, war: War, rng: Rng): number {
   const attacker = state.nations.get(war.attacker)!;
   const defender = state.nations.get(war.defender)!;
   const a = attacker.strength;
-  const d = defender.strength * SIM.DEFENDER_BONUS;
+  const frontDefense = averageDefense(state, frontCells(state, defender.id, attacker.id));
+  const d = defender.strength * SIM.DEFENDER_BONUS * frontDefense;
   const attackerWins = rng.chance(a + d > 0 ? a / (a + d) : 0.5);
   const [winner, loser] = attackerWins ? [attacker, defender] : [defender, attacker];
 

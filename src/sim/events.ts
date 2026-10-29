@@ -1,17 +1,23 @@
 // Readable sentences for the event log (SPEC §4.9).
 import type { Nation, SimEvent } from "../core/types";
+import { traits } from "../gen/races";
 
 export function foundedEvent(year: number, nation: Nation, where: string): SimEvent {
-  return { year, type: "founded", actors: [nation.id], text: `Year ${year}: ${nation.name} rises ${where}.` };
+  return {
+    year,
+    type: "founded",
+    actors: [nation.id],
+    text: `Year ${year}: ${nation.name}, a realm of ${traits(nation.race).plural}, rises ${where}.`,
+  };
 }
 
 export function rebellionEvent(year: number, rebel: Nation, from: Nation): SimEvent {
-  return {
-    year,
-    type: "rebellion",
-    actors: [rebel.id, from.id],
-    text: `Year ${year}: ${rebel.name} breaks away from ${from.name}.`,
-  };
+  // A subject people rising against rulers of another race gets told as such.
+  const text =
+    rebel.race !== from.race
+      ? `Year ${year}: the ${traits(rebel.race).plural} of ${rebel.name} rise against ${from.name}.`
+      : `Year ${year}: ${rebel.name} breaks away from ${from.name}.`;
+  return { year, type: "rebellion", actors: [rebel.id, from.id], text };
 }
 
 export function collapseEvent(year: number, nation: Nation): SimEvent {

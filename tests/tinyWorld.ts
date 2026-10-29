@@ -1,5 +1,5 @@
 // Builds tiny hand-made worlds for simulation tests.
-import { Biome, type BiomeId, type Cell, type Nation, type NationId, type WorldState } from "../src/core/types";
+import { Biome, Race, type BiomeId, type Cell, type Nation, type NationId, type RaceId, type WorldState } from "../src/core/types";
 
 export interface TinyCell {
   neighbors: number[];
@@ -47,19 +47,32 @@ export function makeNation(id: NationId, capital: number, extra: Partial<Nation>
     color: "#888888",
     capital,
     founded: 0,
+    race: Race.Human,
     alive: true,
     stability: 0.8,
     warWeariness: 0,
     area: 0,
     pop: 0,
     strength: 0,
+    foreignShare: 0,
+    unrest: 1,
     ...extra,
   };
 }
 
-/** A world state from cells, who owns what (0 = nobody), and the nations. */
-export function makeState(spec: TinyCell[], owners: number[], nations: Nation[], pop?: number[]): WorldState {
+/**
+ * A world state from cells, who owns what (0 = nobody), and the nations.
+ * `races` gives each cell's race; by default every owned cell holds its owner's race.
+ */
+export function makeState(
+  spec: TinyCell[],
+  owners: number[],
+  nations: Nation[],
+  pop?: number[],
+  races?: RaceId[],
+): WorldState {
   const cells = makeCells(spec);
+  const byId = new Map(nations.map((n) => [n.id, n]));
   return {
     seed: "tiny",
     year: 0,
@@ -67,12 +80,14 @@ export function makeState(spec: TinyCell[], owners: number[], nations: Nation[],
     state: {
       owner: Int32Array.from(owners),
       pop: Float32Array.from(pop ?? owners.map((o, i) => (o ? cells[i]!.capacity * 0.5 : 0))),
+      race: Uint8Array.from(races ?? owners.map((o) => (o ? byId.get(o)!.race : Race.None))),
     },
-    nations: new Map(nations.map((n) => [n.id, n])),
+    nations: byId,
     wars: [],
     truces: [],
     events: [],
     cultureHomes: [[0, 0]],
     colorHue: 0,
+    raceHomes: [{ race: Race.Human, at: [0, 0] }],
   };
 }

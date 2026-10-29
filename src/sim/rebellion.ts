@@ -1,14 +1,18 @@
-// Step 7 (SPEC §4.6): unstable nations lose far-off provinces to rebels.
+// Step 7 (SPEC §4.6): unstable nations lose far-off provinces to rebels, subject peoples first.
 import type { Rng } from "../core/rng";
-import type { CellId, Nation, SimEvent, WorldState } from "../core/types";
+import type { CellId, Nation, RaceId, SimEvent, WorldState } from "../core/types";
 import { rebellionEvent } from "./events";
 import { cellsByNation, hopsFromCapital, livingNations } from "./helpers";
 import { SIM } from "./params";
 import { addNation, mostPopulous } from "./newNation";
 
-/** Grows a region outward from `seed` through `nation`'s cells, up to `max` cells, never taking the capital. */
+/**
+ * Grows a region outward from `seed` through `nation`'s cells, up to `max` cells,
+ * never taking the capital. Only enters cells of the seed's race: rebels are one people.
+ */
 export function floodFill(state: WorldState, nation: Nation, seed: CellId, max: number): CellId[] {
-  const owner = state.state.owner;
+  const { owner, race } = state.state;
+  const people = race[seed];
   const region: CellId[] = [];
   const seen = new Set<CellId>([seed]);
   const queue = [seed];
@@ -16,7 +20,7 @@ export function floodFill(state: WorldState, nation: Nation, seed: CellId, max: 
     const cell = queue[head]!;
     region.push(cell);
     for (const n of state.cells[cell]!.neighbors) {
-      if (!seen.has(n) && owner[n] === nation.id && n !== nation.capital) {
+      if (!seen.has(n) && owner[n] === nation.id && race[n] === people && n !== nation.capital) {
         seen.add(n);
         queue.push(n);
       }
@@ -32,13 +36,19 @@ export function floodFill(state: WorldState, nation: Nation, seed: CellId, max: 
 export function rebel(state: WorldState, nation: Nation, cells: CellId[], rng: Rng): Nation | null {
   const hops = hopsFromCapital(state, nation);
   // Rebels start far from the capital, or in land the capital can't even reach.
-  const candidates = cells.filter((c) => hops[c]! === -1 || hops[c]! >= SIM.REBEL_MIN_CAPITAL_DIST);
+  const farAway = cells.filter((c) => hops[c]! === -1 || hops[c]! >= SIM.REBEL_MIN_CAPITAL_DIST);
+  // Subject peoples rise first: if any far-off cell is of another race, the seed is one of those.
+  const foreign = farAway.filter((c) => state.state.race[c] !== nation.race);
+  const candidates = foreign.length > 0 ? foreign : farAway;
   if (candidates.length === 0) return null;
 
-  const region = floodFill(state, nation, rng.pick(candidates), SIM.REBEL_MAX_CELLS);
+  const seed = rng.pick(candidates);
+  const region = floodFill(state, nation, seed, SIM.REBEL_MAX_CELLS);
   if (region.length < SIM.MIN_AREA) return null;
 
-  const rebelNation = addNation(state, rng.fork("name"), mostPopulous(state, region), SIM.REBEL_START_STABILITY, nation.id);
+  // The rebels are ruled by their own people. (`as RaceId`: the typed array only knows it's a number.)
+  const rebelRace = state.state.race[seed]! as RaceId;
+  const rebelNation = addNation(state, rng.fork("name"), mostPopulous(state, region), SIM.REBEL_START_STABILITY, rebelRace, nation.id);
   for (const c of region) state.state.owner[c] = rebelNation.id;
   return rebelNation;
 }
@@ -50,7 +60,8 @@ export function rebellions(state: WorldState, rng: Rng): SimEvent[] {
   for (const nation of livingNations(state)) {
     if (nation.stability >= SIM.REBEL_THRESHOLD) continue;
     const nationRng = rng.fork(`nation-${nation.id}`);
-    if (!nationRng.chance(SIM.REBEL_PROB)) continue;
+    // Restless peoples (high average unrest) rise more often.
+    if (!nationRng.chance(SIM.REBEL_PROB * nation.unrest)) continue;
     const rebelNation = rebel(state, nation, groups.get(nation.id) ?? [], nationRng);
     if (rebelNation) events.push(rebellionEvent(state.year, rebelNation, nation));
   }
