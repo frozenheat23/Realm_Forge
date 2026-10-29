@@ -2,7 +2,7 @@
 // Only reads the heightmap; it never changes it. Drawn once and reused every frame.
 import type { Heightmap } from "../gen/heightmap";
 import { clamp, smoothstep } from "../core/math";
-import { hexToRgb, mixRgb, type Rgb } from "./color";
+import { buildRampTable, hexToRgb, mixRgb, rampLookup, type Rgb } from "./color";
 import { hillshade, lightDirection } from "./shading";
 import {
   COAST_GLOW_COLOR,
@@ -16,27 +16,7 @@ import {
   SEA_GRID_SPACING,
   TERRAIN_GRAIN,
   WATER_RAMP,
-  type ColorStop,
 } from "./palette";
-
-// Pre-computes a ramp into 256 colors so each pixel is just a lookup.
-function buildRampTable(stops: ColorStop[]): Rgb[] {
-  const rgbStops = stops.map((s) => ({ at: s.at, rgb: hexToRgb(s.color) }));
-  const table: Rgb[] = [];
-  for (let i = 0; i < 256; i++) {
-    const t = i / 255;
-    let k = 0;
-    while (k < rgbStops.length - 2 && t > rgbStops[k + 1]!.at) k++;
-    const a = rgbStops[k]!;
-    const b = rgbStops[k + 1]!;
-    table.push(mixRgb(a.rgb, b.rgb, clamp((t - a.at) / (b.at - a.at), 0, 1)));
-  }
-  return table;
-}
-
-function rampLookup(table: Rgb[], t: number): Rgb {
-  return table[Math.round(clamp(t, 0, 1) * 255)]!;
-}
 
 // A repeatable "random" value per pixel (-1..1), used for grain.
 // Rendering must be repeatable too, so no Math.random() here either.

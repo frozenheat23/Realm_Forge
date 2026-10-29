@@ -213,6 +213,7 @@ export function createStartingNations(
       strength: 0, // worked out by the simulation each year (M4a)
       foreignShare: 0,
       unrest: traits(race).unrest,
+      control: 1,
     });
     events.push({
       year: 0,

@@ -152,8 +152,10 @@ Example names per culture live in `src/gen/nameCorpus.ts` (all invented). Edit t
 | `ADMIN_CAP_BASE` | 120 | 60–300 | Cells before overextension starts | Bigger stable empires | Many mid-sized nations |
 | `OVEREXT_K` | 0.002 | 0.0005–0.005 | Stability lost per cell over the cap | Big empires crack fast | Empires sprawl longer |
 | `WEARINESS_STAB_K` | 0.02 | 0–0.05 | Stability lost from war weariness | Long wars trigger rebellions | Wars don't destabilize |
-| `CAPITAL_DIST_FREE` | 8 | 4–15 | Avg steps from capital before a penalty | Long, stretched nations OK | Compact nations favored |
-| `CAPITAL_DIST_K` | 0.001 | 0–0.004 | Penalty per extra step | Distant provinces rebel | Shape doesn't matter |
+| `CONTROL_RANGE` | 12 | 6–30 | Travel cost from the capital at which control falls to ~37% (× ruler's cohesion) | Bigger empires hold together (try for "no great empires form") | Empires fray close to home |
+| `CONTROL_ISLAND` | 0.2 | 0–0.5 | Control of cells the capital can't reach over its own land | Overseas holdings are easy | Islands and cut-off land barely held |
+| `CONTROL_FREE` | 0.5 | 0.2–0.8 | Average control below which stability suffers | Only compact nations stay stable | Sprawl is fine |
+| `CONTROL_STAB_K` | 0.02 | 0.005–0.05 | Stability lost per year per point of control below `CONTROL_FREE` | Sprawling empires crack | Shape and terrain don't matter |
 | `WEARINESS_GAIN` | 0.03 | 0.01–0.08 | Weariness gained per war year | Wars end sooner | Long grinding wars |
 | `WEARINESS_DECAY` | 0.05 | 0.02–0.1 | Weariness lost per peace year | Quick return to war | Long peaceful periods |
 | `FOREIGN_FREE` | 0.2 | 0–0.5 | Share of foreign-race population a nation can hold before it hurts stability | Multi-race empires hold together | Even small minorities cause trouble |
@@ -428,15 +430,6 @@ Design in SPEC.md §4.11. All values are first guesses. Generation values would 
 |---|---|---|---|
 | `RESOURCE_SATURATION` | 2.0 | 0.5–5 | Total richness needed for the full bonus. ↑ = big empires keep gaining from more deposits (more snowball) |
 | `FAVORED_RESOURCE_VALUE` | 2 | 1–4 | How much more a race values its favored resources when picking war targets |
-
-### Control (replaces `CAPITAL_DIST_FREE` / `CAPITAL_DIST_K`)
-
-| Parameter | Default | Range | Effect |
-|---|---|---|---|
-| `CONTROL_RANGE` | 12 | 6–30 | Travel cost at which control falls to ~37%. ↑ = bigger empires hold together (try for "no great empires form") |
-| `CONTROL_ISLAND` | 0.2 | 0–0.5 | Control of cells the capital can't reach over land |
-| `CONTROL_FREE` | 0.5 | 0.2–0.8 | Average control below which stability suffers |
-| `CONTROL_STAB_K` | 0.02 | 0.005–0.05 | Stability lost per year per point of control below `CONTROL_FREE` |
 
 ### Unrest, devastation, ownership
 

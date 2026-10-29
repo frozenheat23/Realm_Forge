@@ -227,6 +227,7 @@ For each living nation, recompute:
 - `strength = militaryPop ^ STRENGTH_POP_EXP × (0.5 + stability)`, where `militaryPop` = the sum over owned cells of `pop × martial` (the trait of the race living in each cell, so an orc province makes a human kingdom stronger)
 - `foreignShare` = share of `pop` living in cells whose race isn't the nation's race
 - `unrest` = population-weighted average of the `unrest` trait of the races living in the nation
+- **`control`** per cell, 0..1, the owner's grip (`sim/control.ts`, worked out fresh each year, never stored): travel cost from the capital through the nation's own cells (Dijkstra, paying each cell's move cost for the ruling race), then `control = exp(−travelCost / (CONTROL_RANGE × cohesion))`. Cells the capital can't reach over its own land (e.g. islands) get `CONTROL_ISLAND`. So mountains and marshes, not just distance, decide where an empire frays. The nation's `control` = population-weighted average.
 
 ### 4.3 Stability
 Each year:
@@ -235,13 +236,13 @@ Each year:
 stability += STAB_RECOVERY
            − overextension
            − warWeariness × WEARINESS_STAB_K
-           − capitalDistancePenalty
+           − controlPenalty
            − foreignPenalty
 clamp to 0..1
 
-overextension          = max(0, area − ADMIN_CAP_BASE × cohesion) × OVEREXT_K
-capitalDistancePenalty = max(0, avgHopsToCapital − CAPITAL_DIST_FREE) × CAPITAL_DIST_K
-foreignPenalty         = max(0, foreignShare − FOREIGN_FREE) × FOREIGN_K / tolerance
+overextension  = max(0, area − ADMIN_CAP_BASE × cohesion) × OVEREXT_K
+controlPenalty = max(0, CONTROL_FREE − nation.control) × CONTROL_STAB_K
+foreignPenalty = max(0, foreignShare − FOREIGN_FREE) × FOREIGN_K / tolerance
 ```
 
 `cohesion` and `tolerance` are traits of the nation's ruling race.
@@ -467,6 +468,9 @@ A layer toggle (**Races**) swaps the nation overlay for one colored by each cell
 
 ### 5.4c Alliances
 A layer toggle (**Alliances**, key A, on by default) draws a dashed light line with a dark outline between the capitals of each pair of allies. Hovering a nation's land lists its allies and its worst rival (lowest opinion).
+
+### 5.4d Heatmaps
+Key **H** cycles through heatmap layers (none → control → … → none), drawn over the nation colors on owned land with `HEAT_RAMP` (pale = low, dark red = high) at `HEAT_ALPHA`. The heatmap's name is drawn under the year so it shows in videos.
 
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 5 ms, smooth at 20 years per second.

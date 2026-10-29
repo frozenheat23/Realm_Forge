@@ -121,6 +121,8 @@ export interface Nation {
   foreignShare: number;
   /** Population-weighted average of the `unrest` trait of everyone living there. */
   unrest: number;
+  /** Population-weighted average control over its cells, 0..1 (SPEC §4.2). */
+  control: number;
 }
 
 export interface War {

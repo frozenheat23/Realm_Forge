@@ -5,7 +5,8 @@ import { collapses } from "../src/sim/collapse";
 import { emergence, emptyRegions } from "../src/sim/emergence";
 import { SIM } from "../src/sim/params";
 import { rebel } from "../src/sim/rebellion";
-import { averageHopsToCapital, updateStability } from "../src/sim/stability";
+import { controlMap } from "../src/sim/control";
+import { updateStability } from "../src/sim/stability";
 import { tick } from "../src/sim/tick";
 import { makeNation, makeState, row } from "./tinyWorld";
 
@@ -22,10 +23,26 @@ describe("stability", () => {
     expect(state.nations.get(1)!.stability).toBeLessThan(0.5);
   });
 
-  it("measures the average distance from the capital", () => {
-    const state = makeState(row(5), [1, 1, 1, 1, 1], [makeNation(1, 0)]);
-    // Hops 0, 1, 2, 3, 4 → average 2.
-    expect(averageHopsToCapital(state, state.nations.get(1)!, [0, 1, 2, 3, 4])).toBe(2);
+  it("drops when the nation's grip on its land is weak", () => {
+    const state = makeState(row(3), [1, 1, 1], [makeNation(1, 0, { stability: 0.5, area: 3, control: 0 })]);
+    updateStability(state);
+    expect(state.nations.get(1)!.stability).toBeCloseTo(0.5 + SIM.STAB_RECOVERY - SIM.CONTROL_FREE * SIM.CONTROL_STAB_K);
+  });
+
+  it("control fades with travel cost from the capital, and mountains cost more", () => {
+    // Capital at 0. In the second world, cell 2 sits behind a mountain (cell 1).
+    const plains = makeState(row(3), [1, 1, 1], [makeNation(1, 0)]);
+    const hills = makeState(row(3).map((c, i) => ({ ...c, mountain: i === 1 })), [1, 1, 1], [makeNation(1, 0)]);
+    const p = controlMap(plains);
+    const m = controlMap(hills);
+    expect(p[0]).toBe(1);
+    expect(p[2]).toBeLessThan(p[1]!);
+    expect(m[2]).toBeLessThan(p[2]!);
+  });
+
+  it("gives land the capital can't reach the island control", () => {
+    const state = makeState([{ neighbors: [] }, { neighbors: [] }], [1, 1], [makeNation(1, 0)]);
+    expect(controlMap(state)[1]).toBeCloseTo(SIM.CONTROL_ISLAND);
   });
 
   it("builds war weariness only while at war", () => {

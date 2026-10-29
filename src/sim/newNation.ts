@@ -31,6 +31,7 @@ export function addNation(
     strength: 0,
     foreignShare: 0,
     unrest: traits(race).unrest,
+    control: 1,
   };
   if (parent !== undefined) nation.parent = parent;
   state.nations.set(id, nation);

@@ -112,6 +112,14 @@ export const ALLIANCE_OUTLINE = "rgba(40, 32, 20, 0.6)";
 export const ALLIANCE_WIDTH = 2;
 /** Dash pattern in pixels: [line, gap]. */
 export const ALLIANCE_DASH = [6, 4];
+/** Heatmap layers (SPEC §5.4d): color ramp from 0 to 1, drawn over the land at HEAT_ALPHA. */
+export const HEAT_RAMP: ColorStop[] = [
+  { at: 0, color: "#fff7bc" },
+  { at: 0.5, color: "#fd8d3c" },
+  { at: 1, color: "#99000d" },
+];
+export const HEAT_ALPHA = 0.75;
+export const HEAT_LABEL_FONT = "18px Georgia, serif";
 /** Year counter drawn on the map (so it shows up in recorded videos). */
 export const YEAR_FONT = "34px Georgia, serif";
 export const YEAR_COLOR = "#fbf6e9";

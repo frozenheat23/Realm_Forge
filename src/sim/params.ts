@@ -16,8 +16,14 @@ export const SIM = {
   ADMIN_CAP_BASE: 120,
   OVEREXT_K: 0.002,
   WEARINESS_STAB_K: 0.02,
-  CAPITAL_DIST_FREE: 8,
-  CAPITAL_DIST_K: 0.001,
+  /** Travel cost from the capital at which control falls to ~37%. */
+  CONTROL_RANGE: 12,
+  /** Control of cells the capital can't reach over its own land. */
+  CONTROL_ISLAND: 0.2,
+  /** Average control below which stability suffers. */
+  CONTROL_FREE: 0.5,
+  /** Stability lost per year per point of average control below CONTROL_FREE. */
+  CONTROL_STAB_K: 0.02,
   WEARINESS_GAIN: 0.03,
   WEARINESS_DECAY: 0.05,
   /** Share of foreign-race population a nation can hold before it hurts stability. */

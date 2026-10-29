@@ -1,11 +1,14 @@
-// Step 2 (SPEC §4.2): add up each nation's size, people and strength.
+// Step 2 (SPEC §4.2): add up each nation's size, people, strength and grip on its land.
 import type { WorldState } from "../core/types";
 import { traits } from "../gen/races";
+import { controlMap } from "./control";
 import { cellsByNation } from "./helpers";
 import { SIM } from "./params";
 
-export function updateTotals(state: WorldState): void {
+/** Updates every living nation's totals. Returns this year's control map (used again later in the year). */
+export function updateTotals(state: WorldState): Float32Array {
   const groups = cellsByNation(state);
+  const control = controlMap(state);
   const { pop, race } = state.state;
   for (const nation of state.nations.values()) {
     if (!nation.alive) continue;
@@ -16,12 +19,14 @@ export function updateTotals(state: WorldState): void {
     let militaryPop = 0; // people × how good their race is at fighting
     let foreign = 0; // people who aren't the ruling race
     let unrestSum = 0; // people × their race's unrest
+    let controlSum = 0; // people × how firmly they're held
     for (const c of cells) {
       const p = pop[c]!;
       const t = traits(race[c]!);
       total += p;
       militaryPop += p * t.martial;
       unrestSum += p * t.unrest;
+      controlSum += p * control[c]!;
       if (race[c] !== nation.race) foreign += p;
     }
 
@@ -29,7 +34,9 @@ export function updateTotals(state: WorldState): void {
     nation.pop = total;
     nation.foreignShare = total > 0 ? foreign / total : 0;
     nation.unrest = total > 0 ? unrestSum / total : traits(nation.race).unrest;
+    nation.control = total > 0 ? controlSum / total : 1;
     // Bigger (and more martial) population = stronger, with diminishing returns; a stable nation fights better.
     nation.strength = militaryPop ** SIM.STRENGTH_POP_EXP * (0.5 + nation.stability);
   }
+  return control;
 }

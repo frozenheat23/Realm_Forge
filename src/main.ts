@@ -1,13 +1,14 @@
 // Entry point: generates a world from a seed, draws it, and plays its history.
 // Page address options: ?seed=anything picks the world, ?style=painted switches the look.
-// Keys: Space play/pause, → step, C cell outlines, N nations, R races, A alliances. Hover the map to inspect a cell.
+// Keys: Space play/pause, → step, C cell outlines, N nations, R races, A alliances, H heatmaps. Hover the map to inspect a cell.
 import { createRng } from "./core/rng";
 import type { NationId, WorldState } from "./core/types";
 import { generateWorld } from "./gen";
 import { drawAlliances } from "./render/alliances";
 import { drawCellOutlines } from "./render/debug";
 import { buildDisplayCells } from "./render/displayCells";
-import { drawYear } from "./render/hud";
+import { HEAT_KINDS, renderHeatmap, type HeatKind } from "./render/heatmap";
+import { drawHeatmapName, drawYear } from "./render/hud";
 import { drawLabels } from "./render/labels";
 import { renderNationOverlay } from "./render/overlay";
 import { drawRivers } from "./render/rivers";
@@ -89,20 +90,26 @@ drawRivers(terrainCtx, world);
 const layers: Layers = { nations: true, races: false, alliances: true, labels: true, cells: query.get("debug") === "cells" };
 let highlight = new Set<NationId>();
 let highlightTimer = 0;
+/** Which heatmap is showing (H cycles through them), or null for none. */
+let heat: HeatKind | null = null;
 
-// Nation colors are redrawn only when borders may have changed.
+// Nation colors (and the heatmap) are redrawn only when the world may have changed.
 const [nationLayer, nationCtx] = offscreen();
+const [heatLayer, heatCtx] = offscreen();
 function redrawNations(): void {
   nationCtx.putImageData(renderNationOverlay(world, displayCells, state, highlight, layers.races), 0, 0);
+  if (heat) heatCtx.putImageData(renderHeatmap(world, displayCells, state, heat), 0, 0);
 }
 
 function draw(): void {
   ctx.drawImage(terrain, 0, 0);
   if (layers.nations) ctx.drawImage(nationLayer, 0, 0);
+  if (heat) ctx.drawImage(heatLayer, 0, 0);
   if (layers.cells) drawCellOutlines(ctx, world);
   if (layers.alliances) drawAlliances(ctx, world, state);
   if (layers.nations && layers.labels) drawLabels(ctx, world, state);
   drawYear(ctx, state.year, world.width);
+  if (heat) drawHeatmapName(ctx, heat, world.width);
 }
 
 // --- Event log (click an event → its nations light up for a few seconds) ---
@@ -209,6 +216,13 @@ createSettings(settingsPanel, layers, () => {
 });
 onKey("r", () => {
   layers.races = !layers.races;
+  redrawNations();
+  draw();
+});
+// H: no heatmap → each heatmap in turn → none again.
+onKey("h", () => {
+  const next = heat === null ? 0 : HEAT_KINDS.indexOf(heat) + 1;
+  heat = HEAT_KINDS[next] ?? null;
   redrawNations();
   draw();
 });

@@ -56,6 +56,7 @@ export function makeNation(id: NationId, capital: number, extra: Partial<Nation>
     strength: 0,
     foreignShare: 0,
     unrest: 1,
+    control: 1,
     ...extra,
   };
 }
