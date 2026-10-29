@@ -4,7 +4,7 @@ import type { CellId, Nation, RaceId, SimEvent, WorldState } from "../core/types
 import { rebellionEvent } from "./events";
 import { cellsByNation, hopsFromCapital, livingNations, pairKey, setOwner, weightedPick } from "./helpers";
 import { SIM } from "./params";
-import { addNation, mostPopulous } from "./newNation";
+import { addNation, bestCapital } from "./newNation";
 
 /**
  * Grows a region outward from `seed` through `nation`'s cells, up to `max` cells,
@@ -49,7 +49,7 @@ export function rebel(state: WorldState, nation: Nation, cells: CellId[], rng: R
 
   // The rebels are ruled by their own people. (`as RaceId`: the typed array only knows it's a number.)
   const rebelRace = state.state.race[seed]! as RaceId;
-  const rebelNation = addNation(state, rng.fork("name"), mostPopulous(state, region), SIM.REBEL_START_STABILITY, rebelRace, nation.id);
+  const rebelNation = addNation(state, rng.fork("name"), bestCapital(state, region), SIM.REBEL_START_STABILITY, rebelRace, nation.id);
   for (const c of region) {
     setOwner(state, c, rebelNation.id);
     state.state.unrest[c] = 0; // free at last

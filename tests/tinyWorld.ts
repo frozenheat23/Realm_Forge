@@ -104,6 +104,8 @@ export function makeState(
       devastation: new Float32Array(cells.length),
       ownedSince: new Int32Array(cells.length),
       prevOwner: new Int32Array(cells.length),
+      development: new Float32Array(cells.length),
+      settlement: new Uint8Array(cells.length),
     },
     nations: byId,
     wars: [],
@@ -114,5 +116,6 @@ export function makeState(
     raceHomes: [{ race: Race.Human, at: [0, 0] }],
     relations: new Map(),
     alliances: [],
+    cityNames: new Map(),
   };
 }

@@ -3,7 +3,7 @@ import { Race, type Nation, type NationId, type SimEvent, type WorldState } from
 import { annexedEvent, capitalMovedEvent, collapseEvent } from "./events";
 import { cellsByNation, livingNations, setOwner } from "./helpers";
 import { SIM } from "./params";
-import { mostPopulous } from "./newNation";
+import { bestCapital } from "./newNation";
 
 /**
  * Hands each of the nation's cells to its strongest neighboring nation, or
@@ -60,7 +60,7 @@ export function collapses(state: WorldState): SimEvent[] {
     }
 
     if (state.state.owner[nation.capital] !== nation.id) {
-      nation.capital = mostPopulous(state, stillOurs);
+      nation.capital = bestCapital(state, stillOurs);
       nation.stability = Math.max(0, nation.stability - SIM.CAPITAL_LOSS_STAB_HIT);
       events.push(capitalMovedEvent(state.year, nation));
     }

@@ -52,6 +52,20 @@ export const SIM = {
   DEVASTATION_HEAL: 0.05,
   /** Capacity lost at full devastation. */
   DEVASTATION_CAP_LOSS: 0.5,
+  /** Yearly development gain in ideal conditions (full, fully controlled, undamaged land). */
+  DEV_GROWTH: 0.005,
+  /** Development lost per year × devastation. */
+  DEV_DEVASTATION_LOSS: 0.05,
+  /** Development a cell needs to become a village, town and city. */
+  SETTLE_VILLAGE: 0.15,
+  SETTLE_TOWN: 0.4,
+  SETTLE_CITY: 0.7,
+  /** Pop / capacity a town or city also needs. */
+  SETTLE_MIN_POP_FRACTION: 0.6,
+  /** A settlement only shrinks once development falls below its threshold × this (stops flicker). */
+  SETTLE_DOWN_FACTOR: 0.8,
+  /** Fewest cell-steps between two cities. */
+  CITY_MIN_SPACING: 6,
   /** Total richness of one resource a nation needs for its full bonus. */
   RESOURCE_SATURATION: 2.0,
   /** How much more a race values a deposit of a resource it favors. */

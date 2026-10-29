@@ -180,7 +180,7 @@ export interface Alliance {
 
 export interface SimEvent {
   year: number;
-  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved" | "alliance" | "alliance_ended";
+  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved" | "alliance" | "alliance_ended" | "city_founded";
   actors: NationId[];
   text: string;
 }
@@ -201,7 +201,14 @@ export interface CellState {
   ownedSince: Int32Array;
   /** Who owned the cell before the current owner (0 = nobody). Gives claims to reconquer. */
   prevOwner: Int32Array;
+  /** Farms, roads and buildings, 0..1. Grows slowly in full, well-held, peaceful land. */
+  development: Float32Array;
+  /** 0 none, 1 village, 2 town, 3 city (see Settlement). */
+  settlement: Uint8Array;
 }
+
+/** Settlement levels, from development (SPEC §4.11). */
+export const Settlement = { None: 0, Village: 1, Town: 2, City: 3 } as const;
 
 /** A race's homeland point: new nations nearby are of that race. */
 export interface RaceHome {
@@ -228,4 +235,6 @@ export interface WorldState {
   /** Opinion between two nations that have met, −1 (hatred) .. 1 (friendship), keyed by `pairKey` (SPEC §4.12). */
   relations: Map<number, number>;
   alliances: Alliance[];
+  /** Names of cells that have grown into cities (kept if the city shrinks, so it keeps its name if it regrows). */
+  cityNames: Map<CellId, string>;
 }

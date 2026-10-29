@@ -118,6 +118,8 @@ export function generateWorld(seed: string, width = MAP_WIDTH, height = MAP_HEIG
       devastation: new Float32Array(cells.length),
       ownedSince: new Int32Array(cells.length),
       prevOwner: new Int32Array(cells.length),
+      development: new Float32Array(cells.length),
+      settlement: new Uint8Array(cells.length),
     },
     nations: start.nations,
     wars: [],
@@ -128,6 +130,7 @@ export function generateWorld(seed: string, width = MAP_WIDTH, height = MAP_HEIG
     raceHomes,
     relations: new Map(),
     alliances: [],
+    cityNames: new Map(),
   };
   return { world, state };
 }

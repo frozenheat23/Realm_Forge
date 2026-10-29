@@ -34,6 +34,8 @@ export interface Snapshot {
   /** [pairKey, opinion] pairs. */
   relations: [number, number][];
   alliances: Alliance[];
+  /** [cell, name] pairs. */
+  cityNames: [number, string][];
 }
 
 export function toSnapshot(state: WorldState, params: SimParams): Snapshot {
@@ -51,6 +53,8 @@ export function toSnapshot(state: WorldState, params: SimParams): Snapshot {
       devastation: Array.from(s.devastation),
       ownedSince: Array.from(s.ownedSince),
       prevOwner: Array.from(s.prevOwner),
+      development: Array.from(s.development),
+      settlement: Array.from(s.settlement),
     },
     nations: [...state.nations.values()],
     wars: state.wars,
@@ -61,6 +65,7 @@ export function toSnapshot(state: WorldState, params: SimParams): Snapshot {
     raceHomes: state.raceHomes,
     relations: [...state.relations],
     alliances: state.alliances,
+    cityNames: [...state.cityNames],
   };
 }
 
@@ -84,6 +89,8 @@ export function fromSnapshot(snapshot: Snapshot, world: GeneratedWorld): WorldSt
       devastation: Float32Array.from(c.devastation),
       ownedSince: Int32Array.from(c.ownedSince),
       prevOwner: Int32Array.from(c.prevOwner),
+      development: Float32Array.from(c.development),
+      settlement: Uint8Array.from(c.settlement),
     },
     nations: new Map(snapshot.nations.map((n) => [n.id, { ...n }])),
     wars: snapshot.wars.map((w) => ({ ...w })),
@@ -94,5 +101,6 @@ export function fromSnapshot(snapshot: Snapshot, world: GeneratedWorld): WorldSt
     raceHomes: snapshot.raceHomes,
     relations: new Map(snapshot.relations),
     alliances: snapshot.alliances.map((al) => ({ ...al })),
+    cityNames: new Map(snapshot.cityNames),
   };
 }

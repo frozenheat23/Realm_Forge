@@ -36,5 +36,5 @@ export function cellValue(state: WorldState, cell: CellId, race: RaceId, capacit
   const c = state.cells[cell]!;
   const full = capacity > 0 ? Math.min(1, state.state.pop[cell]! / capacity) : 0;
   const favored = c.resource !== 0 && traits(race).favoredResources.includes(c.resource as ResourceKind);
-  return full + c.richness * (favored ? SIM.FAVORED_RESOURCE_VALUE : 1);
+  return full + state.state.development[cell]! + c.richness * (favored ? SIM.FAVORED_RESOURCE_VALUE : 1);
 }

@@ -1,6 +1,6 @@
 // Entry point: generates a world from a seed, draws it, and plays its history.
 // Page address options: ?seed=anything picks the world, ?style=painted switches the look.
-// Keys: Space play/pause, → step, C cell outlines, N nations, R races, A alliances, M resources, H heatmaps. Hover the map to inspect a cell.
+// Keys: Space play/pause, → step, C cell outlines, N nations, R races, A alliances, M resources, T towns, H heatmaps. Hover the map to inspect a cell.
 import { createRng } from "./core/rng";
 import type { NationId, WorldState } from "./core/types";
 import { generateWorld } from "./gen";
@@ -12,6 +12,7 @@ import { drawHeatmapName, drawYear } from "./render/hud";
 import { drawLabels } from "./render/labels";
 import { renderNationOverlay } from "./render/overlay";
 import { drawResources } from "./render/resources";
+import { drawSettlements } from "./render/settlements";
 import { drawRivers } from "./render/rivers";
 import { renderCelTerrain } from "./render/terrainCel";
 import { renderPaintedTerrain } from "./render/terrainPainted";
@@ -88,7 +89,7 @@ terrainCtx.putImageData(terrainImage, 0, 0);
 drawRivers(terrainCtx, world);
 
 // --- Drawing ---
-const layers: Layers = { nations: true, races: false, alliances: true, resources: false, labels: true, cells: query.get("debug") === "cells" };
+const layers: Layers = { nations: true, races: false, alliances: true, resources: false, settlements: true, labels: true, cells: query.get("debug") === "cells" };
 let highlight = new Set<NationId>();
 let highlightTimer = 0;
 /** Which heatmap is showing (H cycles through them), or null for none. */
@@ -107,6 +108,7 @@ function draw(): void {
   if (layers.nations) ctx.drawImage(nationLayer, 0, 0);
   if (heat) ctx.drawImage(heatLayer, 0, 0);
   if (layers.cells) drawCellOutlines(ctx, world);
+  if (layers.settlements) drawSettlements(ctx, world, state);
   if (layers.resources) drawResources(ctx, world);
   if (layers.alliances) drawAlliances(ctx, world, state);
   if (layers.nations && layers.labels) drawLabels(ctx, world, state);
@@ -226,6 +228,10 @@ onKey("h", () => {
   const next = heat === null ? 0 : HEAT_KINDS.indexOf(heat) + 1;
   heat = HEAT_KINDS[next] ?? null;
   redrawNations();
+  draw();
+});
+onKey("t", () => {
+  layers.settlements = !layers.settlements;
   draw();
 });
 onKey("m", () => {

@@ -14,6 +14,7 @@ const ICONS: Record<SimEvent["type"], string> = {
   peace: "☮",
   alliance: "∞",
   alliance_ended: "≠",
+  city_founded: "♜",
 };
 
 // Filter checkboxes: label → the event types it shows or hides.
@@ -25,6 +26,7 @@ const FILTERS: [string, SimEvent["type"][]][] = [
   ["Foundings", ["founded"]],
   ["Collapses", ["collapse", "annexed"]],
   ["Capitals", ["capital_moved"]],
+  ["Cities", ["city_founded"]],
 ];
 
 export interface EventLog {

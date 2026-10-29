@@ -40,6 +40,17 @@ export function addNation(
   return nation;
 }
 
+/** Where to put a capital among `cells`: the biggest settlement, then the most populous (lowest id wins a tie). */
+export function bestCapital(state: WorldState, cells: CellId[]): CellId {
+  const level = state.state.settlement;
+  let top = 0;
+  for (const c of cells) top = Math.max(top, level[c]!);
+  return mostPopulous(
+    state,
+    cells.filter((c) => level[c] === top),
+  );
+}
+
 /** The most populous of `cells` (lowest id wins a tie). */
 export function mostPopulous(state: WorldState, cells: CellId[]): CellId {
   let best = cells[0]!;

@@ -14,6 +14,9 @@ export function onKey(key: string, action: () => void): void {
   });
 }
 
+/** Settlement level names, indexed by level (0 = none). */
+const SETTLEMENT_NAMES = ["", "village", "town", "city"];
+
 /** " · allies X, Y · rival Z (−0.62)" for a nation, or "" if it has neither. */
 function diplomacyText(state: WorldState, id: NationId): string {
   const name = (other: NationId) => state.nations.get(other)?.name ?? "?";
@@ -62,8 +65,12 @@ export function showCellOnHover(
       : "unowned";
     const s = state.state;
     const deposit = cell.resource ? ` · ${RESOURCES[cell.resource as ResourceKind].name} (richness ${cell.richness.toFixed(2)})` : "";
+    const place = SETTLEMENT_NAMES[s.settlement[cell.id]!]!;
+    const city = state.cityNames.get(cell.id);
+    const placeText = place ? ` · ${place}${city && place === "city" ? ` of ${city}` : ""}` : "";
     const land = nation
-      ? ` · unrest ${s.unrest[cell.id]!.toFixed(2)} · devastation ${s.devastation[cell.id]!.toFixed(2)} · held since year ${s.ownedSince[cell.id]}`
+      ? `${placeText} · development ${s.development[cell.id]!.toFixed(2)} · unrest ${s.unrest[cell.id]!.toFixed(2)}` +
+        ` · devastation ${s.devastation[cell.id]!.toFixed(2)} · held since year ${s.ownedSince[cell.id]}`
       : "";
     panel.textContent =
       `${ownerText}${land}${deposit} · Cell ${cell.id} · ${BIOME_STATS[cell.biome].name} · defense ${cell.defensibility.toFixed(2)}` +

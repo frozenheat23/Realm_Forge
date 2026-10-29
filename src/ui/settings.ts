@@ -10,7 +10,7 @@ const GROUPS: { title: string; names: SimParamName[] }[] = [
   },
   {
     title: "Land",
-    names: ["UNREST_CONQUEST", "UNREST_CONTROL_K", "UNREST_FOREIGN_K", "UNREST_DEVASTATION_K", "UNREST_DECAY", "CORE_YEARS", "DEVASTATION_FRONT", "DEVASTATION_CAPTURE", "DEVASTATION_HEAL", "DEVASTATION_CAP_LOSS", "RESOURCE_SATURATION", "FAVORED_RESOURCE_VALUE"],
+    names: ["UNREST_CONQUEST", "UNREST_CONTROL_K", "UNREST_FOREIGN_K", "UNREST_DEVASTATION_K", "UNREST_DECAY", "CORE_YEARS", "DEVASTATION_FRONT", "DEVASTATION_CAPTURE", "DEVASTATION_HEAL", "DEVASTATION_CAP_LOSS", "DEV_GROWTH", "DEV_DEVASTATION_LOSS", "SETTLE_VILLAGE", "SETTLE_TOWN", "SETTLE_CITY", "SETTLE_MIN_POP_FRACTION", "SETTLE_DOWN_FACTOR", "CITY_MIN_SPACING", "RESOURCE_SATURATION", "FAVORED_RESOURCE_VALUE"],
   },
   { title: "Expansion", names: ["EXPANSION_RATE"] },
   {
@@ -33,6 +33,8 @@ export interface Layers {
   alliances: boolean;
   /** Resource deposit markers (SPEC §5.4e). */
   resources: boolean;
+  /** Towns and named cities (SPEC §5.4f). */
+  settlements: boolean;
   labels: boolean;
   cells: boolean;
 }
@@ -51,6 +53,7 @@ export function createSettings(container: HTMLElement, layers: Layers, onLayersC
     ["races", "Races"],
     ["alliances", "Alliances"],
     ["resources", "Resources"],
+    ["settlements", "Towns & cities"],
     ["labels", "Labels"],
     ["cells", "Cell outlines"],
   ];

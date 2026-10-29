@@ -72,6 +72,15 @@ export function joinAttackEvent(year: number, ally: Nation, friend: Nation, enem
   };
 }
 
+export function cityFoundedEvent(year: number, city: string, nation: Nation): SimEvent {
+  return {
+    year,
+    type: "city_founded",
+    actors: [nation.id],
+    text: `Year ${year}: ${city} grows into a great city of ${nation.name}.`,
+  };
+}
+
 export function allianceEvent(year: number, a: Nation, b: Nation): SimEvent {
   // Two realms of one race allying is told as kinship.
   const text =

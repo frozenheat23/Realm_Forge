@@ -112,6 +112,12 @@ export const ALLIANCE_OUTLINE = "rgba(40, 32, 20, 0.6)";
 export const ALLIANCE_WIDTH = 2;
 /** Dash pattern in pixels: [line, gap]. */
 export const ALLIANCE_DASH = [6, 4];
+/** Settlements layer (SPEC §5.4f): dots for towns, a square and a name for cities. */
+export const TOWN_RADIUS = 1.8;
+export const TOWN_FILL = "#3a2f25";
+export const CITY_SIZE = 5;
+export const CITY_FILL = "#fbf6e9";
+export const CITY_FONT = "italic 10px Georgia, serif";
 /** Resources layer (SPEC §5.4e): a marker per deposit, colored by type (indexed by ResourceId; 0 unused). */
 export const RESOURCE_COLORS: string[] = ["#000000", "#e8c547", "#2e7d32", "#78909c", "#ffb300", "#8d6e63", "#80deea"];
 /** One letter drawn on each marker (indexed by ResourceId). */

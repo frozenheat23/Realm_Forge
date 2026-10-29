@@ -26,7 +26,7 @@ export function tick(state: WorldState, rng: Rng): SimEvent[] {
 
   growPopulation(state); //                               1. Population
   const control = updateTotals(state); //                 2. Totals
-  updateLand(state, control); //                             … and each cell's land
+  events.push(...updateLand(state, control, year.fork("land"))); // … and each cell's land
   updateStability(state); //                              3. Stability
   expand(state, year.fork("expansion")); //               4. Expansion
   events.push(...diplomacy(state, year.fork("diplomacy"))); // 4b. Diplomacy
