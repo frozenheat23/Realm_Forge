@@ -413,6 +413,31 @@ Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shadi
 | `RESOURCE_RADIUS` / `RESOURCE_RICH_GROWTH` | 4 / 2 | 2–6 / 0–4 | Marker size, and extra size for the richest deposits | Bigger markers | Smaller markers |
 | `TOWN_RADIUS`, `CITY_SIZE`, `CITY_FONT` | 1.8, 5, italic 10px | — | Town dot, city square and city name | — | — |
 
+### War and unrest effects
+
+Animated layer (key E). Visual only: changing these never changes history. Times are real seconds, not years.
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `FRONT_HATCH_ALPHA` | 0.35 | 0–0.7 | Opacity of the red stripes on war fronts | Fronts glare | Faint stripes (0 = off) |
+| `FRONT_HATCH_SPACING` / `FRONT_HATCH_WIDTH` | 8 / 2.5 | 4–16 / 1–5 | Gap between stripes and their thickness (pixels) | Sparser / bolder stripes | Denser / finer stripes |
+| `FRONT_HATCH_SPEED` | 10 | 0–40 | How fast stripes slide (pixels per second) | Busy, urgent fronts | Still stripes (0) |
+| `BATTLE_SECONDS` | 1.4 | 0.5–4 | How long a battle flash lasts | Battles linger (and pile up at high speed) | Quick sparks |
+| `BATTLE_RADIUS` | 16 | 8–30 | How far the battle ring spreads (pixels) | Big flashes | Small flashes |
+| `BATTLE_SWORD_SIZE` | 7 | 4–12 | Half-length of the crossed swords (pixels) | Bigger swords | Smaller swords |
+| `EVENT_BURST_SECONDS` | 2.5 | 1–6 | How long rebellion / founding / collapse rings last | Lingering rings | Brief rings |
+| `EVENT_BURST_RADIUS` | 45 | 20–80 | How far event rings spread (pixels) | Dramatic | Subtle |
+| `COLLAPSE_COLOR` | #2b2620 | — | Ring color when a nation collapses or is annexed | — | — |
+| `MAX_BURSTS` | 80 | 20–200 | Most battle and event flashes at once (oldest give way) | Busier at high speed | Calmer at high speed |
+| `SMOKE_MIN_DEVASTATION` | 0.25 | 0.1–0.6 | Devastation a cell needs before it smokes | Only the worst ruins smoke | Smoke everywhere after a war |
+| `SMOKE_ALPHA` / `SMOKE_SIZE` / `SMOKE_RISE` | 0.8 / 7 / 14 | 0.3–1 / 4–12 / 6–30 | Puff opacity (× the cell's devastation), size and how high it drifts (pixels) | Heavy smoke | Light haze |
+| `SMOKE_SECONDS` | 3 | 1–6 | Time for one puff to rise and fade | Slow, lazy smoke | Fast, busy smoke |
+| `SMOKE_COLOR` | 70, 62, 56 | — | Smoke color (R, G, B) | — | — |
+| `EMBER_MIN_UNREST` | 0.9 | 0.6–0.99 | Unrest a cell needs before it glows. Only cells in nations with stability < `REBEL_THRESHOLD` count (they could rebel this year). Measured: ~40% of owned land sits at ≥ 0.9, so the stability rule does most of the picking | Only the angriest land glows | More glow in unstable realms |
+| `EMBER_DENSITY` | 0.3 | 0.1–1 | Share of qualifying cells that glow | Unstable realms blaze | A few scattered sparks |
+| `EMBER_SIZE` / `EMBER_FLICKER` | 5 / 5 | 3–9 / 1–12 | Glow size (pixels) and flicker speed | Bigger, faster flames | Small, slow glow |
+| `EMBER_COLOR` | 255, 122, 26 | — | Ember color (R, G, B) | — | — |
+
 ---
 
 # Playback

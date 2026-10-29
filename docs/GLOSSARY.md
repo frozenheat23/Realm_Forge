@@ -98,3 +98,10 @@ New concepts as we meet them, with where they show up in our code.
 | **`??=` (nullish assignment)** | "Set this only if it's missing": `war.prizes ??= []` makes the list the first time it's needed. | `fightBattle()` in `src/sim/war.ts` |
 | **`switch`** | Picking code by the exact value of something; TypeScript checks every case is handled. | `fits()` in `src/gen/resources.ts` |
 | **Environment variable** | A setting passed to a program from outside, e.g. `RACE_BALANCE=1` turns on the slow balance test. | `tests/raceBalance.test.ts` |
+| **Diffing** | Comparing two versions of data to find what changed. We compare last year's owners with this year's to find battles. | `findBattles()` in `src/render/changes.ts` |
+| **Stencil (mask)** | An image that's solid where something should show and clear elsewhere, used to cut another image to shape. | front-cell mask in `src/render/effects.ts` |
+| **Composite operation** | How a new drawing combines with what's already on a canvas. `"source-in"` keeps new paint only where old paint was solid. | `drawFrontHatch()` in `effects.ts` |
+| **Canvas pattern** | A small image tiled over an area, like wallpaper. Moving its transform makes the tiles slide. | `stripeTile()` / `createPattern` in `effects.ts` |
+| **Sprite** | A small pre-drawn picture copied many times, much faster than drawing it from scratch each time. | `glowSprite()` for smoke and embers |
+| **Easing** | Bending the speed of an animation (fast start, slow finish) so it feels natural rather than mechanical. | `easeOut()` in `effects.ts` |
+| **Float32 precision** | A `Float32Array` stores numbers with ~7 digits, so 0.7 becomes 0.69999999. Compare with care near a threshold. | comment in `tests/effects.test.ts` |

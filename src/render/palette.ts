@@ -154,6 +154,43 @@ export const LABEL_HALO = "rgba(250, 246, 235, 0.85)";
 export const CAPITAL_RADIUS = 3;
 export const CAPITAL_FILL = "#fbf6e9";
 
+// --- War and unrest effects (SPEC §5.4g, key E). Times are real seconds. ---
+/** Sliding red stripes over war-front cells (color: WAR_FRONT_COLOR). */
+export const FRONT_HATCH_ALPHA = 0.35;
+export const FRONT_HATCH_SPACING = 8;
+export const FRONT_HATCH_WIDTH = 2.5;
+/** Pixels per second the stripes slide. */
+export const FRONT_HATCH_SPEED = 10;
+/** Battle flash: a ring in the winner's color plus crossed swords. */
+export const BATTLE_SECONDS = 1.4;
+export const BATTLE_RADIUS = 16;
+export const BATTLE_SWORD_SIZE = 7;
+export const BATTLE_SWORD_COLOR = "#fbf6e9";
+/** Ring line width (pixels) at the start; it thins as it fades. */
+export const BATTLE_RING_WIDTH = 3;
+/** Ring at a capital when a nation rebels, is founded, collapses or is annexed. */
+export const EVENT_BURST_SECONDS = 2.5;
+export const EVENT_BURST_RADIUS = 45;
+export const EVENT_RING_WIDTH = 4;
+export const COLLAPSE_COLOR = "#2b2620";
+/** Most battle and event flashes at once; the oldest give way. */
+export const MAX_BURSTS = 80;
+/** Smoke rising from devastated land. Colors are "R, G, B" so alpha can be added. */
+export const SMOKE_MIN_DEVASTATION = 0.25;
+export const SMOKE_ALPHA = 0.8;
+export const SMOKE_SIZE = 7;
+export const SMOKE_RISE = 14;
+export const SMOKE_SECONDS = 3;
+export const SMOKE_COLOR = "70, 62, 56";
+/** Flickering glow on restless land in nations unstable enough to rebel (stability < REBEL_THRESHOLD). */
+export const EMBER_MIN_UNREST = 0.9;
+/** Share of those cells that glow, so a whole empire doesn't turn orange. */
+export const EMBER_DENSITY = 0.3;
+export const EMBER_SIZE = 5;
+/** Flicker speed, in radians per second. */
+export const EMBER_FLICKER = 5;
+export const EMBER_COLOR = "255, 122, 26";
+
 // --- Debug view (press C) ---
 export const DEBUG_CELL_LINE = "rgba(30, 30, 30, 0.25)";
 

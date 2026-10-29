@@ -36,6 +36,8 @@ export interface Layers {
   /** Towns and named cities (SPEC §5.4f). */
   settlements: boolean;
   labels: boolean;
+  /** Animated war fronts, battles, smoke and unrest (SPEC §5.4g). */
+  effects: boolean;
   cells: boolean;
 }
 
@@ -55,6 +57,7 @@ export function createSettings(container: HTMLElement, layers: Layers, onLayersC
     ["resources", "Resources"],
     ["settlements", "Towns & cities"],
     ["labels", "Labels"],
+    ["effects", "Effects"],
     ["cells", "Cell outlines"],
   ];
   for (const [key, label] of layerNames) {

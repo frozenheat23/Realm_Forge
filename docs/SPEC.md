@@ -482,6 +482,20 @@ A layer toggle (**Resources**, key M, off by default) draws a small lettered mar
 ### 5.4f Towns and cities
 A layer toggle (**Towns & cities**, key T, on by default): a small dot for each town, a light square and the city's name for each city. Villages aren't drawn.
 
+### 5.4g War and unrest effects
+A layer toggle (**Effects**, key E, on by default) adds animation on top of the map, so wars and trouble read at a glance. Effects are worked out by the renderer from the world (comparing this year's owners with last year's); `sim/` doesn't change and no random numbers are used, so history stays exactly the same with effects on or off. Effects keep moving while paused.
+
+| Effect | Where | Looks like |
+|---|---|---|
+| **Front hatch** | Every cell on an active war front | Red diagonal stripes sliding slowly (`FRONT_HATCH_*`) |
+| **Battle** | Average position of the cells one nation took from another this year | A ring in the winner's color expanding, with crossed swords fading out (`BATTLE_*`) |
+| **Smoke** | Owned cells with devastation ≥ `SMOKE_MIN_DEVASTATION` | Gray puffs rising and fading; thicker on worse damage (`SMOKE_*`) |
+| **Embers** | Cells with unrest ≥ `EMBER_MIN_UNREST` in nations unstable enough to rebel this year (stability < `REBEL_THRESHOLD`, §4.6); only an `EMBER_DENSITY` share of them, so it stays readable | Flickering orange glows: realms close to breaking apart (`EMBER_*`) |
+| **Event burst** | Capital of a nation that rebels, is founded, collapses or is annexed | A large ring in the nation's color (dark for collapse and annexation) (`EVENT_BURST_*`) |
+
+- Battles and bursts last a fixed number of real seconds, whatever the speed. Each pair of warring nations has at most one battle marker: a new year's battle restarts it at the new spot, so fast playback doesn't pile up swords. At most `MAX_BURSTS` play at once; the oldest give way.
+- The map underneath is drawn to an off-screen canvas only when the world changes; each screen frame copies it and draws the effects on top. Effects show up in recorded videos.
+
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 5 ms, smooth at 20 years per second.
 - Run the sim on the main thread until M6; move it to a Web Worker only if it slows the screen.

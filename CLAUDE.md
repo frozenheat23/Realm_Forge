@@ -95,6 +95,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | M7 ✅ | Races | Five races (Humans, Light Elves, Dark Elves, Dwarves, Orcs) live in cells and rule nations; traits change growth, war, stability and rebellion; ethnic rebellions happen; Races map layer; no race takes over most of 10 test seeds | §2, §3.8–3.9, §4.1–4.10, §5.4b, §6 |
 | M8 ✅ | Diplomacy | Opinion between nations from race attitudes, borders, wars and shared enemies; alliances form and break; bordering allies join defensive and offensive wars; Alliances map layer; race balance still holds | §2, §4.5, §4.6, §4.12, §5.4c, §6 |
 | M9 ✅ | Land and cell detail | Cells hold resources, unrest, devastation, development, settlements and ownership history; control replaces capital distance; rebellions start where unrest is high; wars fought over resources and claims; cities grow; 10-seed balance check still passes | §2, §3.7b, §4.1–4.9, §4.11, §5.4d–f, §6 |
+| M10 ✅ | War and unrest effects | Animated layer (key E): sliding hatch on war fronts, battle flashes with crossed swords, smoke over devastated land, embers in realms close to rebellion, rings when nations rise or fall; history unchanged with effects on or off | §5.4g |
 | Later | Backlog | See SPEC.md §8 | §8 |
 
 ---
@@ -173,3 +174,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-10-29 | M9 extras: rebels' unrest resets to 0 and their capital is their biggest settlement; rebel land gives the old nation a claim (reconquest wars); war events say why ("to reclaim its lost lands", ", coveting its iron"); peace names a captured resource |
 | 2026-10-29 | M9 tuning: war motives raised wars to ~70–110/century, so `WAR_VALUE_K` 1.0 → 0.5 and `WAR_BASE_PROB` 0.004 → 0.003 (back to ~60–85). Balance check: biggest race 41%, no takeovers. ~1/3 of wars are claim wars; 40–55 cities by year 1000 |
 | 2026-10-29 | M9 performance: tick went 4.8 → 18 ms; fixed with one-pass war fronts, per-pass grain lookup tables and no per-cell allocations → ~5.5 ms. Keys: H heatmaps, M resources, T towns |
+| 2026-10-29 | M10 war and unrest effects (SPEC §5.4g): the renderer works out battles by comparing last year's owners with this year's, so `sim/` is untouched and history is identical with effects on or off |
+| 2026-10-29 | Drawing split in two: the still map goes to an off-screen `base` canvas when the world changes; every screen frame copies it and draws effects on top (~3 ms). Every redraw also shows at once, without waiting for the next frame |
+| 2026-10-29 | One battle marker per pair of warring nations (restarts each year) so fast playback doesn't pile up swords. Embers only in realms below `REBEL_THRESHOLD`, sparse (`EMBER_DENSITY`) |
+| 2026-10-29 | Found while tuning effects: ~40% of owned land sits at unrest ≥ 0.9 by year 300 (unrest gains outpace `UNREST_DECAY`). Not changed; worth a sim tuning pass |
