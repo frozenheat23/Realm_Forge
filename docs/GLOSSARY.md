@@ -82,4 +82,9 @@ New concepts as we meet them, with where they show up in our code.
 | **Type assertion (`as`)** | Telling TypeScript "trust me, this number is a RaceId". Use sparingly: it skips a check. | `rebel()` in `src/sim/rebellion.ts` |
 | **Weighted random pick** | Choosing randomly where some options are likelier: walk the list subtracting weights until a random point is passed. | `placeRaceHomes()` in `src/gen/races.ts` |
 | **Multiplier baseline** | Making 1.0 mean "normal" so a new rule changes nothing until a value moves away from 1. Humans are all 1.0. | race traits |
+| **Drift toward a target (exponential smoothing)** | Each year move a fixed share of the way to where a value "wants" to be. Changes are quick when far off, slow when close, and old shocks fade. | `updateOpinions()` in `src/sim/diplomacy.ts` |
+| **Hysteresis** | Using a higher line to switch on than to switch off (ally at 0.15, break below 0.05), so a value hovering near one line doesn't flip back and forth. | `ALLIANCE_MIN_OPINION` / `ALLIANCE_BREAK_OPINION` |
+| **Re-export** | A file passing on something it imports, so older `import`s keep working after code moves. | `export { neighborPairs, pairKey }` in `src/sim/war.ts` |
+| **Default parameter** | A value a function uses when the caller leaves that argument out: `attackHelp = 0`. | `warChance()` in `src/sim/war.ts` |
+| **`afterEach`** | A test hook that runs after every test in the file; we use it to put changed settings back. | `tests/diplomacy.test.ts` |
 | **Environment variable** | A setting passed to a program from outside, e.g. `RACE_BALANCE=1` turns on the slow balance test. | `tests/raceBalance.test.ts` |

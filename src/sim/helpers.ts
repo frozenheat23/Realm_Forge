@@ -13,6 +13,31 @@ export function cellsByNation(state: WorldState): Map<NationId, CellId[]> {
   return groups;
 }
 
+/** One number per pair of nations, the same whichever order they're given in. */
+export function pairKey(a: NationId, b: NationId): number {
+  return Math.min(a, b) * 100000 + Math.max(a, b);
+}
+
+/** Every pair of living nations whose land touches, smallest ids first. */
+export function neighborPairs(state: WorldState): [NationId, NationId][] {
+  const owner = state.state.owner;
+  const seen = new Set<number>();
+  const pairs: [NationId, NationId][] = [];
+  for (const cell of state.cells) {
+    const a = owner[cell.id]!;
+    if (a === 0) continue;
+    for (const n of cell.neighbors) {
+      const b = owner[n]!;
+      if (b === 0 || b === a) continue;
+      const key = pairKey(a, b);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      pairs.push([Math.min(a, b), Math.max(a, b)]);
+    }
+  }
+  return pairs.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+}
+
 /** Living nations in id order. Always looping in the same order keeps results repeatable. */
 export function livingNations(state: WorldState): Nation[] {
   return [...state.nations.values()].filter((n) => n.alive).sort((a, b) => a.id - b.id);

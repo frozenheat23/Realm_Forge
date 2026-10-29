@@ -109,6 +109,8 @@ export function generateWorld(seed: string, width = MAP_WIDTH, height = MAP_HEIG
     cultureHomes: start.cultureHomes,
     colorHue: start.colorHue,
     raceHomes,
+    relations: new Map(),
+    alliances: [],
   };
   return { world, state };
 }

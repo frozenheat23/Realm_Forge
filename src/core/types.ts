@@ -130,11 +130,20 @@ export interface War {
   startYear: number;
   /** Positive = attacker winning. */
   score: number;
+  /** Set if an ally joined someone else's war: the id of that main war. Ends when it ends. */
+  joined?: number;
+}
+
+/** Two nations pledged to fight beside each other (SPEC §4.12). `a` < `b`. */
+export interface Alliance {
+  a: NationId;
+  b: NationId;
+  since: number;
 }
 
 export interface SimEvent {
   year: number;
-  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved";
+  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved" | "alliance" | "alliance_ended";
   actors: NationId[];
   text: string;
 }
@@ -171,4 +180,7 @@ export interface WorldState {
   colorHue: number;
   /** Each race's homeland points (SPEC §4.10). */
   raceHomes: RaceHome[];
+  /** Opinion between two nations that have met, −1 (hatred) .. 1 (friendship), keyed by `pairKey` (SPEC §4.12). */
+  relations: Map<number, number>;
+  alliances: Alliance[];
 }

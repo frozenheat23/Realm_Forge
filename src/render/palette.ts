@@ -106,6 +106,12 @@ export const WAR_FRONT_COLOR = "#c8312b";
 export const HIGHLIGHT_DIM = 0.2;
 /** Tint per race in the Races map layer (SPEC §5.4b), indexed by RaceId (0 = nobody, unused). */
 export const RACE_COLORS: string[] = ["#000000", "#d9a441", "#9fd8e8", "#6a4c93", "#a0522d", "#6b8e23"];
+/** Lines between allied capitals (SPEC §5.4c). */
+export const ALLIANCE_COLOR = "rgba(255, 248, 225, 0.9)";
+export const ALLIANCE_OUTLINE = "rgba(40, 32, 20, 0.6)";
+export const ALLIANCE_WIDTH = 2;
+/** Dash pattern in pixels: [line, gap]. */
+export const ALLIANCE_DASH = [6, 4];
 /** Year counter drawn on the map (so it shows up in recorded videos). */
 export const YEAR_FONT = "34px Georgia, serif";
 export const YEAR_COLOR = "#fbf6e9";

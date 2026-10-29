@@ -256,9 +256,9 @@ Affinity multiplies a cell's capacity for that race; terrain cost multiplies mov
 
 "Mountains" means the `mountainAffinity` / `mountainCost` fields (mountain is a cell flag, not a biome). Dark Elves and Dwarves both want mountains and taiga on purpose: a built-in frontier rivalry.
 
-### Attitudes (used from M8 diplomacy)
+### Attitudes
 
-Starting opinion of one race toward another, −1 (hatred) .. 1 (kinship). Symmetric.
+`RACE_ATTITUDES` in `gen/params.ts`: how one race feels about another, −1 (hatred) .. 1 (kinship). Symmetric. It's the base of every opinion between two nations (see Diplomacy below), so the diagonal decides which races' kin ally readily.
 
 |  | Humans | Light Elves | Dark Elves | Dwarves | Orcs |
 |---|---|---|---|---|---|
@@ -267,6 +267,26 @@ Starting opinion of one race toward another, −1 (hatred) .. 1 (kinship). Symme
 | **Dark Elves** | −0.2 | −0.8 | 0.1 | −0.6 | −0.3 |
 | **Dwarves** | 0 | −0.1 | −0.6 | 0.3 | −0.6 |
 | **Orcs** | −0.3 | −0.6 | −0.3 | −0.6 | 0.1 |
+
+## Diplomacy
+
+Opinion between two nations moves `OPINION_DRIFT` of the way toward a target each year (race attitude, border friction, war, shared enemies; SPEC §4.12). Useful sums with the defaults: neighboring kin of Humans settle at 0.1, Light Elves and Dwarves at 0.2, Dark Elves and Orcs at 0.0. So only Light Elf and Dwarf kin reach `ALLIANCE_MIN_OPINION` (0.15) in peacetime; everyone else needs a shared enemy.
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `OPINION_DRIFT` | 0.05 | 0.01–0.2 | Share of the gap to the target closed each year | Grudges and friendships change fast | Long memories; slow to ally |
+| `BORDER_FRICTION` | 0.1 | 0–0.3 | Opinion lost for sharing a border | Neighbors distrust each other; fewer kin pacts | Neighbors as friendly as their races allow |
+| `SHARED_ENEMY_BONUS` | 0.5 | 0–0.8 | Opinion gained while both fight the same nation | Wartime coalitions form quickly | Only kin ally |
+| `WAR_OPINION_PENALTY` | 0.5 | 0–1 | Opinion lost while at war with each other | Bitter wars, revenge wars after | Wars barely leave hate |
+| `WAR_OPINION_HIT` | 0.3 | 0–0.6 | Instant opinion drop when war is declared or joined | Lasting grudges | Wars forgotten fast |
+| `REBEL_OPINION` | −0.6 | −1–0 | Opinion between rebels and their old rulers | (closer to 0) Peaceful breakups | Wars of reconquest |
+| `OPINION_WAR_K` | 1.0 | 0–2 | How much opinion changes war chance (× 1 − opinion × K) | Hatred drives history; friends never fight | Opinion ignored (0) |
+| `ALLIANCE_MIN_OPINION` | 0.15 | 0–0.5 | Opinion needed to ally | Few, solid alliances | Alliances everywhere |
+| `ALLIANCE_BREAK_OPINION` | 0.05 | −0.3–0.15 | Alliance breaks below this | Coalitions dissolve soon after peace | Alliances last forever |
+| `ALLIANCE_PROB` | 0.05 | 0.01–0.3 | Yearly chance an eligible pair allies | Alliances form at once | Slow to ally |
+| `MAX_ALLIES` | 2 | 0–5 | Allies per nation | Huge blocs, world wars | Lone nations (0 = no alliances) |
+| `ALLY_DEFEND_PROB` | 0.8 | 0–1 | Chance a bordering ally joins a defensive war | Allies reliably deter attacks | Unreliable allies |
+| `ALLY_ATTACK_PROB` | 0.4 | 0–1 | Chance a bordering ally joins an attack | Allied blitzes, snowballing | Alliances purely defensive (0) |
 
 ---
 
@@ -318,6 +338,9 @@ Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shadi
 | `HIGHLIGHT_DIM` | 0.2 | 0–0.6 | How faded other nations get when you click an event | Others stay visible | Only the highlighted nations show |
 | `CAPITAL_RADIUS` | 3 | 2–6 | Capital dot size (pixels) | Bigger dots | Smaller dots |
 | `RACE_COLORS` | Humans #d9a441, Light Elves #9fd8e8, Dark Elves #6a4c93, Dwarves #a0522d, Orcs #6b8e23 | — | Tint per race in the **Races** map layer | — | — |
+| `ALLIANCE_COLOR` / `ALLIANCE_OUTLINE` | light cream / dark brown, see code | — | Dashed line between allied capitals and its outline | — | — |
+| `ALLIANCE_WIDTH` | 2 | 1–4 | Alliance line width (pixels) | Bolder lines | Subtler lines |
+| `ALLIANCE_DASH` | [6, 4] | — | Dash and gap length (pixels) | — | — |
 
 ---
 
@@ -350,6 +373,9 @@ Common problems and which knobs to try first.
 | One race takes over most seeds | ↓ that race's `growth` or `martial` first; then ↑ `FOREIGN_K` so big multi-race empires crack |
 | A race dies out early | ↑ its `defense` or its homeland affinity; check `RACE_HOMES_PER_RACE` |
 | Race makes no difference | ↑ `FOREIGN_K`, ↓ `FOREIGN_FREE`; widen the trait spread a little |
+| Alliances never change | ↑ `ALLIANCE_BREAK_OPINION`, ↑ `BORDER_FRICTION` |
+| Allied blocs snowball | ↓ `ALLY_ATTACK_PROB`, ↓ `MAX_ALLIES` |
+| Racial feuds don't show | ↑ `OPINION_WAR_K`, ↑ `WAR_OPINION_HIT` |
 
 ---
 

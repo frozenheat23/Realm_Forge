@@ -2,7 +2,7 @@
 import type { Rng } from "../core/rng";
 import type { CellId, Nation, RaceId, SimEvent, WorldState } from "../core/types";
 import { rebellionEvent } from "./events";
-import { cellsByNation, hopsFromCapital, livingNations } from "./helpers";
+import { cellsByNation, hopsFromCapital, livingNations, pairKey } from "./helpers";
 import { SIM } from "./params";
 import { addNation, mostPopulous } from "./newNation";
 
@@ -50,6 +50,8 @@ export function rebel(state: WorldState, nation: Nation, cells: CellId[], rng: R
   const rebelRace = state.state.race[seed]! as RaceId;
   const rebelNation = addNation(state, rng.fork("name"), mostPopulous(state, region), SIM.REBEL_START_STABILITY, rebelRace, nation.id);
   for (const c of region) state.state.owner[c] = rebelNation.id;
+  // Rebels and their old rulers start out bitter (SPEC §4.12).
+  state.relations.set(pairKey(rebelNation.id, nation.id), SIM.REBEL_OPINION);
   return rebelNation;
 }
 

@@ -13,6 +13,10 @@ const GROUPS: { title: string; names: SimParamName[] }[] = [
     title: "War",
     names: ["WAR_BASE_PROB", "WAR_STRENGTH_EXP", "WAR_MAX_PROB", "MAX_WARS_PER_NATION", "DEFENDER_BONUS", "FRONT_FLIPS_PER_YEAR", "SCORE_PER_FLIP", "PEACE_SCORE", "WEARINESS_PEACE", "MAX_WAR_YEARS", "TRUCE_YEARS"],
   },
+  {
+    title: "Diplomacy",
+    names: ["OPINION_DRIFT", "BORDER_FRICTION", "SHARED_ENEMY_BONUS","WAR_OPINION_PENALTY", "WAR_OPINION_HIT", "REBEL_OPINION", "OPINION_WAR_K", "ALLIANCE_MIN_OPINION", "ALLIANCE_BREAK_OPINION", "ALLIANCE_PROB", "MAX_ALLIES", "ALLY_DEFEND_PROB", "ALLY_ATTACK_PROB"],
+  },
   { title: "Rebellion", names: ["REBEL_THRESHOLD", "REBEL_PROB", "REBEL_MIN_CAPITAL_DIST", "REBEL_MAX_CELLS", "REBEL_START_STABILITY"] },
   { title: "Collapse & emergence", names: ["MIN_AREA", "CAPITAL_LOSS_STAB_HIT", "EMERGENCE_PROB", "EMERGENCE_MIN_REGION", "EMERGENCE_CORE_SIZE"] },
 ];
@@ -21,6 +25,8 @@ export interface Layers {
   nations: boolean;
   /** Tint land by race instead of by nation (SPEC §5.4b). */
   races: boolean;
+  /** Lines between allied capitals (SPEC §5.4c). */
+  alliances: boolean;
   labels: boolean;
   cells: boolean;
 }
@@ -37,6 +43,7 @@ export function createSettings(container: HTMLElement, layers: Layers, onLayersC
   const layerNames: [keyof Layers, string][] = [
     ["nations", "Nations"],
     ["races", "Races"],
+    ["alliances", "Alliances"],
     ["labels", "Labels"],
     ["cells", "Cell outlines"],
   ];

@@ -1,9 +1,10 @@
 // Entry point: generates a world from a seed, draws it, and plays its history.
 // Page address options: ?seed=anything picks the world, ?style=painted switches the look.
-// Keys: Space play/pause, → step, C cell outlines, N nations, R races. Hover the map to inspect a cell.
+// Keys: Space play/pause, → step, C cell outlines, N nations, R races, A alliances. Hover the map to inspect a cell.
 import { createRng } from "./core/rng";
 import type { NationId, WorldState } from "./core/types";
 import { generateWorld } from "./gen";
+import { drawAlliances } from "./render/alliances";
 import { drawCellOutlines } from "./render/debug";
 import { buildDisplayCells } from "./render/displayCells";
 import { drawYear } from "./render/hud";
@@ -85,7 +86,7 @@ terrainCtx.putImageData(terrainImage, 0, 0);
 drawRivers(terrainCtx, world);
 
 // --- Drawing ---
-const layers: Layers = { nations: true, races: false, labels: true, cells: query.get("debug") === "cells" };
+const layers: Layers = { nations: true, races: false, alliances: true, labels: true, cells: query.get("debug") === "cells" };
 let highlight = new Set<NationId>();
 let highlightTimer = 0;
 
@@ -99,6 +100,7 @@ function draw(): void {
   ctx.drawImage(terrain, 0, 0);
   if (layers.nations) ctx.drawImage(nationLayer, 0, 0);
   if (layers.cells) drawCellOutlines(ctx, world);
+  if (layers.alliances) drawAlliances(ctx, world, state);
   if (layers.nations && layers.labels) drawLabels(ctx, world, state);
   drawYear(ctx, state.year, world.width);
 }
@@ -208,6 +210,10 @@ createSettings(settingsPanel, layers, () => {
 onKey("r", () => {
   layers.races = !layers.races;
   redrawNations();
+  draw();
+});
+onKey("a", () => {
+  layers.alliances = !layers.alliances;
   draw();
 });
 onKey("c", () => {

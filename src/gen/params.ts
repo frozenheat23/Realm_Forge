@@ -137,8 +137,8 @@ export const RACES: Record<PlayableRace, RaceTraits> = {
 };
 
 /**
- * Starting opinion of one race toward another, −1 (hatred) .. 1 (kinship).
- * Stored now; used from M8 (diplomacy). Row/column order: Human, Light Elf, Dark Elf, Dwarf, Orc.
+ * How one race feels about another, −1 (hatred) .. 1 (kinship): the base of every
+ * opinion between nations (SPEC §4.12). Row/column order: Human, Light Elf, Dark Elf, Dwarf, Orc.
  */
 export const RACE_ATTITUDES: number[][] = [
   [0.2, 0, -0.2, 0, -0.3],

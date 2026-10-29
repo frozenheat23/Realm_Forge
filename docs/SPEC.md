@@ -101,11 +101,17 @@ interface War {
   defender: NationId;
   startYear: number;
   score: number;          // positive = attacker winning
+  joined?: number;        // set if an ally joined someone else's war: that main war's id (§4.12)
+}
+
+interface Alliance {
+  a: NationId; b: NationId; // a < b
+  since: number;            // year
 }
 
 interface SimEvent {
   year: number;
-  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved";
+  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved" | "alliance" | "alliance_ended";
   actors: NationId[];
   text: string;
 }
@@ -120,6 +126,8 @@ interface WorldState {
   truces: { a: NationId; b: NationId; until: number }[];
   events: SimEvent[];
   raceHomes: { race: RaceId; at: [number, number] }[]; // homeland points (§4.10)
+  relations: Map<number, number>; // opinion −1..1 per pair of nations that have met, keyed by pairKey (§4.12)
+  alliances: Alliance[];
 }
 ```
 
@@ -195,6 +203,7 @@ One tick = one year. The steps always run in this order:
 | 2 | Totals | 4.2 |
 | 3 | Stability | 4.3 |
 | 4 | Expansion | 4.4 |
+| 4b | Diplomacy | 4.12 |
 | 5 | War declared | 4.5 |
 | 6 | War fought | 4.5 |
 | 7 | Rebellion | 4.6 |
@@ -243,13 +252,18 @@ foreignPenalty         = max(0, foreignShare − FOREIGN_FREE) × FOREIGN_K / to
 For each unowned land cell, every neighboring nation rolls to claim it with probability `EXPANSION_RATE / moveCost`; if several succeed, one wins at random. Decisions use ownership from the start of the year (one ring of growth per year). A new cell is settled by the claiming nation's race and starts with `NEW_CELL_POP_FRACTION` × its race capacity in people. No expansion across water. `moveCost` comes from the biome table, × `MOUNTAIN_COST_MULT` for mountains and × `RIVER_COST_MULT` for river cells (rivers are cheaper), × the claiming nation's race terrain cost for that biome (and its `mountainCost` on mountains).
 
 ### 4.5 War
-**Declaring.** For each pair of neighboring nations that aren't at war or in a truce:
+**Declaring.** For each pair of neighboring nations that aren't at war, allied, or in a truce:
 
 ```
-chance = WAR_BASE_PROB × aggression × (strongerStrength / weakerStrength) ^ WAR_STRENGTH_EXP × (1 − attacker.warWeariness)
+chance = WAR_BASE_PROB × aggression × (attackSide / defendSide) ^ WAR_STRENGTH_EXP × (1 − attacker.warWeariness) × mood
+attackSide = attacker.strength + Σ strength of attacker's helpers × ALLY_ATTACK_PROB
+defendSide = defender.strength + Σ strength of defender's helpers × ALLY_DEFEND_PROB
+mood       = max(0, 1 − opinion × OPINION_WAR_K)
 ```
 
-The chance is capped at `WAR_MAX_PROB`. The stronger side is the attacker; `aggression` is its ruling race's trait. A nation can be in at most `MAX_WARS_PER_NATION` wars.
+The chance is capped at `WAR_MAX_PROB`. The stronger side (by its own strength) is the attacker; `aggression` is its ruling race's trait. A nation can be in at most `MAX_WARS_PER_NATION` wars it declares or is declared on. `opinion` and **helpers** (allies who would join) are from §4.12, so allies deter attacks and hatred invites them.
+
+**Allies join.** Right after a declaration, each of the defender's helpers joins with chance `ALLY_DEFEND_PROB`, and each of the attacker's with `ALLY_ATTACK_PROB`. A helper is an ally that borders the enemy, isn't allied with the enemy too, isn't already at war or in a truce with it, and isn't at its own war limit. Each joining ally gets its own `War` with the enemy (its own front and score), with `joined` set to the main war's id.
 
 **Fighting.** Each year, for each war:
 1. **Front cells** are owned cells that touch an enemy cell.
@@ -263,13 +277,13 @@ The chance is capped at `WAR_MAX_PROB`. The stronger side is the attacker; `aggr
 - either side's war weariness ≥ `WEARINESS_PEACE`
 - the war has lasted `MAX_WAR_YEARS`
 
-The winner keeps captured cells. The two sides then can't fight again for `TRUCE_YEARS`. The `peace` event names a winner only if `|score|` ≥ `PEACE_SCORE` / 3; otherwise it's a white peace. Wars with a side that has died end silently.
+The winner keeps captured cells. The two sides then can't fight again for `TRUCE_YEARS`. The `peace` event names a winner only if `|score|` ≥ `PEACE_SCORE` / 3; otherwise it's a white peace. Wars with a side that has died end silently. A joined war can end on its own terms the same way, and otherwise ends silently (with a truce) in the year its main war ends.
 
 ### 4.6 Rebellion
 If a nation's stability is below `REBEL_THRESHOLD`, each year it has a `REBEL_PROB × unrest` chance of a rebellion (`unrest` from §4.2):
 1. Pick a seed cell at least `REBEL_MIN_CAPITAL_DIST` steps from the capital (walking only through the nation's own land), or one the capital can't reach that way at all (e.g. an island). **If any such cell is of a foreign race, the seed is picked only from foreign-race cells** (subject peoples rise first).
 2. Flood-fill outward through the nation's cells **of the seed's race**, up to `REBEL_MAX_CELLS`, never taking the capital. If the region is smaller than `MIN_AREA`, no rebellion happens.
-3. Those cells become a new nation with a new name and color, ruled by the seed's race. Set `parent` to the old nation and give it starting stability `REBEL_START_STABILITY`. Its capital is the region's most populous cell.
+3. Those cells become a new nation with a new name and color, ruled by the seed's race. Set `parent` to the old nation and give it starting stability `REBEL_START_STABILITY`. Its capital is the region's most populous cell. Opinion between the rebels and their old rulers starts at `REBEL_OPINION` (§4.12).
 
 ### 4.7 Collapse
 - **Capital lost:** the capital moves to the nation's most populous remaining cell (`capital_moved` event), and stability drops by `CAPITAL_LOSS_STAB_HIT`.
@@ -279,7 +293,7 @@ If a nation's stability is below `REBEL_THRESHOLD`, each year it has a `REBEL_PR
 If a connected unowned land region has at least `EMERGENCE_MIN_REGION` habitable cells, each year it has an `EMERGENCE_PROB` chance of spawning a new nation at its highest-capacity cell, claiming `EMERGENCE_CORE_SIZE` cells around it. The new nation's race is the race of the nearest race homeland (§4.10), and its cells are settled by that race.
 
 ### 4.9 Events
-Emit a `SimEvent` for: nation founded, war declared, peace signed, rebellion, collapse, annexation, capital moved. Each event gets a short readable sentence, e.g. *"Year 412: Velmora declares war on the Kethari Reach."*
+Emit a `SimEvent` for: nation founded, war declared (and allies joining, also type `war`), peace signed, rebellion, collapse, annexation, capital moved, alliance formed, alliance broken. Each event gets a short readable sentence, e.g. *"Year 412: Velmora declares war on the Kethari Reach."*
 
 Race shows in the text where it adds to the story: *"Year 88: Kazdrum, a realm of Dwarves, rises in the wilderness."* and, when rebels are of a different race than their rulers, *"Year 412: the Dark Elves of Vael rise against Kethar."*
 
@@ -302,7 +316,7 @@ Every cell's people belong to one race, and every nation is ruled by one race. E
 | `cohesion` | §4.3 | × `ADMIN_CAP_BASE` |
 | `unrest` | §4.2, §4.6 | Population-weighted average × `REBEL_PROB` |
 | `tolerance` | §4.3 | ÷ foreign-population penalty |
-| `attitude[race]` | M8 | Starting opinion of another race, −1..1. Stored now, not used until diplomacy |
+| `RACE_ATTITUDES` | §4.12 | How two races feel about each other, −1..1: the base of every opinion between their nations |
 
 **Families.** Each race has a `family` (`human`, `elf`, `dwarf`, `orc`). Light and Dark Elves are one family with different traits; the family decides which name list a nation uses (§3.9). Orcs are one race for now (Green Orc values); Red Orcs can be split off later as a second orc race.
 
@@ -385,7 +399,7 @@ Conquest and annexation keep the people (and their race) in place. So a race's l
 - **Heatmap layers:** unrest, control, devastation, development; cycled with one key.
 - **Settlements:** dots for towns, a marker and name for cities.
 - Cell inspector (hover) shows the new fields.
-- Save format **v3** adds the new arrays and `cityNames`; v2 saves are refused with a message.
+- Save format **v4** adds the new arrays and `cityNames`; v3 saves are refused with a message.
 
 #### Build order (sub-steps, each tested on a tiny map)
 
@@ -396,6 +410,32 @@ Conquest and annexation keep the people (and their race) in place. So a race's l
 5. Provinces.
 
 **Done when:** rebellions visibly start in low-control, recently conquered or war-torn regions; some wars are fought over resources or old claims and the log says so; cities grow in long-peaceful heartlands; the 10-seed balance check still shows no race takeover and no single resource deciding every run.
+
+### 4.12 Diplomacy
+Runs as step **4b**, after expansion (so new neighbors have met) and before wars are declared. Code: `sim/diplomacy.ts`.
+
+**Opinion.** Every pair of nations that have met shares one opinion, −1 (hatred) .. 1 (friendship), stored in `relations` by `pairKey`. Pairs that have never met judge by race alone. Each year every stored opinion moves `OPINION_DRIFT` of the way toward its target:
+
+```
+target = raceAttitude(raceA, raceB)          // RACE_ATTITUDES, averaged both ways
+       − BORDER_FRICTION                      if they share a border
+       − WAR_OPINION_PENALTY                  if at war with each other
+       + SHARED_ENEMY_BONUS                   else, if both fight the same nation
+clamp to −1..1
+```
+
+- Neighbors meeting for the first time start at their target.
+- Declaring war (or joining one) drops opinion by `WAR_OPINION_HIT` at once: a grudge that fades over decades.
+- A rebellion sets the rebels' opinion of their old rulers to `REBEL_OPINION` (§4.6).
+- Pairs with a dead nation are forgotten.
+
+**Alliances** (`alliances`, at most `MAX_ALLIES` per nation):
+1. An alliance whose opinion has fallen below `ALLIANCE_BREAK_OPINION` breaks (`alliance_ended` event). One with a dead member just lapses.
+2. Each neighbor pair that isn't allied or at war, with opinion ≥ `ALLIANCE_MIN_OPINION` and room for another ally on both sides, allies with chance `ALLIANCE_PROB` (`alliance` event; told as a "kinship pact" when both are the same race).
+
+Allies never declare war on each other. Alliances are both defensive and offensive: how allies deter and join wars is in §4.5.
+
+**What this gives.** Kin of the friendlier races (Humans, Light Elves, Dwarves) ally and stay allied for centuries. Other alliances are wartime coalitions: two nations fighting the same enemy warm to each other and ally, then drift apart after the peace. Hated pairs (Light vs Dark Elves, Dwarves vs Orcs) go to war more often.
 
 ---
 
@@ -425,6 +465,9 @@ Conquest and annexation keep the people (and their race) in place. So a race's l
 ### 5.4b Race map
 A layer toggle (**Races**) swaps the nation overlay for one colored by each cell's race (`RACE_COLORS`), with nation borders still drawn on top. Empty cells are not tinted. This shows subject peoples inside empires at a glance.
 
+### 5.4c Alliances
+A layer toggle (**Alliances**, key A, on by default) draws a dashed light line with a dark outline between the capitals of each pair of allies. Hovering a nation's land lists its allies and its worst rival (lowest opinion).
+
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 5 ms, smooth at 20 years per second.
 - Run the sim on the main thread until M6; move it to a Web Worker only if it slows the screen.
@@ -438,7 +481,7 @@ A layer toggle (**Races**) swaps the nation overlay for one colored by each cell
 - Event log: scrolling, newest first, filter checkboxes per type, click an event to highlight its nations for `HIGHLIGHT_SECONDS` (others fade to `HIGHLIGHT_DIM`).
 - Seed box + **New world** (Enter works too) and **Random**. Both reload the page with `?seed=`.
 - **Settings** panel: every `SIM` parameter editable live (`ui/settings.ts`), layer toggles (nations, labels, cell outlines), reset to defaults. Generation numbers are not live; they need a new world.
-- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, per-cell owner/pop/race, nations, wars, truces, events, race homelands. Saves made before races existed have no race data and are refused with a clear message. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
+- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, per-cell owner/pop/race, nations, wars, truces, events, race homelands, opinions and alliances (format v3). Saves made before races (v1) or diplomacy (v2) are refused with a clear message. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
 - **Record** captures the canvas as WebM (`canvas.captureStream()` + `MediaRecorder`) and downloads it on stop.
 - Web Worker: not needed. A tick takes ~4 ms and a redraw ~15 ms at 1600×900.
 
@@ -459,10 +502,9 @@ Not designed yet. When one is picked up, give it its own section in §4 and matc
 
 - Cultures that blend into their rulers over time; religions (affect rebellion and war odds)
 - Red Orcs as a second orc race (disciplined empire-builders who rule Green Orcs easily)
-- Diplomacy using race `attitude` (alliances, kin solidarity, racial feuds)
 - Dynasties and succession crises
 - Trade routes and economy
-- Alliances and diplomacy
+- Deeper diplomacy: vassals, peace terms, betrayal (an ally refusing to help), alliances slowly cooling so kin pacts don't last forever
 - Naval expansion across water
 - Plagues, famines and golden ages
 - Azgaar map import
@@ -488,4 +530,4 @@ Not designed yet. When one is picked up, give it its own section in §4 and matc
 - Slow down time automatically during major events?
 - Which reference frames define the target look? (Add them to `docs/ref/`.)
 - Hex cells as a style option? Placing cell centers on an offset grid with no jitter makes the Voronoi cells exact hexagons; `sim/` would not change.
-- Should M9 (§4.11) come before M8 diplomacy? Claims and resources give diplomacy more to work with.
+- When M9 lands, should claims (`prevOwner`) also lower opinion?

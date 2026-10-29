@@ -51,6 +51,44 @@ export function warEvent(year: number, attacker: Nation, defender: Nation): SimE
   };
 }
 
+/** An ally of the defender joins the war against the attacker. */
+export function joinDefenseEvent(year: number, ally: Nation, friend: Nation, enemy: Nation): SimEvent {
+  return {
+    year,
+    type: "war",
+    actors: [ally.id, enemy.id, friend.id],
+    text: `Year ${year}: ${ally.name} marches to defend ${friend.name} against ${enemy.name}.`,
+  };
+}
+
+/** An ally of the attacker joins its attack. */
+export function joinAttackEvent(year: number, ally: Nation, friend: Nation, enemy: Nation): SimEvent {
+  return {
+    year,
+    type: "war",
+    actors: [ally.id, enemy.id, friend.id],
+    text: `Year ${year}: ${ally.name} joins ${friend.name}'s war on ${enemy.name}.`,
+  };
+}
+
+export function allianceEvent(year: number, a: Nation, b: Nation): SimEvent {
+  // Two realms of one race allying is told as kinship.
+  const text =
+    a.race === b.race
+      ? `Year ${year}: the ${traits(a.race).plural} of ${a.name} and ${b.name} swear a kinship pact.`
+      : `Year ${year}: ${a.name} and ${b.name} form an alliance.`;
+  return { year, type: "alliance", actors: [a.id, b.id], text };
+}
+
+export function allianceEndedEvent(year: number, a: Nation, b: Nation): SimEvent {
+  return {
+    year,
+    type: "alliance_ended",
+    actors: [a.id, b.id],
+    text: `Year ${year}: the alliance between ${a.name} and ${b.name} breaks down.`,
+  };
+}
+
 /** `winner` is null for a white peace (nobody clearly won). `cells` = land the winner gained. */
 export function peaceEvent(year: number, a: Nation, b: Nation, winner: Nation | null, cells: number): SimEvent {
   const loser = winner === a ? b : a;

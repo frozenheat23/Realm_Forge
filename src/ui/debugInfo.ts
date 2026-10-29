@@ -1,8 +1,9 @@
 // Debug helpers on screen: key toggles, and hover to inspect a cell.
 import type { GeneratedWorld } from "../gen";
-import type { WorldState } from "../core/types";
+import type { NationId, WorldState } from "../core/types";
 import { BIOME_STATS } from "../gen/params";
 import { traits } from "../gen/races";
+import { alliesOf, opinion } from "../sim/diplomacy";
 
 /** Calls `action` each time `key` is pressed (upper or lower case). */
 export function onKey(key: string, action: () => void): void {
@@ -11,6 +12,27 @@ export function onKey(key: string, action: () => void): void {
     if (el.tagName === "INPUT") return; // don't fire while typing in a box
     if (event.key.toLowerCase() === key) action();
   });
+}
+
+/** " · allies X, Y · rival Z (−0.62)" for a nation, or "" if it has neither. */
+function diplomacyText(state: WorldState, id: NationId): string {
+  const name = (other: NationId) => state.nations.get(other)?.name ?? "?";
+  const allies = alliesOf(state, id);
+  // The worst opinion this nation holds of any living nation it has met.
+  let rival: NationId | null = null;
+  let worst = 0;
+  for (const key of state.relations.keys()) {
+    const a = Math.floor(key / 100000);
+    const b = key % 100000;
+    if (a !== id && b !== id) continue;
+    const other = a === id ? b : a;
+    const value = opinion(state, id, other);
+    if (value < worst && state.nations.get(other)?.alive) [rival, worst] = [other, value];
+  }
+  return (
+    (allies.length ? ` · allies ${allies.map(name).join(", ")}` : "") +
+    (rival !== null ? ` · rival ${name(rival)} (${worst.toFixed(2)})` : "")
+  );
 }
 
 /** Shows details of the cell under the mouse in `panel`. */
@@ -36,7 +58,7 @@ export function showCellOnHover(
     const people = traits(state.state.race[cell.id]!).plural;
     const ruler = nation ? traits(nation.race).plural : "";
     const ownerText = nation
-      ? `${nation.name} (${ruler}) · ${people}, pop ${state.state.pop[cell.id]!.toFixed(2)}`
+      ? `${nation.name} (${ruler}) · ${people}, pop ${state.state.pop[cell.id]!.toFixed(2)}${diplomacyText(state, nation.id)}`
       : "unowned";
     panel.textContent =
       `${ownerText} · Cell ${cell.id} · ${BIOME_STATS[cell.biome].name}` +

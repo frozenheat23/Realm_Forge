@@ -89,5 +89,7 @@ export function makeState(
     cultureHomes: [[0, 0]],
     colorHue: 0,
     raceHomes: [{ race: Race.Human, at: [0, 0] }],
+    relations: new Map(),
+    alliances: [],
   };
 }

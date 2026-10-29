@@ -42,6 +42,30 @@ export const SIM = {
   MAX_WAR_YEARS: 25,
   TRUCE_YEARS: 10,
 
+  // --- Diplomacy ---
+  /** Share of the gap to its target that opinion closes each year. */
+  OPINION_DRIFT: 0.05,
+  /** Opinion lost for sharing a border. */
+  BORDER_FRICTION: 0.1,
+  /** Opinion gained while both fight the same enemy. */
+  SHARED_ENEMY_BONUS: 0.5,
+  /** Opinion lost while at war with each other. */
+  WAR_OPINION_PENALTY: 0.5,
+  /** Instant opinion drop when war is declared (a grudge that fades). */
+  WAR_OPINION_HIT: 0.3,
+  /** Opinion between rebels and the nation they broke from. */
+  REBEL_OPINION: -0.6,
+  /** War chance × (1 − opinion × this): hatred raises it, friendship lowers it. */
+  OPINION_WAR_K: 1.0,
+  ALLIANCE_MIN_OPINION: 0.15,
+  ALLIANCE_BREAK_OPINION: 0.05,
+  ALLIANCE_PROB: 0.05,
+  MAX_ALLIES: 2,
+  /** Chance an ally bordering the attacker joins to defend its partner. */
+  ALLY_DEFEND_PROB: 0.8,
+  /** Chance an ally bordering the target joins its partner's attack. */
+  ALLY_ATTACK_PROB: 0.4,
+
   // --- Rebellion ---
   REBEL_THRESHOLD: 0.25,
   REBEL_PROB: 0.03,

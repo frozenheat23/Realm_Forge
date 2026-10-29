@@ -1,35 +1,14 @@
-// Steps 5–6 (SPEC §4.5): neighbors go to war, fronts move, and wars end in peace and a truce.
+// Steps 5–6 (SPEC §4.5): neighbors go to war (allies may join), fronts move, and wars end in peace and a truce.
 import type { Rng } from "../core/rng";
 import type { CellId, Nation, NationId, SimEvent, War, WorldState } from "../core/types";
 import { traits } from "../gen/races";
-import { peaceEvent, warEvent } from "./events";
-import { moveCost } from "./helpers";
+import { allied, alliesOf, opinion } from "./diplomacy";
+import { joinAttackEvent, joinDefenseEvent, peaceEvent, warEvent } from "./events";
+import { moveCost, neighborPairs, pairKey } from "./helpers";
 import { SIM } from "./params";
 
-/** One number per pair of nations, the same whichever order they're given in. */
-export function pairKey(a: NationId, b: NationId): number {
-  return Math.min(a, b) * 100000 + Math.max(a, b);
-}
-
-/** Every pair of living nations whose land touches, smallest ids first. */
-export function neighborPairs(state: WorldState): [NationId, NationId][] {
-  const owner = state.state.owner;
-  const seen = new Set<number>();
-  const pairs: [NationId, NationId][] = [];
-  for (const cell of state.cells) {
-    const a = owner[cell.id]!;
-    if (a === 0) continue;
-    for (const n of cell.neighbors) {
-      const b = owner[n]!;
-      if (b === 0 || b === a) continue;
-      const key = pairKey(a, b);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      pairs.push([Math.min(a, b), Math.max(a, b)]);
-    }
-  }
-  return pairs.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
-}
+// They used to live here; other files still import them from war.ts.
+export { neighborPairs, pairKey };
 
 /** Cells of `side` that touch a cell of `enemy`: where fighting happens. */
 export function frontCells(state: WorldState, side: NationId, enemy: NationId): CellId[] {
@@ -53,8 +32,24 @@ function inTruce(state: WorldState, a: NationId, b: NationId): boolean {
   return state.truces.some((t) => pairKey(t.a, t.b) === pairKey(a, b) && t.until > state.year);
 }
 
+/**
+ * Yearly chance that `attacker` declares war on `defender` (SPEC §4.5).
+ * `attackHelp` / `defendHelp` = strength the allies on each side are expected to bring.
+ * A bigger gap makes war more tempting, and so do an aggressive ruling race and hatred.
+ */
+export function warChance(state: WorldState, attacker: Nation, defender: Nation, attackHelp = 0, defendHelp = 0): number {
+  const ratio = (attacker.strength + attackHelp) / Math.max(defender.strength + defendHelp, 1e-6);
+  const mood = Math.max(0, 1 - opinion(state, attacker.id, defender.id) * SIM.OPINION_WAR_K);
+  return Math.min(
+    SIM.WAR_MAX_PROB,
+    SIM.WAR_BASE_PROB * traits(attacker.race).aggression * ratio ** SIM.WAR_STRENGTH_EXP * (1 - attacker.warWeariness) * mood,
+  );
+}
+
 export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
   const events: SimEvent[] = [];
+  const pairs = neighborPairs(state);
+  const touching = new Set(pairs.map(([a, b]) => pairKey(a, b)));
   const atWar = new Set(state.wars.map((w) => pairKey(w.attacker, w.defender)));
   const warCount = new Map<NationId, number>();
   for (const w of state.wars) {
@@ -62,26 +57,51 @@ export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
     warCount.set(w.defender, (warCount.get(w.defender) ?? 0) + 1);
   }
   const busy = (id: NationId) => (warCount.get(id) ?? 0) >= SIM.MAX_WARS_PER_NATION;
+  const free = (a: NationId, b: NationId) => !atWar.has(pairKey(a, b)) && !inTruce(state, a, b) && !busy(a);
 
-  for (const [a, b] of neighborPairs(state)) {
-    if (atWar.has(pairKey(a, b)) || inTruce(state, a, b) || busy(a) || busy(b)) continue;
-    const na = state.nations.get(a)!;
-    const nb = state.nations.get(b)!;
-    // The stronger side attacks; a bigger gap makes war more tempting, and so does an aggressive ruling race.
-    const [attacker, defender] = na.strength >= nb.strength ? [na, nb] : [nb, na];
-    const ratio = attacker.strength / Math.max(defender.strength, 1e-6);
-    const chance = Math.min(
-      SIM.WAR_MAX_PROB,
-      SIM.WAR_BASE_PROB * traits(attacker.race).aggression * ratio ** SIM.WAR_STRENGTH_EXP * (1 - attacker.warWeariness),
-    );
-    if (!rng.chance(chance)) continue;
+  // Allies of `friend` that could fight `enemy`: they border it, aren't also its allies, and are free.
+  const helpers = (friend: NationId, enemy: NationId): Nation[] =>
+    alliesOf(state, friend)
+      .filter((id) => id !== enemy && touching.has(pairKey(id, enemy)) && !allied(state, id, enemy) && free(id, enemy))
+      .map((id) => state.nations.get(id)!);
+  const help = (allies: Nation[], joinChance: number) => allies.reduce((sum, n) => sum + n.strength * joinChance, 0);
 
-    const war: War = { id: state.year * 1000 + events.length, attacker: attacker.id, defender: defender.id, startYear: state.year, score: 0 };
+  let created = 0;
+  const start = (attacker: Nation, defender: Nation, joined?: number): War => {
+    const war: War = { id: state.year * 1000 + created++, attacker: attacker.id, defender: defender.id, startYear: state.year, score: 0 };
+    if (joined !== undefined) war.joined = joined;
     state.wars.push(war);
-    atWar.add(pairKey(a, b));
+    atWar.add(pairKey(attacker.id, defender.id));
     warCount.set(attacker.id, (warCount.get(attacker.id) ?? 0) + 1);
     warCount.set(defender.id, (warCount.get(defender.id) ?? 0) + 1);
+    // Going to war leaves a grudge that takes decades to fade.
+    state.relations.set(pairKey(attacker.id, defender.id), Math.max(-1, opinion(state, attacker.id, defender.id) - SIM.WAR_OPINION_HIT));
+    return war;
+  };
+
+  for (const [a, b] of pairs) {
+    if (atWar.has(pairKey(a, b)) || allied(state, a, b) || inTruce(state, a, b) || busy(a) || busy(b)) continue;
+    const na = state.nations.get(a)!;
+    const nb = state.nations.get(b)!;
+    // The stronger side attacks, weighing up whose allies would join in.
+    const [attacker, defender] = na.strength >= nb.strength ? [na, nb] : [nb, na];
+    const attackAllies = helpers(attacker.id, defender.id);
+    const defendAllies = helpers(defender.id, attacker.id);
+    const chance = warChance(state, attacker, defender, help(attackAllies, SIM.ALLY_ATTACK_PROB), help(defendAllies, SIM.ALLY_DEFEND_PROB));
+    if (!rng.chance(chance)) continue;
+
+    const war = start(attacker, defender);
     events.push(warEvent(state.year, attacker, defender));
+    for (const ally of defendAllies) {
+      if (!free(ally.id, attacker.id) || !rng.chance(SIM.ALLY_DEFEND_PROB)) continue;
+      start(attacker, ally, war.id);
+      events.push(joinDefenseEvent(state.year, ally, defender, attacker));
+    }
+    for (const ally of attackAllies) {
+      if (!free(ally.id, defender.id) || !rng.chance(SIM.ALLY_ATTACK_PROB)) continue;
+      start(ally, defender, war.id);
+      events.push(joinAttackEvent(state.year, ally, attacker, defender));
+    }
   }
   return events;
 }
@@ -132,17 +152,25 @@ function peaceReason(state: WorldState, war: War, attacker: Nation, defender: Na
 export function fightWars(state: WorldState, rng: Rng): SimEvent[] {
   const events: SimEvent[] = [];
   const ongoing: War[] = [];
+  // Wars still going after this year. A joined war always comes after its main war in the list.
+  const ongoingIds = new Set<number>();
 
   for (const war of state.wars) {
     const attacker = state.nations.get(war.attacker);
     const defender = state.nations.get(war.defender);
     // A side has died (conquered or collapsed): the war simply ends.
     if (!attacker?.alive || !defender?.alive) continue;
+    // Allies go home when the war they joined is over.
+    if (war.joined !== undefined && !ongoingIds.has(war.joined)) {
+      state.truces.push({ a: attacker.id, b: defender.id, until: state.year + SIM.TRUCE_YEARS });
+      continue;
+    }
 
     fightBattle(state, war, rng.fork(`war-${war.id}`));
 
     if (!peaceReason(state, war, attacker, defender)) {
       ongoing.push(war);
+      ongoingIds.add(war.id);
       continue;
     }
     // Clear winner only if the score is at least a third of the way to SIM.PEACE_SCORE.

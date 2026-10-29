@@ -2,6 +2,7 @@
 import type { Rng } from "../core/rng";
 import type { SimEvent, WorldState } from "../core/types";
 import { collapses } from "./collapse";
+import { diplomacy } from "./diplomacy";
 import { emergence } from "./emergence";
 import { expand } from "./expansion";
 import { growPopulation } from "./population";
@@ -26,6 +27,7 @@ export function tick(state: WorldState, rng: Rng): SimEvent[] {
   updateTotals(state); //                                 2. Totals
   updateStability(state); //                              3. Stability
   expand(state, year.fork("expansion")); //               4. Expansion
+  events.push(...diplomacy(state, year.fork("diplomacy"))); // 4b. Diplomacy
   events.push(...declareWars(state, year.fork("declare"))); //  5. War declared
   events.push(...fightWars(state, year.fork("fight"))); //      6. War fought
   events.push(...rebellions(state, year.fork("rebellion"))); // 7. Rebellion

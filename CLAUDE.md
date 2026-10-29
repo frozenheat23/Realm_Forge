@@ -93,7 +93,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | M5 ✅ | War | Wars start, play out and end; a 1,000-year run tells a believable story | §4.5 |
 | M6 ✅ | Polish | Speed controls, settings panel, video export, save/load. Web Worker only if needed. | §5.5, §6 |
 | M7 ✅ | Races | Five races (Humans, Light Elves, Dark Elves, Dwarves, Orcs) live in cells and rule nations; traits change growth, war, stability and rebellion; ethnic rebellions happen; Races map layer; no race takes over most of 10 test seeds | §2, §3.8–3.9, §4.1–4.10, §5.4b, §6 |
-| M8 | Diplomacy (planned) | Opinion between nations from race attitudes, borders and past wars; alliances join defensive wars | §8 |
+| M8 ✅ | Diplomacy | Opinion between nations from race attitudes, borders, wars and shared enemies; alliances form and break; bordering allies join defensive and offensive wars; Alliances map layer; race balance still holds | §2, §4.5, §4.6, §4.12, §5.4c, §6 |
 | M9 | Land and cell detail (planned) | Cells hold resources, unrest, devastation, development, settlements and ownership history; control replaces capital distance; rebellions start where unrest is high; wars fought over resources and claims; cities grow; 10-seed balance check still passes | §4.11 |
 | Later | Backlog | See SPEC.md §8 | §8 |
 
@@ -162,3 +162,8 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-10-29 | Save format v2 (adds per-cell race and race homelands); v1 saves are refused with a message |
 | 2026-10-29 | Balance check (`RACE_BALANCE=1`, 10 seeds × 1,000 years): biggest race share 41%, no takeovers. Orcs and Light Elves tend to come out on top; Dark Elves smallest (8–27%) |
 | 2026-10-29 | M9 designed (SPEC §4.11, design only): cells store causes (unrest, devastation, development, settlement, ownedSince, prevOwner, resource), chances are calculated each year. Six light resources (access-based bonuses, capped; no stockpiles or trade, which stay in the economy milestone). `control` replaces capital-distance penalty. Order vs M8 still open |
+| 2026-10-29 | M8 built before M9. Diplomacy = one shared opinion per pair (−1..1) drifting toward race attitude − border friction − war + shared enemy; new tick step 4b (SPEC §4.12) |
+| 2026-10-29 | Alliances are defensive **and** offensive (user's choice); only allies bordering the enemy fight, each in its own `War` linked by `joined`, ending with the main war. Allies' expected strength counts when deciding to attack (deterrence) |
+| 2026-10-29 | Alliances shown as dashed lines between capitals (key A); hover lists allies and worst rival |
+| 2026-10-29 | Tuning: dropped an "allied" opinion bonus (alliances never broke); `OPINION_DRIFT` 0.03 → 0.05 and `SHARED_ENEMY_BONUS` 0.3 → 0.5 so wartime coalitions can form within one war. Result: ~4–8 alliances and ~5–12 allies joining wars per century; kin pacts (Light Elves, Dwarves, Humans) last centuries. Balance check: biggest race 40%, no takeovers |
+| 2026-10-29 | Save format v3 (opinions, alliances); M9 plan moves to v4. `pairKey` / `neighborPairs` moved to `sim/helpers.ts` (still re-exported from `war.ts`) |
