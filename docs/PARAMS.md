@@ -6,8 +6,8 @@ What every tunable number does, a sensible range, and what happens when you chan
 
 | Code file | Covers |
 |---|---|
-| `src/gen/params.ts` | World, Terrain, Climate, Biomes, Rivers, Starting nations |
-| `src/sim/params.ts` | Population through Emergence (one `SIM` object, editable live in the Settings panel) |
+| `src/gen/params.ts` | World, Terrain, Climate, Biomes, Rivers, Starting nations, `RACE_HOMES_PER_RACE` |
+| `src/sim/params.ts` | Population through Emergence (one `SIM` object, editable live in the Settings panel), plus the `RACES` table |
 | `src/render/palette.ts` | Rendering |
 | `src/ui/config.ts` | Playback |
 
@@ -156,6 +156,10 @@ Example names per culture live in `src/gen/nameCorpus.ts` (all invented). Edit t
 | `CAPITAL_DIST_K` | 0.001 | 0–0.004 | Penalty per extra step | Distant provinces rebel | Shape doesn't matter |
 | `WEARINESS_GAIN` | 0.03 | 0.01–0.08 | Weariness gained per war year | Wars end sooner | Long grinding wars |
 | `WEARINESS_DECAY` | 0.05 | 0.02–0.1 | Weariness lost per peace year | Quick return to war | Long peaceful periods |
+| `FOREIGN_FREE` | 0.2 | 0–0.5 | Share of foreign-race population a nation can hold before it hurts stability | Multi-race empires hold together | Even small minorities cause trouble |
+| `FOREIGN_K` | 0.02 | 0–0.05 | Stability lost per year at 100% foreign population (÷ ruler's `tolerance`) | Conquerors of other races break apart | Race barely matters to stability |
+
+Race traits also change this section: `ADMIN_CAP_BASE` × `cohesion`, `WEARINESS_GAIN` ÷ `endurance` (see **Races**).
 
 ## Expansion
 
@@ -206,6 +210,63 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 | `EMERGENCE_MIN_REGION` | 30 | 10–80 | Empty cells needed to spawn a nation | Only big voids refill | Small gaps fill too |
 | `EMERGENCE_CORE_SIZE` | 8 | `MIN_AREA`–20 | Cells a newly emerged nation starts with (keep ≥ `MIN_AREA`) | Stronger newcomers | Fragile newcomers |
 
+## Races
+
+The race table is `RACES` in `src/sim/params.ts` (not editable in the Settings panel; change it in code). Every trait is a **multiplier**: 1.0 = Human, the baseline. SPEC §4.10 says which step uses each one.
+
+**Rule of thumb:** keep traits between about 0.5 and 1.6, and give each race one clear strength paired with one weakness. Effects stack: a race 1.3× better at three things is about 2× stronger overall.
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `RACE_HOMES_PER_RACE` | 2 | 1–4 (in `gen/params.ts`) | Homeland points per race | Each race spread over more regions | Each race in one heartland |
+
+### Traits
+
+| Race | Family | growth | martial | defense | aggression | endurance | cohesion | unrest | tolerance | Plays as |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Humans | human | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | Baseline; adaptable everywhere |
+| Light Elves | elf | 0.6 | 1.1 | 1.4 | 0.5 | 0.8 | 0.9 | 0.6 | 0.6 | Defensive and isolationist; rarely attack, very hard to conquer |
+| Dark Elves | elf | 0.7 | 1.3 | 1.1 | 1.4 | 0.9 | 0.7 | 1.2 | 0.5 | Raiders; strong and aggressive but can't hold conquests |
+| Dwarves | dwarf | 0.7 | 1.2 | 1.5 | 0.7 | 1.3 | 0.9 | 0.6 | 0.7 | Mountain fortresses; stubborn, slow-growing, hard to dig out |
+| Orcs | orc | 1.5 | 1.1 | 0.8 | 1.6 | 1.1 | 0.6 | 1.5 | 1.1 | Hordes; breed fast and love war, but their realms splinter |
+
+| Trait | Up ↑ | Down ↓ |
+|---|---|---|
+| `growth` | Fills land and recovers from war fast | Slow to recover; losses hurt for longer |
+| `martial` | Wins more battles | Loses more battles |
+| `defense` | Front cells hard to take | Easy to overrun |
+| `aggression` | Declares war more often | Peaceful neighbor |
+| `endurance` | Fights long wars | Sues for peace early |
+| `cohesion` | Holds bigger empires | Overextends early |
+| `unrest` | Rebels more often | Loyal even when unstable |
+| `tolerance` | Rules other races easily | Foreign subjects destabilize it |
+
+### Homeland, capacity and movement
+
+Affinity multiplies a cell's capacity for that race; terrain cost multiplies move cost when that race's nation expands. Anything not listed is 1.0.
+
+| Race | Affinity (capacity ×) | Terrain cost (move cost ×) |
+|---|---|---|
+| Humans | Grassland 1.1 | — |
+| Light Elves | Temperate forest 1.5, Tropical forest 1.4, Grassland 0.8, Desert 0.5 | Temperate forest 0.5, Tropical forest 0.5 |
+| Dark Elves | Taiga 1.6, Wetland 1.4, Mountains 1.5, Grassland 0.8 | Taiga 0.6, Wetland 0.6, Mountains 0.6 |
+| Dwarves | Mountains 2.5, Taiga 1.3, Grassland 0.8, Tropical forest 0.5 | Mountains 0.4, Taiga 0.7, Temperate forest 1.3, Tropical forest 1.3 |
+| Orcs | Desert 2.5, Shrubland 1.5, Savanna 1.3, Temperate forest 0.8 | Desert 0.5, Shrubland 0.7, Savanna 0.7 |
+
+"Mountains" means the `mountainAffinity` / `mountainCost` fields (mountain is a cell flag, not a biome). Dark Elves and Dwarves both want mountains and taiga on purpose: a built-in frontier rivalry.
+
+### Attitudes (used from M8 diplomacy)
+
+Starting opinion of one race toward another, −1 (hatred) .. 1 (kinship). Symmetric.
+
+|  | Humans | Light Elves | Dark Elves | Dwarves | Orcs |
+|---|---|---|---|---|---|
+| **Humans** | 0.2 | 0 | −0.2 | 0 | −0.3 |
+| **Light Elves** | 0 | 0.3 | −0.8 | −0.1 | −0.6 |
+| **Dark Elves** | −0.2 | −0.8 | 0.1 | −0.6 | −0.3 |
+| **Dwarves** | 0 | −0.1 | −0.6 | 0.3 | −0.6 |
+| **Orcs** | −0.3 | −0.6 | −0.3 | −0.6 | 0.1 |
+
 ---
 
 # Rendering
@@ -255,6 +316,7 @@ Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shadi
 | `LABEL_LETTER_SPACING` | 0.18 | 0–0.5 | Gap between letters (share of font size) | Airy, map-style lettering | Tight text |
 | `HIGHLIGHT_DIM` | 0.2 | 0–0.6 | How faded other nations get when you click an event | Others stay visible | Only the highlighted nations show |
 | `CAPITAL_RADIUS` | 3 | 2–6 | Capital dot size (pixels) | Bigger dots | Smaller dots |
+| `RACE_COLORS` | Humans #d9a441, Light Elves #9fd8e8, Dark Elves #6a4c93, Dwarves #a0522d, Orcs #6b8e23 | — | Tint per race in the **Races** map layer | — | — |
 
 ---
 
@@ -284,6 +346,9 @@ Common problems and which knobs to try first.
 | Borders ignore geography | ↑ `MOUNTAIN_COST_MULT`, ↑ desert/wetland move cost |
 | Too many tiny nations | ↑ `MIN_AREA`, ↑ `REBEL_MAX_CELLS`, ↓ `EMERGENCE_PROB` |
 | Map hard to read | ↓ `OVERLAY_ALPHA`, ↑ `BORDER_ALPHA`, ↑ `LABEL_MIN_AREA` |
+| One race takes over most seeds | ↓ that race's `growth` or `martial` first; then ↑ `FOREIGN_K` so big multi-race empires crack |
+| A race dies out early | ↑ its `defense` or its homeland affinity; check `RACE_HOMES_PER_RACE` |
+| Race makes no difference | ↑ `FOREIGN_K`, ↓ `FOREIGN_FREE`; widen the trait spread a little |
 
 ---
 

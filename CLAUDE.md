@@ -92,6 +92,8 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | M4b ✅ | Instability | Stability, rebellion, collapse and emergence; empires break apart; event log | §4.3, §4.6–4.9, §6 |
 | M5 ✅ | War | Wars start, play out and end; a 1,000-year run tells a believable story | §4.5 |
 | M6 ✅ | Polish | Speed controls, settings panel, video export, save/load. Web Worker only if needed. | §5.5, §6 |
+| M7 | Races | Five races (Humans, Light Elves, Dark Elves, Dwarves, Orcs) live in cells and rule nations; traits change growth, war, stability and rebellion; ethnic rebellions happen; Races map layer; no race takes over most of 10 test seeds | §2, §3.8–3.9, §4.1–4.10, §5.4b, §6 |
+| M8 | Diplomacy (planned) | Opinion between nations from race attitudes, borders and past wars; alliances join defensive wars | §8 |
 | Later | Backlog | See SPEC.md §8 | §8 |
 
 ---
@@ -149,3 +151,9 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-10-29 | Save = JSON snapshot without the map (rebuilt from seed); Load passes the file through `sessionStorage` and reloads with that seed |
 | 2026-10-29 | Year counter drawn on the canvas so videos include it; no Web Worker (tick ~4 ms) |
 | 2026-10-29 | Not done in M6: label fade in/out, neighbor-aware nation colors, hatching on war fronts |
+| 2026-10-29 | Next direction: deeper civilization sim. Order: M7 Races → M8 Diplomacy → armies & war goals → economy & eras |
+| 2026-10-29 | M7 design: 5 races (Humans, Light Elves, Dark Elves, Dwarves, Orcs). Orcs are one race using Green Orc values; Red Orcs parked in backlog. No Halflings |
+| 2026-10-29 | Race traits are multipliers on existing params with Humans = 1.0, so a human-only world matches pre-M7 behavior. Table `RACES` lives in `sim/params.ts` |
+| 2026-10-29 | Cell people supply growth/capacity/martial/defense/unrest; the ruling race supplies aggression/endurance/cohesion/tolerance/terrain cost |
+| 2026-10-29 | A cell's race only changes when an empty cell is settled or a cell is left empty; conquest keeps the people. Cultural blending is a later milestone |
+| 2026-10-29 | Race attitudes are stored in M7 but only used from M8 diplomacy |

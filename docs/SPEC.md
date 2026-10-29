@@ -73,7 +73,10 @@ interface Cell {
 interface CellState {
   pop: Float32Array;      // people per cell
   owner: Int32Array;      // NationId per cell
+  race: Uint8Array;       // RaceId of the people living there (0 = nobody)
 }
+
+type RaceId = number;     // index into RACES; 0 = none
 
 interface Nation {
   id: NationId;
@@ -82,11 +85,14 @@ interface Nation {
   capital: CellId;
   founded: number;        // year
   parent?: NationId;      // set if born from a rebellion
+  race: RaceId;           // ruling race, fixed for the nation's whole life
   alive: boolean;
   stability: number;      // 0..1
   warWeariness: number;   // 0..1
   // recomputed every year:
   area: number; pop: number; strength: number;
+  foreignShare: number;   // share of pop not of the ruling race, 0..1
+  unrest: number;         // population-weighted average of each race's `unrest` trait
 }
 
 interface War {
@@ -113,8 +119,11 @@ interface WorldState {
   wars: War[];
   truces: { a: NationId; b: NationId; until: number }[];
   events: SimEvent[];
+  raceHomes: { race: RaceId; at: [number, number] }[]; // homeland points (§4.10)
 }
 ```
+
+Races themselves are a fixed data table (`RACES` in `sim/params.ts`), described in §4.10.
 
 **Render helpers** (built once during generation):
 - `heightmap: Float32Array` (width × height) for terrain shading
@@ -165,8 +174,12 @@ Look up each land cell's biome from temperature × moisture (Whittaker-style cha
 ### 3.8 Starting nations
 Place `START_NATIONS` capitals on the highest-capacity land cells, at least `START_MIN_SPACING` cell-steps apart. Each claims a small core of `START_CORE_SIZE` cells around its capital (nearest first). Starting population is `START_POP_FRACTION` × capacity, stability `START_STABILITY`. Colors step round the color wheel by the golden angle (~137.5°) so no two are alike. Each nation logs a `founded` event at year 0.
 
+Each starting nation's race is the race of the nearest race homeland (§4.10); its core cells are settled by that race. If a race ends up with no starting nation, the capital nearest to that race's homeland switches to it, so every race is on the map at year 0.
+
 ### 3.9 Names
 A Markov-chain name generator (order `NAME_ORDER`) trained on invented example names, one list per culture (`gen/nameCorpus.ts`). Each culture gets a random home point on the map; a nation uses the culture of the nearest home point, so nearby nations sound related. Names never repeat and never copy an example.
+
+**Names by race family:** Human nations keep the four regional cultures above. Elves, Dwarves and Orcs each get one name list of their own, shared within a family (Light and Dark Elves both sound elvish), so a nation's race shows in its name.
 
 ---
 
@@ -189,16 +202,20 @@ One tick = one year. The steps always run in this order:
 
 **The core loop to protect:** expansion → overextension → instability → fragmentation. If history looks frozen or chaotic, tune this loop first (see "Tuning recipes" in `PARAMS.md`).
 
+Races (§4.10) don't add a step. They change numbers inside steps 1–9; each section below says how.
+
 ### 4.1 Population
-- Each owned cell grows toward its capacity: `pop += POP_GROWTH × pop × (1 − pop / capacity)` (logistic growth).
+- Each owned cell grows toward its capacity: `pop += POP_GROWTH × growth × pop × (1 − pop / raceCapacity)` (logistic growth), where `growth` is the trait of the race living in the cell and `raceCapacity` is the cell's capacity × that race's affinity (§4.10).
 - Cells on an active war front lose `WAR_ATTRITION` of their population.
-- Unowned cells hold no population (simplification for now).
+- Unowned cells hold no population (simplification for now), and their race is reset to 0.
 
 ### 4.2 Totals
 For each living nation, recompute:
 - `area` = number of owned cells
 - `pop` = sum of owned cells' population
-- `strength = pop ^ STRENGTH_POP_EXP × (0.5 + stability)`
+- `strength = militaryPop ^ STRENGTH_POP_EXP × (0.5 + stability)`, where `militaryPop` = the sum over owned cells of `pop × martial` (the trait of the race living in each cell, so an orc province makes a human kingdom stronger)
+- `foreignShare` = share of `pop` living in cells whose race isn't the nation's race
+- `unrest` = population-weighted average of the `unrest` trait of the races living in the nation
 
 ### 4.3 Stability
 Each year:
@@ -208,29 +225,33 @@ stability += STAB_RECOVERY
            − overextension
            − warWeariness × WEARINESS_STAB_K
            − capitalDistancePenalty
+           − foreignPenalty
 clamp to 0..1
 
-overextension          = max(0, area − ADMIN_CAP_BASE) × OVEREXT_K
+overextension          = max(0, area − ADMIN_CAP_BASE × cohesion) × OVEREXT_K
 capitalDistancePenalty = max(0, avgHopsToCapital − CAPITAL_DIST_FREE) × CAPITAL_DIST_K
+foreignPenalty         = max(0, foreignShare − FOREIGN_FREE) × FOREIGN_K / tolerance
 ```
 
-**War weariness:** rises by `WEARINESS_GAIN` per year at war, falls by `WEARINESS_DECAY` per year at peace, clamped to 0..1.
+`cohesion` and `tolerance` are traits of the nation's ruling race.
+
+**War weariness:** rises by `WEARINESS_GAIN / endurance` per year at war (ruling race's trait), falls by `WEARINESS_DECAY` per year at peace, clamped to 0..1.
 
 ### 4.4 Expansion
-For each unowned land cell, every neighboring nation rolls to claim it with probability `EXPANSION_RATE / moveCost`; if several succeed, one wins at random. Decisions use ownership from the start of the year (one ring of growth per year). A new cell starts with `NEW_CELL_POP_FRACTION` × capacity people. No expansion across water. `moveCost` comes from the biome table, × `MOUNTAIN_COST_MULT` for mountains and × `RIVER_COST_MULT` for river cells (rivers are cheaper).
+For each unowned land cell, every neighboring nation rolls to claim it with probability `EXPANSION_RATE / moveCost`; if several succeed, one wins at random. Decisions use ownership from the start of the year (one ring of growth per year). A new cell is settled by the claiming nation's race and starts with `NEW_CELL_POP_FRACTION` × its race capacity in people. No expansion across water. `moveCost` comes from the biome table, × `MOUNTAIN_COST_MULT` for mountains and × `RIVER_COST_MULT` for river cells (rivers are cheaper), × the claiming nation's race terrain cost for that biome (and its `mountainCost` on mountains).
 
 ### 4.5 War
 **Declaring.** For each pair of neighboring nations that aren't at war or in a truce:
 
 ```
-chance = WAR_BASE_PROB × (strongerStrength / weakerStrength) ^ WAR_STRENGTH_EXP × (1 − attacker.warWeariness)
+chance = WAR_BASE_PROB × aggression × (strongerStrength / weakerStrength) ^ WAR_STRENGTH_EXP × (1 − attacker.warWeariness)
 ```
 
-The chance is capped at `WAR_MAX_PROB`. The stronger side is the attacker. A nation can be in at most `MAX_WARS_PER_NATION` wars.
+The chance is capped at `WAR_MAX_PROB`. The stronger side is the attacker; `aggression` is its ruling race's trait. A nation can be in at most `MAX_WARS_PER_NATION` wars.
 
 **Fighting.** Each year, for each war:
 1. **Front cells** are owned cells that touch an enemy cell.
-2. Roll a weighted contest: attacker strength vs defender strength × `DEFENDER_BONUS`.
+2. Roll a weighted contest: attacker strength vs defender strength × `DEFENDER_BONUS` × `frontDefense`, where `frontDefense` is the average `defense` trait of the races living in the defender's front cells (dwarven hill forts hold even under a human king).
 3. The winner captures up to `FRONT_FLIPS_PER_YEAR` enemy front cells (lowest move cost first; the loser's capital always last).
 4. Adjust `score` toward the winner by `SCORE_PER_FLIP` per captured cell.
 5. If a capital is captured, see §4.7.
@@ -243,20 +264,53 @@ The chance is capped at `WAR_MAX_PROB`. The stronger side is the attacker. A nat
 The winner keeps captured cells. The two sides then can't fight again for `TRUCE_YEARS`. The `peace` event names a winner only if `|score|` ≥ `PEACE_SCORE` / 3; otherwise it's a white peace. Wars with a side that has died end silently.
 
 ### 4.6 Rebellion
-If a nation's stability is below `REBEL_THRESHOLD`, each year it has a `REBEL_PROB` chance of a rebellion:
-1. Pick a seed cell at least `REBEL_MIN_CAPITAL_DIST` steps from the capital (walking only through the nation's own land), or one the capital can't reach that way at all (e.g. an island).
-2. Flood-fill outward through the nation's cells, up to `REBEL_MAX_CELLS`, never taking the capital. If the region is smaller than `MIN_AREA`, no rebellion happens.
-3. Those cells become a new nation with a new name and color. Set `parent` to the old nation and give it starting stability `REBEL_START_STABILITY`. Its capital is the region's most populous cell.
+If a nation's stability is below `REBEL_THRESHOLD`, each year it has a `REBEL_PROB × unrest` chance of a rebellion (`unrest` from §4.2):
+1. Pick a seed cell at least `REBEL_MIN_CAPITAL_DIST` steps from the capital (walking only through the nation's own land), or one the capital can't reach that way at all (e.g. an island). **If any such cell is of a foreign race, the seed is picked only from foreign-race cells** (subject peoples rise first).
+2. Flood-fill outward through the nation's cells **of the seed's race**, up to `REBEL_MAX_CELLS`, never taking the capital. If the region is smaller than `MIN_AREA`, no rebellion happens.
+3. Those cells become a new nation with a new name and color, ruled by the seed's race. Set `parent` to the old nation and give it starting stability `REBEL_START_STABILITY`. Its capital is the region's most populous cell.
 
 ### 4.7 Collapse
 - **Capital lost:** the capital moves to the nation's most populous remaining cell (`capital_moved` event), and stability drops by `CAPITAL_LOSS_STAB_HIT`.
-- **Collapse:** a nation with `area < MIN_AREA`, or with no cells left, dissolves. Each of its cells is annexed by the strongest nation bordering *that cell* (judged on ownership before the collapse, so it doesn't chain), or becomes unowned if there's none. Logged as `annexed` (naming the nation that took the most cells) or `collapse`.
+- **Collapse:** a nation with `area < MIN_AREA`, or with no cells left, dissolves. Each of its cells is annexed by the strongest nation bordering *that cell* (judged on ownership before the collapse, so it doesn't chain), or becomes unowned if there's none. Logged as `annexed` (naming the nation that took the most cells) or `collapse`. Annexed cells keep their people and race; cells left unowned are emptied (pop and race reset to 0).
 
 ### 4.8 Emergence
-If a connected unowned land region has at least `EMERGENCE_MIN_REGION` habitable cells, each year it has an `EMERGENCE_PROB` chance of spawning a new nation at its highest-capacity cell, claiming `EMERGENCE_CORE_SIZE` cells around it.
+If a connected unowned land region has at least `EMERGENCE_MIN_REGION` habitable cells, each year it has an `EMERGENCE_PROB` chance of spawning a new nation at its highest-capacity cell, claiming `EMERGENCE_CORE_SIZE` cells around it. The new nation's race is the race of the nearest race homeland (§4.10), and its cells are settled by that race.
 
 ### 4.9 Events
 Emit a `SimEvent` for: nation founded, war declared, peace signed, rebellion, collapse, annexation, capital moved. Each event gets a short readable sentence, e.g. *"Year 412: Velmora declares war on the Kethari Reach."*
+
+Race shows in the text where it adds to the story: *"Year 88: the Dwarves of Khazrum found a realm."* and, when rebels are of a different race than their rulers, *"Year 412: the Dark Elves of Vael rise against Kethar."*
+
+### 4.10 Races
+Every cell's people belong to one race, and every nation is ruled by one race. Each race is a row in the `RACES` table (`sim/params.ts`) with traits that **multiply existing parameters**. Humans are 1.0 everywhere, so a human-only world behaves exactly as before races existed.
+
+**Who supplies which trait**
+- **The people living in a cell:** `growth`, affinity (capacity), `martial`, `defense`, `unrest`. Subjects of another race keep their own nature.
+- **The ruling race (`nation.race`):** `aggression`, `endurance`, `cohesion`, `tolerance`, terrain cost. These describe how the state behaves.
+
+| Trait | Used in | Effect |
+|---|---|---|
+| `growth` | §4.1 | × `POP_GROWTH` |
+| `affinity[biome]`, `mountainAffinity` | §4.1, §4.4 | × cell capacity for this race (missing = 1.0) |
+| `terrainCost[biome]`, `mountainCost` | §4.4 | × move cost when this race's nation expands (missing = 1.0) |
+| `martial` | §4.2 | × each cell's population in `militaryPop` |
+| `defense` | §4.5 | Averaged over the defender's front cells, × `DEFENDER_BONUS` |
+| `aggression` | §4.5 | × war declaration chance |
+| `endurance` | §4.3 | ÷ `WEARINESS_GAIN` |
+| `cohesion` | §4.3 | × `ADMIN_CAP_BASE` |
+| `unrest` | §4.2, §4.6 | Population-weighted average × `REBEL_PROB` |
+| `tolerance` | §4.3 | ÷ foreign-population penalty |
+| `attitude[race]` | M8 | Starting opinion of another race, −1..1. Stored now, not used until diplomacy |
+
+**Families.** Each race has a `family` (`human`, `elf`, `dwarf`, `orc`). Light and Dark Elves are one family with different traits; the family decides which name list a nation uses (§3.9). Orcs are one race for now (Green Orc values); Red Orcs can be split off later as a second orc race.
+
+**Homelands (generation).** For each race, pick `RACE_HOMES_PER_RACE` land cells as homeland points, each chosen at random weighted by `capacity × affinity` for that race (seeded stream `races`), so races start in land that suits them. Stored as `raceHomes`. Starting nations (§3.8) and emerging nations (§4.8) take the race of the nearest homeland point.
+
+**Where races live.** A cell's race changes in only two ways:
+1. A nation claims an empty cell: it's settled by the nation's race (§4.4).
+2. A cell is left unowned: it's emptied and its race is reset to 0 (§4.1, §4.7).
+
+Conquest and annexation keep the people (and their race) in place. So a race's lands grow by settling and shrink by being emptied, and a conqueror's empire fills up with foreign subjects who weigh on its stability and lead its rebellions. Peoples blending into their rulers over time (cultures) is a later milestone.
 
 ---
 
@@ -283,6 +337,9 @@ Emit a `SimEvent` for: nation founded, war declared, peace signed, rebellion, co
 - Hidden below `LABEL_MIN_AREA`. Bigger nations are labeled first; a label that would overlap one already drawn is skipped.
 - Later: fade in and out when nations are born or die.
 
+### 5.4b Race map
+A layer toggle (**Races**) swaps the nation overlay for one colored by each cell's race (`RACE_COLORS`), with nation borders still drawn on top. Empty cells are not tinted. This shows subject peoples inside empires at a glance.
+
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 5 ms, smooth at 20 years per second.
 - Run the sim on the main thread until M6; move it to a Web Worker only if it slows the screen.
@@ -296,7 +353,7 @@ Emit a `SimEvent` for: nation founded, war declared, peace signed, rebellion, co
 - Event log: scrolling, newest first, filter checkboxes per type, click an event to highlight its nations for `HIGHLIGHT_SECONDS` (others fade to `HIGHLIGHT_DIM`).
 - Seed box + **New world** (Enter works too) and **Random**. Both reload the page with `?seed=`.
 - **Settings** panel: every `SIM` parameter editable live (`ui/settings.ts`), layer toggles (nations, labels, cell outlines), reset to defaults. Generation numbers are not live; they need a new world.
-- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, per-cell owner/pop, nations, wars, truces, events. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
+- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, per-cell owner/pop/race, nations, wars, truces, events, race homelands. Saves made before races existed have no race data and are refused with a clear message. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
 - **Record** captures the canvas as WebM (`canvas.captureStream()` + `MediaRecorder`) and downloads it on stop.
 - Web Worker: not needed. A tick takes ~4 ms and a redraw ~15 ms at 1600×900.
 
@@ -315,7 +372,9 @@ Emit a `SimEvent` for: nation founded, war declared, peace signed, rebellion, co
 
 Not designed yet. When one is picked up, give it its own section in §4 and matching parameters in `PARAMS.md`.
 
-- Cultures and religions (affect rebellion and war odds)
+- Cultures that blend into their rulers over time; religions (affect rebellion and war odds)
+- Red Orcs as a second orc race (disciplined empire-builders who rule Green Orcs easily)
+- Diplomacy using race `attitude` (alliances, kin solidarity, racial feuds)
 - Dynasties and succession crises
 - Trade routes and economy
 - Alliances and diplomacy
