@@ -94,6 +94,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | M6 ✅ | Polish | Speed controls, settings panel, video export, save/load. Web Worker only if needed. | §5.5, §6 |
 | M7 ✅ | Races | Five races (Humans, Light Elves, Dark Elves, Dwarves, Orcs) live in cells and rule nations; traits change growth, war, stability and rebellion; ethnic rebellions happen; Races map layer; no race takes over most of 10 test seeds | §2, §3.8–3.9, §4.1–4.10, §5.4b, §6 |
 | M8 | Diplomacy (planned) | Opinion between nations from race attitudes, borders and past wars; alliances join defensive wars | §8 |
+| M9 | Land and cell detail (planned) | Cells hold resources, unrest, devastation, development, settlements and ownership history; control replaces capital distance; rebellions start where unrest is high; wars fought over resources and claims; cities grow; 10-seed balance check still passes | §4.11 |
 | Later | Backlog | See SPEC.md §8 | §8 |
 
 ---
@@ -160,3 +161,4 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-10-29 | M7 built. Humans got no grassland bonus after all (it broke the "Humans = old behavior" promise). Homelands weighted by `capacity × affinity ^ RACE_HOME_FOCUS` (3) |
 | 2026-10-29 | Save format v2 (adds per-cell race and race homelands); v1 saves are refused with a message |
 | 2026-10-29 | Balance check (`RACE_BALANCE=1`, 10 seeds × 1,000 years): biggest race share 41%, no takeovers. Orcs and Light Elves tend to come out on top; Dark Elves smallest (8–27%) |
+| 2026-10-29 | M9 designed (SPEC §4.11, design only): cells store causes (unrest, devastation, development, settlement, ownedSince, prevOwner, resource), chances are calculated each year. Six light resources (access-based bonuses, capped; no stockpiles or trade, which stay in the economy milestone). `control` replaces capital-distance penalty. Order vs M8 still open |
