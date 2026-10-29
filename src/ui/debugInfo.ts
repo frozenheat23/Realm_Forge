@@ -1,9 +1,17 @@
 // Debug helpers on screen: key toggles, and hover to inspect a cell.
 import type { GeneratedWorld } from "../gen";
-import type { NationId, ResourceKind, WorldState } from "../core/types";
+import type { Nation, NationId, ResourceKind, WorldState } from "../core/types";
 import { BIOME_STATS, RESOURCES } from "../gen/params";
 import { traits } from "../gen/races";
+import { ARMY_MEN_PER_UNIT } from "../render/palette";
+import { soldiers } from "../sim/manpower";
 import { alliesOf, opinion } from "../sim/diplomacy";
+
+/** "soldiers 12,000 of 20,000": the nation's soldiers and its cap, in men. */
+function soldierText(nation: Nation): string {
+  const men = (units: number) => (Math.round((units * ARMY_MEN_PER_UNIT) / 100) * 100).toLocaleString("en-US");
+  return `soldiers ${men(soldiers(nation))} of ${men(nation.manpowerCap)}`;
+}
 
 /** Calls `action` each time `key` is pressed (upper or lower case). */
 export function onKey(key: string, action: () => void): void {
@@ -61,7 +69,7 @@ export function showCellOnHover(
     const people = traits(state.state.race[cell.id]!).plural;
     const ruler = nation ? traits(nation.race).plural : "";
     const ownerText = nation
-      ? `${nation.name} (${ruler}) · ${people}, pop ${state.state.pop[cell.id]!.toFixed(2)}${diplomacyText(state, nation.id)}`
+      ? `${nation.name} (${ruler}) · ${people}, pop ${state.state.pop[cell.id]!.toFixed(2)} · ${soldierText(nation)}${diplomacyText(state, nation.id)}`
       : "unowned";
     const s = state.state;
     const deposit = cell.resource ? ` · ${RESOURCES[cell.resource as ResourceKind].name} (richness ${cell.richness.toFixed(2)})` : "";

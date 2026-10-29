@@ -18,8 +18,8 @@ afterEach(() => {
 // Two nations side by side: [1][1][1] | [2][2][2]
 function twoNations(race2: RaceId = Race.Human) {
   return makeState(row(6), [1, 1, 1, 2, 2, 2], [
-    makeNation(1, 0, { strength: 10 }),
-    makeNation(2, 5, { strength: 10, race: race2 }),
+    makeNation(1, 0, { reserve: 10 }),
+    makeNation(2, 5, { reserve: 10, race: race2 }),
   ]);
 }
 
@@ -27,9 +27,9 @@ function twoNations(race2: RaceId = Race.Human) {
 function triangle(): WorldState {
   const spec = [{ neighbors: [1, 2] }, { neighbors: [0, 2] }, { neighbors: [0, 1] }];
   return makeState(spec, [1, 2, 3], [
-    makeNation(1, 0, { strength: 100 }),
-    makeNation(2, 1, { strength: 1 }),
-    makeNation(3, 2, { strength: 1 }),
+    makeNation(1, 0, { reserve: 100 }),
+    makeNation(2, 1, { reserve: 1 }),
+    makeNation(3, 2, { reserve: 1 }),
   ]);
 }
 
@@ -134,7 +134,7 @@ describe("alliances", () => {
   it("allies never attack each other", () => {
     for (let trial = 0; trial < 300; trial++) {
       const state = twoNations();
-      state.nations.get(1)!.strength = 1000;
+      state.nations.get(1)!.reserve = 1000;
       state.alliances.push({ a: 1, b: 2, since: 0 });
       declareWars(state, createRng(`n${trial}`));
       expect(state.wars).toHaveLength(0);
@@ -171,10 +171,10 @@ describe("alliances", () => {
     // [1][2][3][4]: 2 and 4 are allies, but 4 doesn't touch 1.
     for (let trial = 0; trial < 300; trial++) {
       const state = makeState(row(4), [1, 2, 3, 4], [
-        makeNation(1, 0, { strength: 100 }),
-        makeNation(2, 1, { strength: 1 }),
-        makeNation(3, 2, { strength: 1 }),
-        makeNation(4, 3, { strength: 1 }),
+        makeNation(1, 0, { reserve: 100 }),
+        makeNation(2, 1, { reserve: 1 }),
+        makeNation(3, 2, { reserve: 1 }),
+        makeNation(4, 3, { reserve: 1 }),
       ]);
       state.alliances.push({ a: 2, b: 4, since: 0 });
       declareWars(state, createRng(`f${trial}`));

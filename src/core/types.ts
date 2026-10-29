@@ -146,10 +146,14 @@ export interface Nation {
   stability: number;
   /** 0..1 */
   warWeariness: number;
+  /** Trained soldiers not yet in an army, in pop units (SPEC §4.13). */
+  reserve: number;
   // Recomputed every year by the simulation:
   area: number;
   pop: number;
   strength: number;
+  /** Most soldiers the nation can keep: militaryPop × LEVY_SHARE (SPEC §4.13). */
+  manpowerCap: number;
   /** Share of the population that isn't the ruling race, 0..1. */
   foreignShare: number;
   /** Population-weighted average of the `unrest` trait of everyone living there. */

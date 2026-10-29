@@ -27,9 +27,11 @@ export function addNation(
     alive: true,
     stability,
     warWeariness: 0,
+    reserve: 0, // filled up in its first year (sim/manpower.ts)
     area: 0,
     pop: 0,
     strength: 0,
+    manpowerCap: 0,
     foreignShare: 0,
     unrest: traits(race).unrest,
     control: 1,

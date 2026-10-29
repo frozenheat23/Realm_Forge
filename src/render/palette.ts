@@ -215,3 +215,7 @@ export const CEL_SHADE_THRESHOLD = 0.3;
 export const CEL_FIRST_SHADED_BAND = 1;
 export const CEL_HIGHLIGHT = 1.08;
 export const CEL_SHADOW = 0.8;
+
+// --- Armies (SPEC §5.4h) ---
+/** Men shown per soldier unit (soldiers are counted in pop units). Label only. */
+export const ARMY_MEN_PER_UNIT = 20000;

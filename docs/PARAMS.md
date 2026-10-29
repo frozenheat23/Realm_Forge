@@ -175,8 +175,8 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `WAR_BASE_PROB` | 0.003 | 0.001–0.02 | Base yearly chance a neighbor pair goes to war (was 0.004 before M9's war motives) | Constant warfare | Peaceful eras |
-| `WAR_STRENGTH_EXP` | 1.0 | 0.5–2.0 | How much a power gap encourages war | Strong prey on weak | Wars between equals too |
+| `WAR_BASE_PROB` | 0.002 | 0.001–0.02 | Base yearly chance a neighbor pair goes to war (0.004 before M9's war motives, 0.003 before M11 manpower) | Constant warfare | Peaceful eras |
+| `WAR_STRENGTH_EXP` | 0.7 | 0.5–2.0 | How much a power gap encourages war (1.0 before M11: soldier counts differ more between nations than the old `strength` did) | Strong prey on weak | Wars between equals too |
 | `WAR_MAX_PROB` | 0.1 | 0.02–0.3 | Ceiling on a pair's yearly war chance, however lopsided | Bullies attack almost at once | Even giants hesitate |
 | `MAX_WARS_PER_NATION` | 2 | 1–4 | Concurrent wars per nation | Multi-front collapses | Focused wars |
 | `DEFENDER_BONUS` | 1.2 | 1.0–1.6 | Defender strength multiplier | Hard to conquer; stable borders | Snowballing conquests |
@@ -359,15 +359,17 @@ Opinion between two nations moves `OPINION_DRIFT` of the way toward a target eac
 
 ## Armies
 
-> **Planned for M11, not in code yet** (SPEC §4.13). Defaults are first guesses for tuning. They'll live in `src/sim/params.ts` (editable in Settings) as each M11 step lands. Soldiers are in the same units as `pop` (1 ≈ a fully settled grassland cell).
+> **Being built in M11** (SPEC §4.13). **Live now** (in `src/sim/params.ts`, Settings → Armies): the Manpower table and `BATTLE_LOSS`, `BATTLE_MAX_LOSS`, `WINNER_LOSS_SHARE` (used by the yearly front roll until armies march). Everything else is still a first guess, not in code yet. Soldiers are in the same units as `pop` (1 ≈ a fully settled grassland cell); a big realm has a cap of about 0.5–1.5.
+
+Measured after step 1 (5 seeds × 1,000 years, vs before): ~100 wars per century (81), shorter and more decisive (~5 at once, was ~6); 49 nations alive at year 1000 (38); biggest 578 cells (681); nations sit at ~80% of their cap on average. Race balance: biggest race 40%, no takeovers.
 
 **Manpower**
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `LEVY_SHARE` | 0.08 | 0.03–0.2 | Most soldiers a nation can have, as a share of `militaryPop` | Huge armies; wars decided by numbers | Small armies; terrain and forts matter more |
+| `LEVY_SHARE` | 0.08 | 0.03–0.2 | Most soldiers a nation can have, as a share of `levyPop` (people × martial × control) | Huge armies; wars decided by numbers | Small armies; terrain and forts matter more |
 | `LEVY_REFILL` | 0.1 | 0.03–0.3 | Share of the gap to the cap refilled per year (× 0.5 + stability) | Losers bounce back fast | A lost army means decades of weakness |
-| `WEARINESS_LOSS_K` | 0.5 | 0–2 | War weariness gained per share of the cap lost | Bloody wars end quickly | Losses don't push toward peace (0) |
+| `WEARINESS_LOSS_K` | 0.25 | 0–2 | War weariness gained per share of the cap lost | Bloody wars end quickly | Losses don't push toward peace (0) |
 
 **Raising armies**
 
@@ -375,7 +377,7 @@ Opinion between two nations moves `OPINION_DRIFT` of the way toward a target eac
 |---|---|---|---|---|---|
 | `MOBILIZE_SHARE` | 0.8 | 0.3–1 | Share of the reserve raised into a new army | Everything thrown in at once | Big reserve held back |
 | `REINFORCE_RATE` | 0.3 | 0–1 | Share of the reserve sent each year to armies in supply | Armies refill quickly | Armies wear down |
-| `MIN_ARMY_SIZE` | 0.3 | 0.1–1 | Smallest army worth raising; smaller ones rout | Weak nations can't field armies | Tiny armies wander the map |
+| `MIN_ARMY_SIZE` | 0.05 | 0.01–0.2 | Smallest army worth raising; smaller ones rout | Weak nations can't field armies | Tiny armies wander the map |
 
 **Campaign and movement**
 
@@ -522,11 +524,11 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 
 ### Armies
 
-> **Planned for M11, not in code yet** (SPEC §5.4h). Layer key W. Visual only.
+> **Planned for M11** (SPEC §5.4h). Layer key W. Visual only. `ARMY_MEN_PER_UNIT` is live already (hover info shows *soldiers X of Y*); the rest is not in code yet.
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `ARMY_MEN_PER_UNIT` | 2000 | 500–10000 | Men shown per soldier unit (the label only) | Bigger numbers on banners | Smaller numbers |
+| `ARMY_MEN_PER_UNIT` | 20000 | 5000–50000 | Men shown per soldier unit (the label only) | Bigger numbers on banners | Smaller numbers |
 | `ARMY_BANNER_MIN` / `ARMY_BANNER_MAX` | 7 / 16 | 4–12 / 10–24 | Banner half-height for the smallest / largest armies (pixels) | Armies dominate the map | Discreet markers |
 | `ARMY_TARGET_ALPHA` | 0.5 | 0–1 | Opacity of the dashed line to the army's target | Clear war plans | Hidden (0) |
 | `OCCUPIED_HATCH_ALPHA` | 0.45 | 0–0.8 | Opacity of the occupier's stripes on occupied land | Occupations glare | Faint |

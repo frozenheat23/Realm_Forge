@@ -75,8 +75,8 @@ export const SIM = {
   EXPANSION_RATE: 0.1,
 
   // --- War ---
-  WAR_BASE_PROB: 0.003,
-  WAR_STRENGTH_EXP: 1.0,
+  WAR_BASE_PROB: 0.002,
+  WAR_STRENGTH_EXP: 0.7,
   /** Ceiling on the yearly chance a pair goes to war, however lopsided they are. */
   WAR_MAX_PROB: 0.1,
   MAX_WARS_PER_NATION: 2,
@@ -93,6 +93,20 @@ export const SIM = {
   CLAIM_YEARS: 100,
   /** × war chance against a nation holding land you lost within CLAIM_YEARS. */
   CLAIM_WAR_BONUS: 2.0,
+
+  // --- Armies (SPEC §4.13) ---
+  /** Most soldiers a nation can keep, as a share of its militaryPop. */
+  LEVY_SHARE: 0.08,
+  /** Share of the gap to the cap refilled per year (× 0.5 + stability). */
+  LEVY_REFILL: 0.1,
+  /** War weariness gained per share of the cap lost in battle. */
+  WEARINESS_LOSS_K: 0.25,
+  /** Base share of the loser's soldiers lost in a battle (× power ratio). */
+  BATTLE_LOSS: 0.25,
+  /** Most of an army one battle can kill. */
+  BATTLE_MAX_LOSS: 0.6,
+  /** Winner's losses relative to the loser's (÷ power ratio). */
+  WINNER_LOSS_SHARE: 0.4,
 
   // --- Diplomacy ---
   /** Share of the gap to its target that opinion closes each year. */

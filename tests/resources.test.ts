@@ -89,8 +89,8 @@ describe("value and war", () => {
       { neighbors: [0] },
     ];
     const state = makeState(spec, [1, 2, 2, 2, 2], [
-      makeNation(1, 0, { strength: 1000, race: Race.Dwarf }),
-      makeNation(2, 1, { strength: 1 }),
+      makeNation(1, 0, { reserve: 1000, race: Race.Dwarf }),
+      makeNation(2, 1, { reserve: 1 }),
     ]);
     const war: War = { id: 1, attacker: 1, defender: 2, startYear: 0, score: 0 };
     fightBattle(state, war, createRng("v"));
@@ -102,8 +102,8 @@ describe("value and war", () => {
     for (let trial = 0; trial < 3000; trial++) {
       const spec = row(4).map((c, i) => (i === 2 ? { ...c, resource: Resource.Iron as ResourceKind, richness: 1 } : c));
       const state = makeState(spec, [1, 1, 2, 2], [
-        makeNation(1, 0, { strength: 100, race: Race.Dwarf }),
-        makeNation(2, 3, { strength: 1 }),
+        makeNation(1, 0, { reserve: 100, race: Race.Dwarf }),
+        makeNation(2, 3, { reserve: 1 }),
       ]);
       const events = declareWars(state, createRng(`r${trial}`));
       if (events.length === 0) continue;

@@ -105,3 +105,6 @@ New concepts as we meet them, with where they show up in our code.
 | **Sprite** | A small pre-drawn picture copied many times, much faster than drawing it from scratch each time. | `glowSprite()` for smoke and embers |
 | **Easing** | Bending the speed of an animation (fast start, slow finish) so it feels natural rather than mechanical. | `easeOut()` in `effects.ts` |
 | **Float32 precision** | A `Float32Array` stores numbers with ~7 digits, so 0.7 becomes 0.69999999. Compare with care near a threshold. | comment in `tests/effects.test.ts` |
+| **Stock vs rate** | A *stock* is an amount that builds up and gets used up (a nation's soldier reserve); a *rate* is how fast it changes each year (`LEVY_REFILL`). Stocks give the sim memory: a lost army stays lost. | `updateManpower()` in `src/sim/manpower.ts` |
+| **Weighted sum** | Adding things up while counting some more than others: each cell's people count toward the soldier cap × their race's `martial` × how firmly the nation controls them. | `levyPop` in `src/sim/totals.ts` |
+| **A/B comparison** | Running the old code and the new code on the same seeds and comparing the numbers, so you can see what a change really did. | how M11 step 1 was tuned (decision log) |

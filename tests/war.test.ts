@@ -6,10 +6,10 @@ import { makeNation, makeState, row } from "./tinyWorld";
 
 // Two nations side by side on a row of 10 cells: nation 1 owns 0–4, nation 2 owns 5–9.
 //   [1][1][1][1][1] | [2][2][2][2][2]
-function twoNations(strength1 = 10, strength2 = 10) {
+function twoNations(soldiers1 = 10, soldiers2 = 10) {
   return makeState(row(10), [1, 1, 1, 1, 1, 2, 2, 2, 2, 2], [
-    makeNation(1, 0, { strength: strength1 }),
-    makeNation(2, 9, { strength: strength2 }),
+    makeNation(1, 0, { reserve: soldiers1 }),
+    makeNation(2, 9, { reserve: soldiers2 }),
   ]);
 }
 
@@ -68,8 +68,8 @@ describe("fightBattle", () => {
       { neighbors: [0] },
     ];
     const state = makeState(spec, [1, 2, 2, 2, 2], [
-      makeNation(1, 0, { strength: 1000 }),
-      makeNation(2, 1, { strength: 1 }),
+      makeNation(1, 0, { reserve: 1000 }),
+      makeNation(2, 1, { reserve: 1 }),
     ]);
     const war = { id: 1, attacker: 1, defender: 2, startYear: 0, score: 0 };
     expect(SIM.FRONT_FLIPS_PER_YEAR).toBeLessThan(4);

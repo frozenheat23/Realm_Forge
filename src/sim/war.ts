@@ -6,6 +6,7 @@ import { traits } from "../gen/races";
 import { allied, alliesOf, opinion } from "./diplomacy";
 import { joinAttackEvent, joinDefenseEvent, peaceEvent, warEvent } from "./events";
 import { neighborPairs, pairKey, setOwner } from "./helpers";
+import { battleLosses, fightingPower, loseSoldiers } from "./manpower";
 import { SIM } from "./params";
 import { cellValue, effectiveCapacity, grainBonuses, resourceBonus } from "./resources";
 
@@ -54,12 +55,12 @@ function inTruce(state: WorldState, a: NationId, b: NationId): boolean {
 
 /**
  * Yearly chance that `attacker` declares war on `defender` (SPEC §4.5).
- * `attackHelp` / `defendHelp` = strength the allies on each side are expected to bring.
+ * `attackHelp` / `defendHelp` = fighting power the allies on each side are expected to bring.
  * `motive` multiplies it for reasons to fight (claims on lost land).
  * A bigger gap makes war more tempting, and so do an aggressive ruling race and hatred.
  */
 export function warChance(state: WorldState, attacker: Nation, defender: Nation, attackHelp = 0, defendHelp = 0, motive = 1): number {
-  const ratio = (attacker.strength + attackHelp) / Math.max(defender.strength + defendHelp, 1e-6);
+  const ratio = (fightingPower(attacker) + attackHelp) / Math.max(fightingPower(defender) + defendHelp, 1e-6);
   const mood = Math.max(0, 1 - opinion(state, attacker.id, defender.id) * SIM.OPINION_WAR_K);
   return Math.min(
     SIM.WAR_MAX_PROB,
@@ -143,7 +144,7 @@ export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
     alliesOf(state, friend)
       .filter((id) => id !== enemy && touching.has(pairKey(id, enemy)) && !allied(state, id, enemy) && free(id, enemy))
       .map((id) => state.nations.get(id)!);
-  const help = (allies: Nation[], joinChance: number) => allies.reduce((sum, n) => sum + n.strength * joinChance, 0);
+  const help = (allies: Nation[], joinChance: number) => allies.reduce((sum, n) => sum + fightingPower(n) * joinChance, 0);
 
   let created = 0;
   const start = (attacker: Nation, defender: Nation, joined?: number): War => {
@@ -162,8 +163,8 @@ export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
     if (atWar.has(pairKey(a, b)) || allied(state, a, b) || inTruce(state, a, b) || busy(a) || busy(b)) continue;
     const na = state.nations.get(a)!;
     const nb = state.nations.get(b)!;
-    // The stronger side attacks, weighing up whose allies would join in.
-    const [attacker, defender] = na.strength >= nb.strength ? [na, nb] : [nb, na];
+    // The side with more fighting power attacks, weighing up whose allies would join in.
+    const [attacker, defender] = fightingPower(na) >= fightingPower(nb) ? [na, nb] : [nb, na];
     const attackAllies = helpers(attacker.id, defender.id);
     const defendAllies = helpers(defender.id, attacker.id);
     // Reasons to fight: land it lost to the defender, and how much the best border cell is worth.
@@ -205,22 +206,42 @@ export function averageDefensibility(state: WorldState, cells: CellId[]): number
   return sum / cells.length;
 }
 
+/** How many wars `id` is fighting: its soldiers are split between them. */
+function warsOf(state: WorldState, id: NationId): number {
+  let count = 0;
+  for (const w of state.wars) if (w.attacker === id || w.defender === id) count++;
+  return Math.max(1, count);
+}
+
 /**
  * One year of fighting in one war. Returns how many cells changed hands.
- * The yearly winner is a weighted coin flip: the stronger side wins more often,
- * and the defender gets a home-ground bonus, bigger where its front is held by
- * a stubborn race (dwarven hill forts hold even under a human king), runs
- * through hills, forests and rivers, or is armed with mithril.
+ * The yearly winner is a weighted coin flip: the side with more soldiers here
+ * wins more often, and the defender gets a home-ground bonus, bigger where its
+ * front is held by a stubborn race (dwarven hill forts hold even under a human
+ * king), runs through hills, forests and rivers, or is armed with mithril.
+ * Both sides lose soldiers, the loser many more (SPEC §4.13). Until armies
+ * march (M11 step 3), this yearly roll stands in for that year's battles.
  */
 export function fightBattle(state: WorldState, war: War, rng: Rng): number {
   const attacker = state.nations.get(war.attacker)!;
   const defender = state.nations.get(war.defender)!;
-  const a = attacker.strength;
+  // A nation in two wars sends half its soldiers to each.
+  const attackShare = 1 / warsOf(state, attacker.id);
+  const defendShare = 1 / warsOf(state, defender.id);
+  const a = fightingPower(attacker, attackShare);
   const front = frontCells(state, defender.id, attacker.id);
   const frontDefense = averageDefense(state, front) * averageDefensibility(state, front) * resourceBonus(defender, Resource.Mithril);
-  const d = defender.strength * SIM.DEFENDER_BONUS * frontDefense;
+  const d = fightingPower(defender, defendShare) * SIM.DEFENDER_BONUS * frontDefense;
   const attackerWins = rng.chance(a + d > 0 ? a / (a + d) : 0.5);
   const [winner, loser] = attackerWins ? [attacker, defender] : [defender, attacker];
+
+  // Losses come out of the soldiers each side sent to this war.
+  const [winForce, loseForce] = attackerWins
+    ? [attacker.reserve * attackShare, defender.reserve * defendShare]
+    : [defender.reserve * defendShare, attacker.reserve * attackShare];
+  const losses = battleLosses(attackerWins ? a / Math.max(d, 1e-6) : d / Math.max(a, 1e-6));
+  loseSoldiers(winner, winForce * losses.winner);
+  loseSoldiers(loser, loseForce * losses.loser);
 
   // The winner takes the loser's most valuable front cells first. The capital
   // is defended hardest, so it only falls once the rest of the front has.

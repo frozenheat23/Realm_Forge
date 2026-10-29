@@ -3,6 +3,7 @@ import { Resource, type WorldState } from "../core/types";
 import { traits } from "../gen/races";
 import { controlMap } from "./control";
 import { cellsByNation } from "./helpers";
+import { updateManpower } from "./manpower";
 import { SIM } from "./params";
 import { emptyAccess, resourceBonus } from "./resources";
 
@@ -18,6 +19,7 @@ export function updateTotals(state: WorldState): Float32Array {
     // One pass over the nation's cells adds up everything race-related too.
     let total = 0;
     let militaryPop = 0; // people × how good their race is at fighting
+    let levyPop = 0; // the same, but only as much as the nation controls them (who it can call up)
     let foreign = 0; // people who aren't the ruling race
     let unrestSum = 0; // people × their race's unrest
     let controlSum = 0; // people × how firmly they're held
@@ -27,6 +29,7 @@ export function updateTotals(state: WorldState): Float32Array {
       const t = traits(race[c]!);
       total += p;
       militaryPop += p * t.martial;
+      levyPop += p * t.martial * control[c]!;
       unrestSum += p * t.unrest;
       controlSum += p * control[c]!;
       if (race[c] !== nation.race) foreign += p;
@@ -43,6 +46,7 @@ export function updateTotals(state: WorldState): Float32Array {
     nation.control = total > 0 ? controlSum / total : 1;
     // Bigger (and more martial) population = stronger, with diminishing returns; a stable nation fights better.
     nation.strength = militaryPop ** SIM.STRENGTH_POP_EXP * (0.5 + nation.stability);
+    updateManpower(state, nation, levyPop * resourceBonus(nation, Resource.Iron));
   }
   return control;
 }

@@ -7,14 +7,15 @@ import type { Alliance, CellState, Nation, RaceHome, SimEvent, War, WorldState }
 import type { GeneratedWorld } from "../gen";
 import type { SimParams } from "./params";
 
-/** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9). */
-export const SNAPSHOT_VERSION = 4;
+/** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9), 5 armies (M11). */
+export const SNAPSHOT_VERSION = 5;
 
 /** Why older saves can't be loaded, by version. */
 const TOO_OLD: Record<number, string> = {
   1: "races were added",
   2: "diplomacy was added",
   3: "land detail (unrest, resources, cities) was added",
+  4: "armies were added",
 };
 
 export interface Snapshot {

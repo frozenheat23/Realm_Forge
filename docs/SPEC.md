@@ -99,8 +99,10 @@ interface Nation {
   alive: boolean;
   stability: number;      // 0..1
   warWeariness: number;   // 0..1
+  reserve: number;        // trained soldiers not yet in an army, in pop units (§4.13)
   // recomputed every year:
   area: number; pop: number; strength: number;
+  manpowerCap: number;    // most soldiers it can keep (§4.13)
   foreignShare: number;   // share of pop not of the ruling race, 0..1
   unrest: number;         // population-weighted average of each race's `unrest` trait
   control: number;        // population-weighted average control, 0..1 (§4.2)
@@ -241,6 +243,7 @@ For each living nation, recompute:
 - `pop` = sum of owned cells' population
 - `strength = militaryPop ^ STRENGTH_POP_EXP × (0.5 + stability)`, where `militaryPop` = the sum over owned cells of `pop × martial` (the trait of the race living in each cell, so an orc province makes a human kingdom stronger), × the iron bonus
 - `access[resource]` = sum of richness over the nation's deposits of each resource (§4.11)
+- **Manpower** (§4.13): `manpowerCap = levyPop × LEVY_SHARE`, where `levyPop` = the sum over owned cells of `pop × martial × control` (× the iron bonus), so loosely held provinces send few soldiers. The reserve refills toward the cap.
 - `foreignShare` = share of `pop` living in cells whose race isn't the nation's race
 - `unrest` = population-weighted average of the `unrest` trait of the races living in the nation
 - **`control`** per cell, 0..1, the owner's grip (`sim/control.ts`, worked out fresh each year, never stored): travel cost from the capital through the nation's own cells (Dijkstra, paying each cell's move cost for the ruling race), then `control = exp(−travelCost / (CONTROL_RANGE × cohesion))`. Cells the capital can't reach over its own land (e.g. islands) get `CONTROL_ISLAND`. So mountains and marshes, not just distance, decide where an empire frays. The nation's `control` = population-weighted average.
@@ -273,19 +276,21 @@ For each unowned land cell, every neighboring nation rolls to claim it with prob
 
 ```
 chance = WAR_BASE_PROB × aggression × (attackSide / defendSide) ^ WAR_STRENGTH_EXP × (1 − attacker.warWeariness) × mood × motive
-attackSide = attacker.strength + Σ strength of attacker's helpers × ALLY_ATTACK_PROB
-defendSide = defender.strength + Σ strength of defender's helpers × ALLY_DEFEND_PROB
+power      = soldiers × (0.5 + stability)                           // fightingPower, §4.13
+attackSide = attacker power + Σ power of attacker's helpers × ALLY_ATTACK_PROB
+defendSide = defender power + Σ power of defender's helpers × ALLY_DEFEND_PROB
 mood       = max(0, 1 − opinion × OPINION_WAR_K)
 motive     = (claim ? CLAIM_WAR_BONUS : 1) × (1 + WAR_VALUE_K × value of the defender's best border cell)
 ```
 
-The chance is capped at `WAR_MAX_PROB`. The stronger side (by its own strength) is the attacker; `aggression` is its ruling race's trait. A nation can be in at most `MAX_WARS_PER_NATION` wars it declares or is declared on. `opinion` and **helpers** (allies who would join) are from §4.12, so allies deter attacks and hatred invites them. A **claim** means the defender holds land the attacker lost to it within `CLAIM_YEARS`; cell **value** (as the attacker's race sees it) is in §4.11. The `war` event says why: *"…to reclaim its lost lands"* for a claim, otherwise *"…, coveting its iron"* when the best border cell holds a resource the attacker's race favors.
+The chance is capped at `WAR_MAX_PROB`. The stronger side (by its own power) is the attacker; `aggression` is its ruling race's trait. A nation can be in at most `MAX_WARS_PER_NATION` wars it declares or is declared on. `opinion` and **helpers** (allies who would join) are from §4.12, so allies deter attacks and hatred invites them. A **claim** means the defender holds land the attacker lost to it within `CLAIM_YEARS`; cell **value** (as the attacker's race sees it) is in §4.11. The `war` event says why: *"…to reclaim its lost lands"* for a claim, otherwise *"…, coveting its iron"* when the best border cell holds a resource the attacker's race favors.
 
 **Allies join.** Right after a declaration, each of the defender's helpers joins with chance `ALLY_DEFEND_PROB`, and each of the attacker's with `ALLY_ATTACK_PROB`. A helper is an ally that borders the enemy, isn't allied with the enemy too, isn't already at war or in a truce with it, and isn't at its own war limit. Each joining ally gets its own `War` with the enemy (its own front and score), with `joined` set to the main war's id.
 
 **Fighting.** Each year, for each war:
 1. **Front cells** are owned cells that touch an enemy cell.
-2. Roll a weighted contest: attacker strength vs defender strength × `DEFENDER_BONUS` × `frontDefense`, where `frontDefense` = the average `defense` trait of the races living in the defender's front cells (dwarven hill forts hold even under a human king) × the average `defensibility` of those cells (hills, forests, rivers) × the defender's mithril bonus.
+2. Roll a weighted contest: attacker power vs defender power × `DEFENDER_BONUS` × `frontDefense` (each side's power counts only its share of soldiers for this war: half each if it fights two), where `frontDefense` = the average `defense` trait of the races living in the defender's front cells (dwarven hill forts hold even under a human king) × the average `defensibility` of those cells (hills, forests, rivers) × the defender's mithril bonus.
+   Both sides lose soldiers by the battle-loss rule in §4.13 (`battleLosses`), the loser many more; losses add war weariness. Until armies march (M11 step 3), this yearly roll stands in for that year's battles.
 3. The winner captures up to `FRONT_FLIPS_PER_YEAR` enemy front cells, most valuable first (by the winner's race, §4.11; the loser's capital always last). Captured cells change owner through `setOwner` (recording `prevOwner` and `ownedSince`), their unrest jumps to at least `UNREST_CONQUEST` and they gain `DEVASTATION_CAPTURE` devastation. Captured deposits are remembered for the peace text.
 4. Adjust `score` toward the winner by `SCORE_PER_FLIP` per captured cell.
 5. If a capital is captured, see §4.7.
@@ -444,7 +449,7 @@ Allies never declare war on each other. Alliances are both defensive and offensi
 
 ### 4.13 Armies
 
-> **Planned for M11, not built yet.** This is the design. Sections §4.1–4.9 still describe the code as it is; each M11 step updates them as it lands (like M9 did with §4.11). Numbers are in `PARAMS.md` → "Armies". Code will live in `sim/manpower.ts`, `sim/armies.ts`, `sim/battle.ts`, `sim/siege.ts`, `sim/warGoals.ts`.
+> **Being built in M11.** Done: **step 1, manpower** (reserve, cap, refill, losses, `fightingPower`; used by §4.2 and §4.5). The rest is still design. Sections §4.1–4.9 describe the code as it is; each M11 step updates them as it lands (like M9 did with §4.11). Numbers are in `PARAMS.md` → "Armies". Code will live in `sim/manpower.ts`, `sim/armies.ts`, `sim/battle.ts`, `sim/siege.ts`, `sim/warGoals.ts`.
 
 **Goal.** Make war *happen somewhere*. Today a war is one weighted roll per year between whole-nation strengths, and the winner takes up to `FRONT_FLIPS_PER_YEAR` cells anywhere along the border. With armies, soldiers are a limited stock that takes decades to rebuild; armies march across the map, meet in battle and besiege towns; and peace hands over the land a war was fought *for*. A big empire with two wars has to split its soldiers, which is the overstretch the core loop needs.
 
@@ -459,14 +464,18 @@ Allies never declare war on each other. Alliances are both defensive and offensi
 Each nation has a **reserve** of trained soldiers who aren't in an army yet.
 
 ```
-cap      = militaryPop × LEVY_SHARE           // militaryPop as in §4.2, but occupied cells don't count
+cap      = levyPop × LEVY_SHARE      // levyPop = Σ pop × martial × control (× iron); occupied cells won't count
 soldiers = reserve + size of the nation's armies
 reserve += (cap − soldiers) × LEVY_REFILL × (0.5 + stability)    // only if soldiers < cap
+power    = soldiers × (0.5 + stability)                           // fightingPower
 ```
 
-- So a nation that loses its army is weak for decades, and unstable nations rebuild slowly.
+- So a nation that loses its army is weak for decades, and unstable nations rebuild slowly. A nation starts with a full reserve in its first year.
+- **Why `× control`** (built, changed from the design): with a plain `militaryPop` cap, soldiers grow in step with size and empires snowballed (5 seeds: 18 nations left at year 1000, the biggest 1,344 cells). Counting only the people a nation really controls makes overstretch cost soldiers.
+- **Why `× (0.5 + stability)` in power** (built): the old `strength` had it; without it shaky empires still won their wars.
+- Soldiers above the cap (after losing land) aren't removed; they just stop refilling.
 - Units: soldiers are in the same units as `pop` (1 ≈ one fully settled grassland cell). The map shows them in men using `ARMY_MEN_PER_UNIT` (render only).
-- **Declaring war** (§4.5) compares soldiers instead of `strength`: `attackSide = attacker.soldiers + helpers' soldiers × ALLY_ATTACK_PROB` (same for the defender). `strength` stays for collapse (who annexes).
+- **Declaring war** (§4.5) compares power instead of `strength`: `attackSide = attacker power + helpers' power × ALLY_ATTACK_PROB` (same for the defender). `strength` stays for collapse (who annexes).
 - **War weariness** also rises with losses: `+ casualties / cap × WEARINESS_LOSS_K` for each battle and each step of attrition.
 
 #### Raising and reinforcing armies
@@ -566,7 +575,7 @@ Taken cells go through `setOwner` (unrest jumps to `UNREST_CONQUEST`). All other
 | §4.7 Collapse | A dead nation's armies disband; its occupations end |
 | §4.9 Events | New `battle` type (log filter off by default): *"Year 412: at the Battle of Arvenna, Velmora routs the host of Kethar (12,000 fell)."* Named after the nearest city within 3 steps, otherwise *"in the hills of Kethar"* |
 | §5.4h | New **Armies** layer (below) |
-| §6 | Save format **v5** (reserve, armies, occupation, siege, war goals) |
+| §6 | Save format **v5** (reserve from step 1; armies, occupation, siege and war goals added as they land) |
 
 #### Done when (M11)
 
@@ -657,7 +666,7 @@ Hovering over an army shows its nation, war, size, morale and target.
 - Event log: scrolling, newest first, filter checkboxes per type, click an event to highlight its nations for `HIGHLIGHT_SECONDS` (others fade to `HIGHLIGHT_DIM`).
 - Seed box + **New world** (Enter works too) and **Random**. Both reload the page with `?seed=`.
 - **Settings** panel: every `SIM` parameter editable live (`ui/settings.ts`), layer toggles (nations, labels, cell outlines), reset to defaults. Generation numbers are not live; they need a new world.
-- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, every per-cell array (owner, pop, race, unrest, devastation, development, settlement, ownership history), nations, wars, truces, events, race homelands, opinions, alliances and city names (format v4). Saves made before races (v1), diplomacy (v2) or land detail (v3) are refused with a clear message. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
+- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, every per-cell array (owner, pop, race, unrest, devastation, development, settlement, ownership history), nations, wars, truces, events, race homelands, opinions, alliances and city names (format v5, which added each nation's soldier reserve). Saves made before races (v1), diplomacy (v2), land detail (v3) or armies (v4) are refused with a clear message. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
 - **Record** captures the canvas as WebM (`canvas.captureStream()` + `MediaRecorder`) and downloads it on stop.
 - Web Worker: not needed. A tick takes ~5–6 ms (M9, measured in Node; M8 was ~5 ms) and a redraw ~15 ms at 1600×900.
 

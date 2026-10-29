@@ -12,10 +12,10 @@ import { claims, declareWars, fightBattle } from "../src/sim/war";
 import { makeNation, makeState, row } from "./tinyWorld";
 
 // [1][1][1] | [2][2][2]
-function twoNations(strength1 = 10, strength2 = 10) {
+function twoNations(soldiers1 = 10, soldiers2 = 10) {
   return makeState(row(6), [1, 1, 1, 2, 2, 2], [
-    makeNation(1, 0, { strength: strength1 }),
-    makeNation(2, 5, { strength: strength2 }),
+    makeNation(1, 0, { reserve: soldiers1 }),
+    makeNation(2, 5, { reserve: soldiers2 }),
   ]);
 }
 

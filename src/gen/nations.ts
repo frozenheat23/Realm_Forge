@@ -209,9 +209,11 @@ export function createStartingNations(
       alive: true,
       stability: START_STABILITY,
       warWeariness: 0,
+      reserve: 0, // filled up in the simulation's first year
       area: territory.length,
       pop: totalPop,
       strength: 0, // worked out by the simulation each year (M4a)
+      manpowerCap: 0,
       foreignShare: 0,
       unrest: traits(race).unrest,
       control: 1,
