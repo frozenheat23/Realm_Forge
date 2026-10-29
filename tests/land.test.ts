@@ -1,0 +1,112 @@
+import { describe, expect, it } from "vitest";
+import { createRng } from "../src/core/rng";
+import { Race } from "../src/core/types";
+import { setOwner } from "../src/sim/helpers";
+import { updateLand } from "../src/sim/land";
+import { SIM } from "../src/sim/params";
+import { effectiveCapacity, growPopulation } from "../src/sim/population";
+import { rebel } from "../src/sim/rebellion";
+import { claims, declareWars, fightBattle } from "../src/sim/war";
+import { makeNation, makeState, row } from "./tinyWorld";
+
+// [1][1][1] | [2][2][2]
+function twoNations(strength1 = 10, strength2 = 10) {
+  return makeState(row(6), [1, 1, 1, 2, 2, 2], [
+    makeNation(1, 0, { strength: strength1 }),
+    makeNation(2, 5, { strength: strength2 }),
+  ]);
+}
+
+describe("ownership history", () => {
+  it("remembers the previous owner and when the cell changed hands", () => {
+    const state = twoNations();
+    state.year = 40;
+    setOwner(state, 3, 1);
+    expect(state.state.prevOwner[3]).toBe(2);
+    expect(state.state.ownedSince[3]).toBe(40);
+  });
+
+  it("gives a claim on recently lost land, which runs out after CLAIM_YEARS", () => {
+    const state = twoNations();
+    state.year = 10;
+    setOwner(state, 2, 2); // nation 2 takes one of nation 1's cells
+    expect(claims(state).has(1 * 100000 + 2)).toBe(true);
+    state.year = 10 + SIM.CLAIM_YEARS + 1;
+    expect(claims(state).size).toBe(0);
+  });
+
+  it("says so when a war is fought over a claim", () => {
+    for (let trial = 0; trial < 2000; trial++) {
+      const state = twoNations(100, 1);
+      state.state.prevOwner[3] = 1; // nation 2 holds land nation 1 lost
+      const events = declareWars(state, createRng(`c${trial}`));
+      if (events.length === 0) continue;
+      expect(events[0]!.text).toContain("reclaim");
+      return;
+    }
+    throw new Error("no war in 2000 tries");
+  });
+});
+
+describe("devastation", () => {
+  it("captured cells become restless and devastated", () => {
+    const state = twoNations(1000, 1);
+    const war = { id: 1, attacker: 1, defender: 2, startYear: 0, score: 0 };
+    fightBattle(state, war, createRng("cap"));
+    expect(state.state.owner[3]).toBe(1);
+    expect(state.state.unrest[3]).toBeCloseTo(SIM.UNREST_CONQUEST);
+    expect(state.state.devastation[3]).toBeCloseTo(SIM.DEVASTATION_CAPTURE);
+  });
+
+  it("builds up on war fronts and cuts what the land can hold", () => {
+    const state = twoNations();
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0 });
+    growPopulation(state);
+    expect(state.state.devastation[2]).toBeCloseTo(SIM.DEVASTATION_FRONT);
+    expect(state.state.devastation[0]).toBe(0);
+    expect(effectiveCapacity(state, 2)).toBeLessThan(effectiveCapacity(state, 0));
+  });
+
+  it("heals a share of itself each year", () => {
+    const state = twoNations();
+    state.state.devastation[1] = 0.5;
+    updateLand(state, new Float32Array(6).fill(1));
+    expect(state.state.devastation[1]).toBeCloseTo(0.5 * (1 - SIM.DEVASTATION_HEAL));
+  });
+});
+
+describe("unrest", () => {
+  it("grows where control is weak and under foreign rulers, and fades in core land", () => {
+    const races = [Race.Human, Race.Human, Race.Orc, Race.Human, Race.Human, Race.Human];
+    const state = makeState(row(6), [1, 1, 1, 2, 2, 2], [makeNation(1, 0), makeNation(2, 5)], undefined, races);
+    const control = Float32Array.from([1, 0, 0, 1, 1, 1]);
+    updateLand(state, control);
+    const u = state.state.unrest;
+    expect(u[0]).toBe(0); // firmly held home
+    expect(u[1]).toBeGreaterThan(0); // weak control
+    expect(u[2]).toBeGreaterThan(u[1]!); // weak control and foreign rulers
+
+    state.state.unrest[4] = 0.5;
+    state.year = SIM.CORE_YEARS; // cells were taken in year 0, so they're core now
+    updateLand(state, control);
+    expect(state.state.unrest[4]).toBeCloseTo(0.5 - 2 * SIM.UNREST_DECAY);
+  });
+
+  it("is cleared when land is abandoned", () => {
+    const state = makeState(row(2), [1, 0], [makeNation(1, 0)]);
+    state.state.unrest[1] = 0.7;
+    growPopulation(state);
+    expect(state.state.unrest[1]).toBe(0);
+  });
+
+  it("decides where rebellions start", () => {
+    const length = SIM.REBEL_MIN_CAPITAL_DIST + 2 * SIM.REBEL_MAX_CELLS;
+    const owners = Array(length).fill(1);
+    const state = makeState(row(length), owners, [makeNation(1, 0)]);
+    const hotspot = length - 1; // the only restless cell, at the far end
+    state.state.unrest[hotspot] = 1;
+    const rebelNation = rebel(state, state.nations.get(1)!, [...owners.keys()], createRng("u"))!;
+    expect(state.state.owner[hotspot]).toBe(rebelNation.id);
+    expect(state.state.unrest[hotspot]).toBe(0); // free at last
+  });
+});

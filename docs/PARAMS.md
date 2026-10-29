@@ -402,6 +402,8 @@ Ideas for future rules. When one is adopted, design it in SPEC.md, move it into 
 
 Design in SPEC.md §4.11. All values are first guesses. Generation values would go in `gen/params.ts`, the rest in `SIM`.
 
+**Being built.** In code so far: control (moved up to Stability), and "Unrest, devastation, ownership" plus `CLAIM_YEARS` / `CLAIM_WAR_BONUS` (live in the Settings panel under "Land" and "War"). This section moves into the main Simulation part when M9 is done.
+
 ### Resources and terrain (generation)
 
 | Parameter | Default | Range | Effect |
@@ -436,7 +438,7 @@ Design in SPEC.md §4.11. All values are first guesses. Generation values would 
 | Parameter | Default | Range | Effect |
 |---|---|---|---|
 | `UNREST_CONQUEST` | 0.6 | 0.2–1 | Unrest a cell jumps to when captured |
-| `UNREST_CONTROL_K` | 0.02 | 0–0.05 | Unrest gained per year × (1 − control) |
+| `UNREST_CONTROL_K` | 0.05 | 0.02–0.1 | Unrest gained per year × (1 − control). Must beat `UNREST_DECAY`, or weak control alone never builds unrest (at 0.05 it builds where control < 0.6, or < 0.2 in core land) |
 | `UNREST_FOREIGN_K` | 0.01 | 0–0.03 | Unrest gained per year when the ruler is another race (÷ tolerance) |
 | `UNREST_DEVASTATION_K` | 0.02 | 0–0.05 | Unrest gained per year × devastation |
 | `UNREST_DECAY` | 0.02 | 0.005–0.05 | Unrest lost per year (doubled in core land) |

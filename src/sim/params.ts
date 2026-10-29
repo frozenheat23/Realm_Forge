@@ -31,6 +31,28 @@ export const SIM = {
   /** Stability lost per year at 100% foreign population (divided by the ruler's tolerance). */
   FOREIGN_K: 0.02,
 
+  // --- Land (unrest, devastation, ownership) ---
+  /** Unrest a cell jumps to (at least) when captured. */
+  UNREST_CONQUEST: 0.6,
+  /** Unrest gained per year × (1 − control). Must beat UNREST_DECAY for weak control to matter. */
+  UNREST_CONTROL_K: 0.05,
+  /** Unrest gained per year when ruled by another race (÷ ruler's tolerance). */
+  UNREST_FOREIGN_K: 0.01,
+  /** Unrest gained per year × devastation. */
+  UNREST_DEVASTATION_K: 0.02,
+  /** Unrest lost per year (doubled in core land). */
+  UNREST_DECAY: 0.02,
+  /** Years of ownership before a cell counts as core land. */
+  CORE_YEARS: 50,
+  /** Devastation gained per year on a war front. */
+  DEVASTATION_FRONT: 0.1,
+  /** Devastation added when a cell changes hands in war. */
+  DEVASTATION_CAPTURE: 0.5,
+  /** Share of devastation healed per year. */
+  DEVASTATION_HEAL: 0.05,
+  /** Capacity lost at full devastation. */
+  DEVASTATION_CAP_LOSS: 0.5,
+
   // --- Expansion ---
   EXPANSION_RATE: 0.1,
 
@@ -47,6 +69,10 @@ export const SIM = {
   WEARINESS_PEACE: 0.9,
   MAX_WAR_YEARS: 25,
   TRUCE_YEARS: 10,
+  /** How long land lost to another nation can be claimed back. */
+  CLAIM_YEARS: 100,
+  /** × war chance against a nation holding land you lost within CLAIM_YEARS. */
+  CLAIM_WAR_BONUS: 2.0,
 
   // --- Diplomacy ---
   /** Share of the gap to its target that opinion closes each year. */

@@ -2,7 +2,7 @@
 import type { Rng } from "../core/rng";
 import type { NationId, WorldState } from "../core/types";
 import { raceCapacity } from "../gen/races";
-import { moveCost } from "./helpers";
+import { moveCost, setOwner } from "./helpers";
 import { SIM } from "./params";
 
 /**
@@ -16,6 +16,7 @@ import { SIM } from "./params";
 export function expand(state: WorldState, rng: Rng): void {
   const { cells } = state;
   const { owner, pop, race } = state.state;
+  // `owner` is only read here, to take the snapshot; changes go through setOwner.
   const before = owner.slice(); // snapshot of who owned what at the start of the year
 
   for (const cell of cells) {
@@ -34,7 +35,7 @@ export function expand(state: WorldState, rng: Rng): void {
     if (claimants.length === 0) continue;
 
     const winner = state.nations.get(rng.pick(claimants))!;
-    owner[cell.id] = winner.id;
+    setOwner(state, cell.id, winner.id);
     race[cell.id] = winner.race;
     pop[cell.id] = raceCapacity(cell, winner.race) * SIM.NEW_CELL_POP_FRACTION;
   }

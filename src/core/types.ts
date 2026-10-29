@@ -158,6 +158,14 @@ export interface CellState {
   owner: Int32Array;
   /** RaceId of the people living in each cell (0 = nobody). */
   race: Uint8Array;
+  /** How restless each cell's people are, 0..1 (SPEC §4.11). Rebellions start where it's high. */
+  unrest: Float32Array;
+  /** War damage, 0..1. Cuts capacity; heals slowly. */
+  devastation: Float32Array;
+  /** Year the current owner took the cell. */
+  ownedSince: Int32Array;
+  /** Who owned the cell before the current owner (0 = nobody). Gives claims to reconquer. */
+  prevOwner: Int32Array;
 }
 
 /** A race's homeland point: new nations nearby are of that race. */

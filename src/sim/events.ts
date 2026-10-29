@@ -42,12 +42,13 @@ export function capitalMovedEvent(year: number, nation: Nation): SimEvent {
   };
 }
 
-export function warEvent(year: number, attacker: Nation, defender: Nation): SimEvent {
+/** `why`, if given, finishes the sentence, e.g. "to reclaim its lost lands". */
+export function warEvent(year: number, attacker: Nation, defender: Nation, why?: string): SimEvent {
   return {
     year,
     type: "war",
     actors: [attacker.id, defender.id],
-    text: `Year ${year}: ${attacker.name} declares war on ${defender.name}.`,
+    text: `Year ${year}: ${attacker.name} declares war on ${defender.name}${why ? ` ${why}` : ""}.`,
   };
 }
 

@@ -2,7 +2,7 @@
 import type { Rng } from "../core/rng";
 import type { CellId, Nation, RaceId, SimEvent, WorldState } from "../core/types";
 import { rebellionEvent } from "./events";
-import { cellsByNation, hopsFromCapital, livingNations, pairKey } from "./helpers";
+import { cellsByNation, hopsFromCapital, livingNations, pairKey, setOwner, weightedPick } from "./helpers";
 import { SIM } from "./params";
 import { addNation, mostPopulous } from "./newNation";
 
@@ -42,14 +42,18 @@ export function rebel(state: WorldState, nation: Nation, cells: CellId[], rng: R
   const candidates = foreign.length > 0 ? foreign : farAway;
   if (candidates.length === 0) return null;
 
-  const seed = rng.pick(candidates);
+  // The most restless places rise first.
+  const seed = weightedPick(rng, candidates, candidates.map((c) => state.state.unrest[c]!));
   const region = floodFill(state, nation, seed, SIM.REBEL_MAX_CELLS);
   if (region.length < SIM.MIN_AREA) return null;
 
   // The rebels are ruled by their own people. (`as RaceId`: the typed array only knows it's a number.)
   const rebelRace = state.state.race[seed]! as RaceId;
   const rebelNation = addNation(state, rng.fork("name"), mostPopulous(state, region), SIM.REBEL_START_STABILITY, rebelRace, nation.id);
-  for (const c of region) state.state.owner[c] = rebelNation.id;
+  for (const c of region) {
+    setOwner(state, c, rebelNation.id);
+    state.state.unrest[c] = 0; // free at last
+  }
   // Rebels and their old rulers start out bitter (SPEC §4.12).
   state.relations.set(pairKey(rebelNation.id, nation.id), SIM.REBEL_OPINION);
   return rebelNation;

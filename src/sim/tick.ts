@@ -5,6 +5,7 @@ import { collapses } from "./collapse";
 import { diplomacy } from "./diplomacy";
 import { emergence } from "./emergence";
 import { expand } from "./expansion";
+import { updateLand } from "./land";
 import { growPopulation } from "./population";
 import { rebellions } from "./rebellion";
 import { updateStability } from "./stability";
@@ -24,7 +25,8 @@ export function tick(state: WorldState, rng: Rng): SimEvent[] {
   const events: SimEvent[] = [];
 
   growPopulation(state); //                               1. Population
-  updateTotals(state); //                                 2. Totals
+  const control = updateTotals(state); //                 2. Totals
+  updateLand(state, control); //                             … and each cell's land
   updateStability(state); //                              3. Stability
   expand(state, year.fork("expansion")); //               4. Expansion
   events.push(...diplomacy(state, year.fork("diplomacy"))); // 4b. Diplomacy

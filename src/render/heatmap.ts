@@ -6,7 +6,7 @@ import { buildRampTable, rampLookup } from "./color";
 import { HEAT_ALPHA, HEAT_RAMP } from "./palette";
 
 /** The heatmaps the H key cycles through, in order. */
-export const HEAT_KINDS = ["control"] as const;
+export const HEAT_KINDS = ["unrest", "control", "devastation"] as const;
 export type HeatKind = (typeof HEAT_KINDS)[number];
 
 /** The value (0..1) of every cell for one heatmap. */
@@ -14,6 +14,9 @@ function heatValues(state: WorldState, kind: HeatKind): Float32Array {
   switch (kind) {
     case "control":
       return controlMap(state);
+    case "unrest":
+    case "devastation":
+      return state.state[kind];
   }
 }
 

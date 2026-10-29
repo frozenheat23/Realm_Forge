@@ -3,21 +3,27 @@
 // `Map` and typed arrays don't survive JSON.stringify, so they're converted to plain
 // arrays here. The map itself (cells, terrain) isn't saved: it's rebuilt from the seed,
 // which always gives the same map.
-import type { Alliance, Nation, RaceHome, SimEvent, War, WorldState } from "../core/types";
+import type { Alliance, CellState, Nation, RaceHome, SimEvent, War, WorldState } from "../core/types";
 import type { GeneratedWorld } from "../gen";
 import type { SimParams } from "./params";
 
-/** Version 2 added races (M7); version 3 added opinions and alliances (M8). */
-export const SNAPSHOT_VERSION = 3;
+/** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9). */
+export const SNAPSHOT_VERSION = 4;
+
+/** Why older saves can't be loaded, by version. */
+const TOO_OLD: Record<number, string> = {
+  1: "races were added",
+  2: "diplomacy was added",
+  3: "land detail (unrest, resources, cities) was added",
+};
 
 export interface Snapshot {
   version: number;
   seed: string;
   year: number;
   params: SimParams;
-  owner: number[];
-  pop: number[];
-  race: number[];
+  /** Every per-cell array, as plain number lists. */
+  cells: Record<keyof CellState, number[]>;
   nations: Nation[];
   wars: War[];
   truces: { a: number; b: number; until: number }[];
@@ -31,14 +37,21 @@ export interface Snapshot {
 }
 
 export function toSnapshot(state: WorldState, params: SimParams): Snapshot {
+  const s = state.state;
   return {
     version: SNAPSHOT_VERSION,
     seed: state.seed,
     year: state.year,
     params: { ...params },
-    owner: Array.from(state.state.owner),
-    pop: Array.from(state.state.pop),
-    race: Array.from(state.state.race),
+    cells: {
+      pop: Array.from(s.pop),
+      owner: Array.from(s.owner),
+      race: Array.from(s.race),
+      unrest: Array.from(s.unrest),
+      devastation: Array.from(s.devastation),
+      ownedSince: Array.from(s.ownedSince),
+      prevOwner: Array.from(s.prevOwner),
+    },
     nations: [...state.nations.values()],
     wars: state.wars,
     truces: state.truces,
@@ -53,19 +66,24 @@ export function toSnapshot(state: WorldState, params: SimParams): Snapshot {
 
 /** Rebuilds a WorldState from a snapshot, on top of the world regenerated from the same seed. */
 export function fromSnapshot(snapshot: Snapshot, world: GeneratedWorld): WorldState {
-  if (snapshot.version === 1) throw new Error("This save is from before races were added and can't be loaded");
-  if (snapshot.version === 2) throw new Error("This save is from before diplomacy was added and can't be loaded");
+  const tooOld = TOO_OLD[snapshot.version];
+  if (tooOld) throw new Error(`This save is from before ${tooOld} and can't be loaded`);
   if (snapshot.version !== SNAPSHOT_VERSION) throw new Error(`Unknown save version ${snapshot.version}`);
   if (snapshot.seed !== world.seed) throw new Error("Save file is for a different seed");
-  if (snapshot.owner.length !== world.cells.length) throw new Error("Save file doesn't match this map");
+  const c = snapshot.cells;
+  if (c.owner.length !== world.cells.length) throw new Error("Save file doesn't match this map");
   return {
     seed: snapshot.seed,
     year: snapshot.year,
     cells: world.cells,
     state: {
-      owner: Int32Array.from(snapshot.owner),
-      pop: Float32Array.from(snapshot.pop),
-      race: Uint8Array.from(snapshot.race),
+      pop: Float32Array.from(c.pop),
+      owner: Int32Array.from(c.owner),
+      race: Uint8Array.from(c.race),
+      unrest: Float32Array.from(c.unrest),
+      devastation: Float32Array.from(c.devastation),
+      ownedSince: Int32Array.from(c.ownedSince),
+      prevOwner: Int32Array.from(c.prevOwner),
     },
     nations: new Map(snapshot.nations.map((n) => [n.id, { ...n }])),
     wars: snapshot.wars.map((w) => ({ ...w })),

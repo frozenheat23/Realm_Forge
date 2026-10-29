@@ -1,7 +1,7 @@
 // Step 8 (SPEC §4.7): nations that lose their capital move it; tiny nations dissolve.
 import { Race, type Nation, type NationId, type SimEvent, type WorldState } from "../core/types";
 import { annexedEvent, capitalMovedEvent, collapseEvent } from "./events";
-import { cellsByNation, livingNations } from "./helpers";
+import { cellsByNation, livingNations, setOwner } from "./helpers";
 import { SIM } from "./params";
 import { mostPopulous } from "./newNation";
 
@@ -25,7 +25,7 @@ function dissolve(state: WorldState, nation: Nation, cells: number[]): Nation | 
         best = other;
       }
     }
-    owner[c] = best ? best.id : 0;
+    setOwner(state, c, best ? best.id : 0);
     // Annexed cells keep their people; abandoned cells are emptied.
     if (!best) {
       pop[c] = 0;

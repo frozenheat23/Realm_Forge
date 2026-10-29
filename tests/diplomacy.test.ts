@@ -203,7 +203,7 @@ describe("alliances", () => {
 });
 
 describe("saves", () => {
-  it("keep opinions and alliances, and refuse saves from before diplomacy", () => {
+  it("keep opinions and alliances, and refuse saves from before them", () => {
     const { world, state } = generateWorld("diplo", 320, 180);
     state.relations.set(pairKey(1, 2), -0.4);
     state.alliances.push({ a: 1, b: 2, since: 3 });

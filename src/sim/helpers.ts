@@ -1,7 +1,9 @@
 // Small lookups several simulation steps need.
+import type { Rng } from "../core/rng";
 import { Race, type Cell, type CellId, type Nation, type NationId, type RaceId, type WorldState } from "../core/types";
 import { BIOME_STATS, MOUNTAIN_COST_MULT, RIVER_COST_MULT } from "../gen/params";
 import { raceTerrainCost } from "../gen/races";
+import { SIM } from "./params";
 
 /** Every living nation's cells, grouped by nation. */
 export function cellsByNation(state: WorldState): Map<NationId, CellId[]> {
@@ -11,6 +13,35 @@ export function cellsByNation(state: WorldState): Map<NationId, CellId[]> {
     if (owner !== 0) groups.get(owner)?.push(cell);
   });
   return groups;
+}
+
+/**
+ * Hands `cell` to nation `id` (0 = nobody), remembering who had it before and
+ * since when. Every change of owner in the simulation goes through here.
+ */
+export function setOwner(state: WorldState, cell: CellId, id: NationId): void {
+  const s = state.state;
+  if (s.owner[cell] === id) return;
+  s.prevOwner[cell] = s.owner[cell]!;
+  s.ownedSince[cell] = state.year;
+  s.owner[cell] = id;
+}
+
+/** Cells held for at least SIM.CORE_YEARS are the nation's heartland. */
+export function isCore(state: WorldState, cell: CellId): boolean {
+  return state.year - state.state.ownedSince[cell]! >= SIM.CORE_YEARS;
+}
+
+/** A random item where item i is picked with chance weights[i] / total. Uniform if every weight is 0. */
+export function weightedPick<T>(rng: Rng, items: T[], weights: number[]): T {
+  const total = weights.reduce((sum, w) => sum + w, 0);
+  if (total <= 0) return rng.pick(items);
+  let target = rng.next() * total;
+  for (let i = 0; i < items.length; i++) {
+    target -= weights[i]!;
+    if (target <= 0) return items[i]!;
+  }
+  return items[items.length - 1]!;
 }
 
 /** One number per pair of nations, the same whichever order they're given in. */

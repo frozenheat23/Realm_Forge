@@ -4,7 +4,7 @@ import type { CellId, Nation, NationId, SimEvent, War, WorldState } from "../cor
 import { traits } from "../gen/races";
 import { allied, alliesOf, opinion } from "./diplomacy";
 import { joinAttackEvent, joinDefenseEvent, peaceEvent, warEvent } from "./events";
-import { moveCost, neighborPairs, pairKey } from "./helpers";
+import { moveCost, neighborPairs, pairKey, setOwner } from "./helpers";
 import { SIM } from "./params";
 
 // They used to live here; other files still import them from war.ts.
@@ -35,21 +35,43 @@ function inTruce(state: WorldState, a: NationId, b: NationId): boolean {
 /**
  * Yearly chance that `attacker` declares war on `defender` (SPEC §4.5).
  * `attackHelp` / `defendHelp` = strength the allies on each side are expected to bring.
+ * `motive` multiplies it for reasons to fight (claims on lost land).
  * A bigger gap makes war more tempting, and so do an aggressive ruling race and hatred.
  */
-export function warChance(state: WorldState, attacker: Nation, defender: Nation, attackHelp = 0, defendHelp = 0): number {
+export function warChance(state: WorldState, attacker: Nation, defender: Nation, attackHelp = 0, defendHelp = 0, motive = 1): number {
   const ratio = (attacker.strength + attackHelp) / Math.max(defender.strength + defendHelp, 1e-6);
   const mood = Math.max(0, 1 - opinion(state, attacker.id, defender.id) * SIM.OPINION_WAR_K);
   return Math.min(
     SIM.WAR_MAX_PROB,
-    SIM.WAR_BASE_PROB * traits(attacker.race).aggression * ratio ** SIM.WAR_STRENGTH_EXP * (1 - attacker.warWeariness) * mood,
+    SIM.WAR_BASE_PROB * traits(attacker.race).aggression * ratio ** SIM.WAR_STRENGTH_EXP * (1 - attacker.warWeariness) * mood * motive,
   );
+}
+
+/** Key for "from → to": unlike pairKey, the order matters. */
+function directedKey(from: NationId, to: NationId): number {
+  return from * 100000 + to;
+}
+
+/**
+ * Who has a claim on whom: directedKey(claimant, holder) for every nation
+ * holding a cell the claimant lost to it within SIM.CLAIM_YEARS.
+ */
+export function claims(state: WorldState): Set<number> {
+  const { owner, prevOwner, ownedSince } = state.state;
+  const found = new Set<number>();
+  for (let c = 0; c < owner.length; c++) {
+    const lost = prevOwner[c]!;
+    if (lost === 0 || owner[c] === 0 || state.year - ownedSince[c]! > SIM.CLAIM_YEARS) continue;
+    if (state.nations.get(lost)?.alive) found.add(directedKey(lost, owner[c]!));
+  }
+  return found;
 }
 
 export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
   const events: SimEvent[] = [];
   const pairs = neighborPairs(state);
   const touching = new Set(pairs.map(([a, b]) => pairKey(a, b)));
+  const claimed = claims(state);
   const atWar = new Set(state.wars.map((w) => pairKey(w.attacker, w.defender)));
   const warCount = new Map<NationId, number>();
   for (const w of state.wars) {
@@ -87,11 +109,13 @@ export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
     const [attacker, defender] = na.strength >= nb.strength ? [na, nb] : [nb, na];
     const attackAllies = helpers(attacker.id, defender.id);
     const defendAllies = helpers(defender.id, attacker.id);
-    const chance = warChance(state, attacker, defender, help(attackAllies, SIM.ALLY_ATTACK_PROB), help(defendAllies, SIM.ALLY_DEFEND_PROB));
+    const claim = claimed.has(directedKey(attacker.id, defender.id));
+    const motive = claim ? SIM.CLAIM_WAR_BONUS : 1;
+    const chance = warChance(state, attacker, defender, help(attackAllies, SIM.ALLY_ATTACK_PROB), help(defendAllies, SIM.ALLY_DEFEND_PROB), motive);
     if (!rng.chance(chance)) continue;
 
     const war = start(attacker, defender);
-    events.push(warEvent(state.year, attacker, defender));
+    events.push(warEvent(state.year, attacker, defender, claim ? "to reclaim its lost lands" : undefined));
     for (const ally of defendAllies) {
       if (!free(ally.id, attacker.id) || !rng.chance(SIM.ALLY_DEFEND_PROB)) continue;
       start(attacker, ally, war.id);
@@ -135,7 +159,13 @@ export function fightBattle(state: WorldState, war: War, rng: Rng): number {
   const targets = frontCells(state, loser.id, winner.id)
     .sort((x, y) => cost(x) - cost(y) || x - y)
     .slice(0, SIM.FRONT_FLIPS_PER_YEAR);
-  for (const c of targets) state.state.owner[c] = winner.id;
+  const { unrest, devastation } = state.state;
+  for (const c of targets) {
+    setOwner(state, c, winner.id);
+    // Conquered people resent their new rulers, and the fighting wrecks the land.
+    unrest[c] = Math.max(unrest[c]!, SIM.UNREST_CONQUEST);
+    devastation[c] = Math.min(1, devastation[c]! + SIM.DEVASTATION_CAPTURE);
+  }
 
   war.score += (attackerWins ? 1 : -1) * SIM.SCORE_PER_FLIP * targets.length;
   return targets.length;
