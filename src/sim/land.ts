@@ -51,7 +51,7 @@ export function cityNearby(state: WorldState, cell: CellId): boolean {
  */
 export function updateLand(state: WorldState, control: Float32Array, rng: Rng): SimEvent[] {
   const events: SimEvent[] = [];
-  const { owner, pop, race, unrest, devastation, development, settlement } = state.state;
+  const { owner, pop, race, unrest, devastation, development, settlement, occupier } = state.state;
   const grain = grainBonuses(state);
   for (let c = 0; c < owner.length; c++) {
     devastation[c] = devastation[c]! * (1 - SIM.DEVASTATION_HEAL);
@@ -60,9 +60,10 @@ export function updateLand(state: WorldState, control: Float32Array, rng: Rng): 
     if (!nation) continue;
     const ruler = traits(nation.race);
     const foreign = race[c] !== nation.race ? SIM.UNREST_FOREIGN_K / ruler.tolerance : 0;
+    const occupied = occupier[c] !== 0 ? SIM.UNREST_OCCUPIED : 0;
     const decay = SIM.UNREST_DECAY * (isCore(state, c) ? 2 : 1);
     unrest[c] = clamp(
-      unrest[c]! + SIM.UNREST_CONTROL_K * (1 - control[c]!) + foreign + SIM.UNREST_DEVASTATION_K * devastation[c]! - decay,
+      unrest[c]! + SIM.UNREST_CONTROL_K * (1 - control[c]!) + foreign + occupied + SIM.UNREST_DEVASTATION_K * devastation[c]! - decay,
       0,
       1,
     );

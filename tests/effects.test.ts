@@ -1,31 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { cellPhase, findBattles, hotCells, restlessCells } from "../src/render/changes";
-import { pairKey } from "../src/sim/helpers";
-import { makeCells, makeNation, makeState, row } from "./tinyWorld";
+import { cellPhase, hotCells, restlessCells, siegeCells } from "../src/render/changes";
+import { makeNation, makeState, row } from "./tinyWorld";
 
-// A row of 6 cells: [0]-[1]-[2]-[3]-[4]-[5], each 10 px apart.
-const cells = makeCells(row(6));
-
-describe("findBattles", () => {
-  it("groups cells taken in a war by winner, at their average position", () => {
-    const before = Int32Array.from([1, 1, 1, 2, 2, 2]);
-    const after = Int32Array.from([1, 1, 1, 1, 1, 2]); // nation 1 took cells 3 and 4
-    const battles = findBattles(cells, before, after, new Set([pairKey(1, 2)]));
-    expect(battles).toHaveLength(1);
-    expect(battles[0]).toMatchObject({ winner: 1, loser: 2, cells: [3, 4], x: 35 });
-  });
-
-  it("ignores land changing hands without a war (rebellion, settling)", () => {
-    const before = Int32Array.from([1, 1, 0, 2, 2, 2]);
-    const after = Int32Array.from([1, 1, 1, 3, 3, 2]); // 1 settles cell 2, nation 3 rebels from 2
-    expect(findBattles(cells, before, after, new Set([pairKey(1, 2)]))).toEqual([]);
-  });
-
-  it("keeps each side's gains separate when both advance", () => {
-    const before = Int32Array.from([1, 1, 1, 2, 2, 2]);
-    const after = Int32Array.from([1, 2, 1, 1, 2, 2]);
-    const battles = findBattles(cells, before, after, new Set([pairKey(1, 2)]));
-    expect(battles.map((b) => b.winner).sort()).toEqual([1, 2]);
+describe("siegeCells", () => {
+  it("lists cells under siege, but not ones already taken", () => {
+    const state = makeState(row(3), [1, 1, 1], [makeNation(1, 0)]);
+    state.state.siege[1] = 0.5;
+    state.state.siege[2] = 0.5;
+    state.state.occupier[2] = 2;
+    expect(siegeCells(state)).toEqual([1]);
   });
 });
 

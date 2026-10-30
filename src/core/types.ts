@@ -129,6 +129,15 @@ export interface Cell {
 
 export type NationId = number; // 0 = unowned
 
+/** A battle fought this year, kept so the map and log can show it. */
+export interface BattleReport {
+  cell: CellId;
+  winner: NationId;
+  loser: NationId;
+  /** Soldiers killed on both sides. */
+  lost: number;
+}
+
 /** Army.target when it has nowhere to go. */
 export const NO_TARGET = -1;
 
@@ -191,12 +200,12 @@ export interface War {
   attacker: NationId;
   defender: NationId;
   startYear: number;
-  /** Positive = attacker winning. */
+  /** Positive = attacker winning: battleScore plus what each side occupies, worked out each year. */
   score: number;
+  /** Score from battles so far (same sign rule as `score`). */
+  battleScore: number;
   /** Set if an ally joined someone else's war: the id of that main war. Ends when it ends. */
   joined?: number;
-  /** Cells with a resource deposit captured during this war, and by whom (for the peace text). */
-  prizes?: { cell: CellId; by: NationId }[];
 }
 
 /** Two nations pledged to fight beside each other (SPEC §4.12). `a` < `b`. */
@@ -233,6 +242,10 @@ export interface CellState {
   development: Float32Array;
   /** 0 none, 1 village, 2 town, 3 city (see Settlement). */
   settlement: Uint8Array;
+  /** Who holds this cell by force during a war (0 = nobody). The owner only changes at peace. */
+  occupier: Int32Array;
+  /** How far a siege of this cell has got, 0..1. */
+  siege: Float32Array;
 }
 
 /** Settlement levels, from development (SPEC §4.11). */
@@ -255,6 +268,8 @@ export interface WorldState {
   armies: Army[];
   /** Id for the next army raised. */
   nextArmyId: number;
+  /** This year's battles (not saved: only the map needs them). */
+  battles: BattleReport[];
   truces: { a: NationId; b: NationId; until: number }[];
   events: SimEvent[];
   /** Each name culture's home point on the map; new nations take the nearest one's names. */

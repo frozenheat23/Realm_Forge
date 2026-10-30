@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createRng } from "../src/core/rng";
 import { battleLosses, loseSoldiers, updateManpower } from "../src/sim/manpower";
 import { SIM } from "../src/sim/params";
-import { fightBattle } from "../src/sim/war";
 import { makeNation, makeState, row } from "./tinyWorld";
 
 describe("manpower", () => {
@@ -46,18 +44,5 @@ describe("manpower", () => {
     expect(crushing.loser).toBeGreaterThan(even.loser);
     expect(crushing.winner).toBeLessThan(even.winner);
     expect(battleLosses(100).loser).toBe(SIM.BATTLE_MAX_LOSS);
-  });
-
-  it("a year of war costs both sides soldiers", () => {
-    const state = makeState(row(10), [1, 1, 1, 1, 1, 2, 2, 2, 2, 2], [
-      makeNation(1, 0, { reserve: 10, manpowerCap: 10 }),
-      makeNation(2, 9, { reserve: 10, manpowerCap: 10 }),
-    ]);
-    const war = { id: 1, attacker: 1, defender: 2, startYear: 0, score: 0 };
-    state.wars.push(war);
-    fightBattle(state, war, createRng("losses"));
-    const left = [state.nations.get(1)!.reserve, state.nations.get(2)!.reserve].sort((a, b) => a - b);
-    expect(left[1]!).toBeLessThan(10); // the winner lost a few
-    expect(left[0]!).toBeLessThan(left[1]!); // the loser lost more
   });
 });

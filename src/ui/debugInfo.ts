@@ -92,8 +92,11 @@ export function showCellOnHover(
     const place = SETTLEMENT_NAMES[s.settlement[cell.id]!]!;
     const city = state.cityNames.get(cell.id);
     const placeText = place ? ` · ${place}${city && place === "city" ? ` of ${city}` : ""}` : "";
+    const heldBy = state.nations.get(s.occupier[cell.id]!);
+    const siege = s.siege[cell.id]! > 0 ? ` · under siege ${Math.round(s.siege[cell.id]! * 100)}%` : "";
+    const war = (heldBy ? ` · occupied by ${heldBy.name}` : "") + siege;
     const land = nation
-      ? `${placeText} · development ${s.development[cell.id]!.toFixed(2)} · unrest ${s.unrest[cell.id]!.toFixed(2)}` +
+      ? `${war}${placeText} · development ${s.development[cell.id]!.toFixed(2)} · unrest ${s.unrest[cell.id]!.toFixed(2)}` +
         ` · devastation ${s.devastation[cell.id]!.toFixed(2)} · held since year ${s.ownedSince[cell.id]}`
       : "";
     panel.textContent =

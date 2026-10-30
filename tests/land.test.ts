@@ -8,7 +8,7 @@ import { SIM } from "../src/sim/params";
 import { growPopulation } from "../src/sim/population";
 import { effectiveCapacity } from "../src/sim/resources";
 import { rebel } from "../src/sim/rebellion";
-import { claims, declareWars, fightBattle } from "../src/sim/war";
+import { claims, declareWars } from "../src/sim/war";
 import { makeNation, makeState, row } from "./tinyWorld";
 
 // [1][1][1] | [2][2][2]
@@ -51,21 +51,9 @@ describe("ownership history", () => {
 });
 
 describe("devastation", () => {
-  it("captured cells become restless and devastated", () => {
-    const state = twoNations(1000, 1);
-    const war = { id: 1, attacker: 1, defender: 2, startYear: 0, score: 0 };
-    fightBattle(state, war, createRng("cap"));
-    expect(state.state.owner[3]).toBe(1);
-    expect(state.state.unrest[3]).toBeCloseTo(SIM.UNREST_CONQUEST);
-    expect(state.state.devastation[3]).toBeCloseTo(SIM.DEVASTATION_CAPTURE);
-  });
-
-  it("builds up on war fronts and cuts what the land can hold", () => {
+  it("cuts what the land can hold", () => {
     const state = twoNations();
-    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0 });
-    growPopulation(state);
-    expect(state.state.devastation[2]).toBeCloseTo(SIM.DEVASTATION_FRONT);
-    expect(state.state.devastation[0]).toBe(0);
+    state.state.devastation[2] = 0.8;
     expect(effectiveCapacity(state, 2)).toBeLessThan(effectiveCapacity(state, 0));
   });
 

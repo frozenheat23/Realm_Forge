@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { Biome, NO_TARGET, type Army } from "../src/core/types";
 import { createRng } from "../src/core/rng";
 import { generateWorld } from "../src/gen";
-import { disbandArmies, findPath, marchArmies, musterArmies } from "../src/sim/armies";
+import { campaign, disbandArmies, findPath, musterArmies } from "../src/sim/armies";
 import { loseSoldiers, soldiers } from "../src/sim/manpower";
 import { SIM } from "../src/sim/params";
 import { fromSnapshot, toSnapshot } from "../src/sim/snapshot";
 import { tick } from "../src/sim/tick";
 import { makeNation, makeState, row } from "./tinyWorld";
 
-const war = (id = 1) => ({ id, attacker: 1, defender: 2, startYear: 0, score: 0 });
+const war = (id = 1) => ({ id, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 0 });
 
 // Nation 1 owns 0–9, nation 2 owns 10–19, in a row.
 function atWar() {
@@ -77,7 +77,7 @@ describe("marching", () => {
   it("heads for the enemy and walks at most ARMY_MOVE per season", () => {
     const state = atWar();
     state.armies.push(army({ cell: 0 }));
-    marchArmies(state);
+    campaign(state, createRng("march"));
     const a = state.armies[0]!;
     expect(a.target).toBeGreaterThanOrEqual(10);
     expect(a.cell).toBe(Math.min(SIM.ARMY_MOVE * SIM.CAMPAIGN_STEPS, a.target));
@@ -91,7 +91,7 @@ describe("marching", () => {
     const state = makeState(spec, owners, [makeNation(1, 0), makeNation(2, 19)]);
     state.wars.push(war());
     state.armies.push(army({ cell: 0 }));
-    marchArmies(state);
+    campaign(state, createRng("march"));
     const walked = state.armies[0]!.cell;
     expect(walked).toBeLessThan(SIM.ARMY_MOVE * SIM.CAMPAIGN_STEPS);
     expect(walked).toBeGreaterThanOrEqual(SIM.CAMPAIGN_STEPS);
@@ -121,7 +121,7 @@ describe("marching", () => {
     const state = atWar();
     state.armies.push(army({ cell: 12, target: 12 }));
     state.state.owner[12] = 1;
-    marchArmies(state);
+    campaign(state, createRng("march"));
     expect(state.armies[0]!.target).not.toBe(12);
   });
 });

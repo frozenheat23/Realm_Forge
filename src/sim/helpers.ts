@@ -25,6 +25,8 @@ export function setOwner(state: WorldState, cell: CellId, id: NationId): void {
   s.prevOwner[cell] = s.owner[cell]!;
   s.ownedSince[cell] = state.year;
   s.owner[cell] = id;
+  s.occupier[cell] = 0; // a change of owner ends any occupation or siege
+  s.siege[cell] = 0;
 }
 
 /** Cells held for at least SIM.CORE_YEARS are the nation's heartland. */
@@ -47,6 +49,11 @@ export function weightedPick<T>(rng: Rng, items: T[], weights: number[]): T {
 /** One number per pair of nations, the same whichever order they're given in. */
 export function pairKey(a: NationId, b: NationId): number {
   return Math.min(a, b) * 100000 + Math.max(a, b);
+}
+
+/** `pairKey` of every pair of nations at war. */
+export function warPairs(state: WorldState): Set<number> {
+  return new Set(state.wars.map((w) => pairKey(w.attacker, w.defender)));
 }
 
 /** Every pair of living nations whose land touches, smallest ids first. */

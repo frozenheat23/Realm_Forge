@@ -135,7 +135,6 @@ Example names per culture live in `src/gen/nameCorpus.ts` (all invented). Edit t
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
 | `POP_GROWTH` | 0.02 | 0.005–0.05 | Yearly growth rate toward capacity | Fast recovery after wars | Wars scar for longer |
-| `WAR_ATTRITION` | 0.05 | 0–0.2 | Pop lost yearly on war fronts | Wars devastate border regions | Wars are cheap |
 | `NEW_CELL_POP_FRACTION` | 0.05 | 0.01–0.3 | Population a newly claimed cell starts with (share of capacity) | New land is productive at once | Frontier stays empty for decades |
 
 ## Totals
@@ -180,8 +179,6 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 | `WAR_MAX_PROB` | 0.1 | 0.02–0.3 | Ceiling on a pair's yearly war chance, however lopsided | Bullies attack almost at once | Even giants hesitate |
 | `MAX_WARS_PER_NATION` | 2 | 1–4 | Concurrent wars per nation | Multi-front collapses | Focused wars |
 | `DEFENDER_BONUS` | 1.2 | 1.0–1.6 | Defender strength multiplier | Hard to conquer; stable borders | Snowballing conquests |
-| `FRONT_FLIPS_PER_YEAR` | 3 | 1–8 | Max cells captured per war per year | Fast, decisive wars | Slow, grinding fronts |
-| `SCORE_PER_FLIP` | 5 | 2–15 | War score per captured cell | Wars end sooner | Wars drag on |
 | `PEACE_SCORE` | 60 | 30–150 | Score needed to force peace | Bigger land grabs per war | Short border wars |
 | `WEARINESS_PEACE` | 0.9 | 0.6–1.0 | Weariness that forces peace | Wars fought to exhaustion | Quick white peace |
 | `MAX_WAR_YEARS` | 25 | 10–50 | Hard cap on war length | Generational wars | Short conflicts |
@@ -240,7 +237,7 @@ The race table is `RACES` in `src/gen/params.ts` (not editable in the Settings p
 |---|---|---|
 | `growth` | Fills land and recovers from war fast | Slow to recover; losses hurt for longer |
 | `martial` | Wins more battles | Loses more battles |
-| `defense` | Front cells hard to take | Easy to overrun |
+| `defense` | Its land is hard to fight in | Easy to overrun |
 | `aggression` | Declares war more often | Peaceful neighbor |
 | `endurance` | Fights long wars | Sues for peace early |
 | `cohesion` | Holds bigger empires | Overextends early |
@@ -300,7 +297,7 @@ The biome `defense` column is in the Biomes table above.
 | Iron | `martial` (army strength) | 1.15 | 0.8 | Dwarves, Orcs |
 | Gold | `STAB_RECOVERY` | 1.30 | 0.5 | Dwarves |
 | Horses | `EXPANSION_RATE` | 1.15 | 0.8 | Humans, Orcs |
-| Mithril | Front-line `defense` | 1.20 | 0.15 | Dwarves, Dark Elves |
+| Mithril | `defense` of armies in their own land | 1.20 | 0.15 | Dwarves, Dark Elves |
 
 ### Unrest, devastation, ownership
 
@@ -312,7 +309,6 @@ The biome `defense` column is in the Biomes table above.
 | `UNREST_DEVASTATION_K` | 0.02 | 0–0.05 | Unrest gained per year × devastation | War-torn land rises | War damage doesn't anger people |
 | `UNREST_DECAY` | 0.02 | 0.005–0.05 | Unrest lost per year (doubled in core land) | Grievances fade fast | Grievances linger |
 | `CORE_YEARS` | 50 | 20–150 | Years of ownership before a cell is core land | Conquests stay restless longer | Conquests settle in fast |
-| `DEVASTATION_FRONT` | 0.1 | 0.02–0.3 | Devastation gained per year on a war front | Long wars ruin the borderlands | Fronts barely scarred |
 | `DEVASTATION_CAPTURE` | 0.5 | 0.1–1 | Devastation added when a cell changes hands in war | Conquest wrecks land | Conquest is clean |
 | `DEVASTATION_HEAL` | 0.05 | 0.01–0.2 | Share of devastation healed per year (half heals in ~14 years) | Quick recovery | Scars last generations |
 | `DEVASTATION_CAP_LOSS` | 0.5 | 0.2–0.9 | Capacity lost at full devastation | War empties regions | War damage barely matters |
@@ -359,9 +355,11 @@ Opinion between two nations moves `OPINION_DRIFT` of the way toward a target eac
 
 ## Armies
 
-> **Being built in M11** (SPEC §4.13). **Live now** (in `src/sim/params.ts`, Settings → Armies): the Manpower table, the Raising armies table, `CAMPAIGN_STEPS`, `ARMY_MOVE`, `RAID_RANGE`, and `BATTLE_LOSS`, `BATTLE_MAX_LOSS`, `WINNER_LOSS_SHARE` (used by the yearly front roll until armies fight). Everything else is still a first guess, not in code yet. Soldiers are in the same units as `pop` (1 ≈ a fully settled grassland cell); a big realm has a cap of about 0.5–1.5.
+> **Being built in M11** (SPEC §4.13). **Live now** (in `src/sim/params.ts`, Settings → Armies): everything below except `RAID_CHANCE`, `GOAL_SCORE_MULT`, `PEACE_EXTRA_CELLS`, `RAID_TRIBUTE` (step 4) and the Rebels table (step 5). Soldiers are in the same units as `pop` (1 ≈ a fully settled grassland cell); a big realm has a cap of about 0.5–1.5.
 
 Measured after step 1 (5 seeds × 1,000 years, vs before): ~100 wars per century (81), shorter and more decisive (~5 at once, was ~6); 49 nations alive at year 1000 (38); biggest 578 cells (681); nations sit at ~80% of their cap on average. Race balance: biggest race 40%, no takeovers.
+
+Measured after step 3 (same 5 seeds, vs step 2): ~128 wars per century (103), ~20% white peace (13%), ~680 battles per century, 6.6 cells per war won, ~9 wars and ~10 armies at once; 51 nations alive (49); biggest 398 cells (578); soldiers at ~87% of cap; tick 8.1 ms (7.5). Rebellions ~21 and collapses ~18 per century, both about as before. Race balance: biggest race 40%, no takeovers. Tuned from the first guesses: `SIEGE_STEPS` 1 → 0.5, `BATTLE_SCORE` 10 → 4, `ROUT_SCORE` 10 → 6, because wars were ending on battles alone with about 3 cells moved.
 
 **Manpower**
 
@@ -412,16 +410,17 @@ Measured after step 1 (5 seeds × 1,000 years, vs before): ~100 wars per century
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `SIEGE_STEPS` | 1 | 0.5–4 | Steps to occupy an empty cell (× defensibility) | Slow conquest | Armies sweep through |
+| `SIEGE_STEPS` | 0.5 | 0.25–4 | Steps to occupy an empty cell (× defensibility) | Slow conquest | Armies sweep through |
 | `SIEGE_SETTLEMENT_K` | 1.5 | 0–4 | Extra siege time per settlement level (city = 5.5 × base) | Cities hold out for years | Cities fall like villages |
 | `CAPITAL_SIEGE_MULT` | 2 | 1–4 | Capitals take this much longer | Capitals almost never fall | Capitals fall quickly |
+| `UNREST_OCCUPIED` | 0.05 | 0–0.2 | Unrest gained per year while occupied | Occupied land turns on its owner | Occupation stays calm |
 
 **War goals, score and peace**
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
 | `RAID_CHANCE` | 0.25 | 0–0.6 | Chance a war without a claim is a raid (× ruling race `aggression`) | Lots of plundering, few border changes | Every war is for land |
-| `BATTLE_SCORE` / `ROUT_SCORE` | 10 / 10 | 0–30 | Score for winning a battle / destroying an army | Battles decide wars | Sieges decide wars |
+| `BATTLE_SCORE` / `ROUT_SCORE` | 4 / 6 | 0–30 | Score for winning a battle / destroying an army | Battles decide wars | Sieges decide wars |
 | `SCORE_PER_OCCUPIED` | 3 | 1–10 | Score per occupied enemy cell | Wars end sooner | Wars drag on |
 | `GOAL_SCORE_MULT` | 2 | 1–4 | Goal cells count this much more | Wars focus on their goal | Any occupation will do |
 | `CAPITAL_SCORE` | 20 | 0–60 | Score for holding the enemy capital | Taking the capital wins the war | Capitals don't matter |
@@ -436,8 +435,6 @@ Measured after step 1 (5 seeds × 1,000 years, vs before): ~100 wars per century
 |---|---|---|---|---|---|
 | `REBEL_LEVY` | 0.15 | 0.05–0.4 | Rebel army size as a share of the region's `militaryPop` (the old nation loses the same share of its reserve) | Rebels win their freedom | Rebels get crushed |
 | `REBEL_WAR_PROB` | 0.5 | 0–1 | Chance the old nation fights at once to take the rebels back | Every rebellion is a civil war | Peaceful breakaways; claims may bring war later |
-
-**Retiring when campaigns land (M11 step 3):** `FRONT_FLIPS_PER_YEAR`, `SCORE_PER_FLIP`, `WAR_ATTRITION`, `DEVASTATION_FRONT`.
 
 ---
 
@@ -503,9 +500,11 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `FRONT_HATCH_ALPHA` | 0.35 | 0–0.7 | Opacity of the red stripes on war fronts | Fronts glare | Faint stripes (0 = off) |
-| `FRONT_HATCH_SPACING` / `FRONT_HATCH_WIDTH` | 8 / 2.5 | 4–16 / 1–5 | Gap between stripes and their thickness (pixels) | Sparser / bolder stripes | Denser / finer stripes |
-| `FRONT_HATCH_SPEED` | 10 | 0–40 | How fast stripes slide (pixels per second) | Busy, urgent fronts | Still stripes (0) |
+| `OCCUPIED_HATCH_ALPHA` | 0.45 | 0–0.8 | Opacity of the occupier's stripes on occupied land | Occupations glare | Faint stripes (0 = off) |
+| `OCCUPIED_HATCH_SPACING` / `OCCUPIED_HATCH_WIDTH` | 8 / 2.5 | 4–16 / 1–5 | Gap between stripes and their thickness (pixels) | Sparser / bolder stripes | Denser / finer stripes |
+| `OCCUPIED_HATCH_SPEED` | 10 | 0–40 | How fast stripes slide (pixels per second) | Busy, urgent land | Still stripes (0) |
+| `SIEGE_RING_RADIUS` / `SIEGE_RING_WIDTH` | 7 / 2 | 4–14 / 1–4 | Size and thickness of the siege ring (pixels) | Sieges stand out | Discreet rings |
+| `SIEGE_RING_COLOR` | `#fbf6e9` | any color | Color of the siege ring | — | — |
 | `BATTLE_SECONDS` | 1.4 | 0.5–4 | How long a battle flash lasts | Battles linger (and pile up at high speed) | Quick sparks |
 | `BATTLE_RADIUS` | 16 | 8–30 | How far the battle ring spreads (pixels) | Big flashes | Small flashes |
 | `BATTLE_SWORD_SIZE` | 7 | 4–12 | Half-length of the crossed swords (pixels) | Bigger swords | Smaller swords |
@@ -524,7 +523,7 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 
 ### Armies
 
-> Built in M11 step 2 except `OCCUPIED_HATCH_ALPHA` (step 3). Layer key W. Visual only. In `src/render/palette.ts`.
+> Layer key W. Occupied land and sieges are in "War and unrest effects" above (key E). Visual only. In `src/render/palette.ts`.
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
@@ -532,7 +531,6 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | `ARMY_BANNER_MIN` / `ARMY_BANNER_MAX` | 7 / 16 | 4–12 / 10–24 | Banner half-height for the smallest / largest armies (pixels) | Armies dominate the map | Discreet markers |
 | `ARMY_BANNER_FULL` | 1 | 0.3–3 | Soldiers at which a banner reaches full size | Only giant hosts look big | Most armies look big |
 | `ARMY_TARGET_ALPHA` | 0.5 | 0–1 | Opacity of the dashed line to the army's target | Clear war plans | Hidden (0) |
-| `OCCUPIED_HATCH_ALPHA` | 0.45 | 0–0.8 | Opacity of the occupier's stripes on occupied land | Occupations glare | Faint |
 
 ---
 
@@ -558,7 +556,7 @@ Common problems and which knobs to try first.
 | Total chaos; nothing lasts | ↑ `STAB_RECOVERY`, ↓ `REBEL_THRESHOLD`, ↑ `DEFENDER_BONUS` |
 | Map fills too fast, wars start too early | ↓ `EXPANSION_RATE`, ↓ `START_NATIONS` |
 | Wars never end | ↑ `WEARINESS_GAIN`, ↓ `PEACE_SCORE`, ↓ `MAX_WAR_YEARS` |
-| Wars change nothing | ↑ `FRONT_FLIPS_PER_YEAR`, ↑ `PEACE_SCORE`, ↓ `DEFENDER_BONUS` |
+| Wars change nothing | ↓ `SIEGE_STEPS`, ↓ `BATTLE_SCORE`, ↓ `DEFENDER_BONUS` |
 | Borders ignore geography | ↑ `MOUNTAIN_COST_MULT`, ↑ desert/wetland move cost |
 | Too many tiny nations | ↑ `MIN_AREA`, ↑ `REBEL_MAX_CELLS`, ↓ `EMERGENCE_PROB` |
 | Map hard to read | ↓ `OVERLAY_ALPHA`, ↑ `BORDER_ALPHA`, ↑ `LABEL_MIN_AREA` |
@@ -571,9 +569,9 @@ Common problems and which knobs to try first.
 | Rebels are always swallowed back | ↓ `CLAIM_WAR_BONUS`, ↓ `CLAIM_YEARS`, ↑ `REBEL_START_STABILITY` |
 | Rebellions start in random places | ↑ `UNREST_CONTROL_K` (check the unrest heatmap, key H) |
 | No cities / cities everywhere | ↑ / ↓ `DEV_GROWTH`, ↓ / ↑ `SETTLE_CITY`, `CITY_MIN_SPACING` |
-| Armies (M11, planned): wars end without battles | ↑ `ENGAGE_RANGE`, ↓ `ENGAGE_RATIO` |
+| Armies: wars end without battles | ↑ `ENGAGE_RANGE`, ↓ `ENGAGE_RATIO` |
 | Armies (M11, planned): rebels always crushed | ↑ `REBEL_LEVY`, ↓ `REBEL_WAR_PROB` |
-| Armies (M11, planned): one lost battle ends a nation | ↓ `BATTLE_MAX_LOSS`, ↑ `ROUT_RETURN`, ↑ `LEVY_REFILL` |
+| Armies: one lost battle ends a nation | ↓ `BATTLE_MAX_LOSS`, ↑ `ROUT_RETURN`, ↑ `LEVY_REFILL` |
 | Wars too frequent since M9 | ↓ `WAR_VALUE_K`, ↓ `CLAIM_WAR_BONUS` before touching `WAR_BASE_PROB` |
 
 ---

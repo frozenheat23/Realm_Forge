@@ -95,12 +95,11 @@ New concepts as we meet them, with where they show up in our code.
 | **Saturation (diminishing returns)** | A bonus that grows with how much you have, then stops: `min(1, access / RESOURCE_SATURATION)`. Keeps the rich from getting endlessly richer. | `resourceBonus()` in `src/sim/resources.ts` |
 | **Profiling** | Timing each part of the code to find what's slow before trying to speed it up. M9 found war fronts and repeated lookups. | decision log, 2026-10-29 |
 | **Lookup table (caching)** | Working a value out once per pass and storing it in an array, instead of recalculating it for every cell. | `grainBonuses()` in `src/sim/resources.ts` |
-| **`??=` (nullish assignment)** | "Set this only if it's missing": `war.prizes ??= []` makes the list the first time it's needed. | `fightBattle()` in `src/sim/war.ts` |
 | **`switch`** | Picking code by the exact value of something; TypeScript checks every case is handled. | `fits()` in `src/gen/resources.ts` |
 | **Environment variable** | A setting passed to a program from outside, e.g. `RACE_BALANCE=1` turns on the slow balance test. | `tests/raceBalance.test.ts` |
-| **Diffing** | Comparing two versions of data to find what changed. We compare last year's owners with this year's to find battles. | `findBattles()` in `src/render/changes.ts` |
-| **Stencil (mask)** | An image that's solid where something should show and clear elsewhere, used to cut another image to shape. | front-cell mask in `src/render/effects.ts` |
-| **Composite operation** | How a new drawing combines with what's already on a canvas. `"source-in"` keeps new paint only where old paint was solid. | `drawFrontHatch()` in `effects.ts` |
+| **Diffing** | Comparing two versions of data to find what changed. M10 compared last year's owners with this year's to guess where battles were, until armies began reporting real ones. | history, see decision log |
+| **Stencil (mask)** | An image that's solid where something should show and clear elsewhere, used to cut another image to shape. | occupied-land mask in `src/render/effects.ts` |
+| **Composite operation** | How a new drawing combines with what's already on a canvas. `"destination-in"` keeps old paint only where the new paint is solid, which cuts the colored land into stripes. | `drawOccupiedHatch()` in `effects.ts` |
 | **Canvas pattern** | A small image tiled over an area, like wallpaper. Moving its transform makes the tiles slide. | `stripeTile()` / `createPattern` in `effects.ts` |
 | **Sprite** | A small pre-drawn picture copied many times, much faster than drawing it from scratch each time. | `glowSprite()` for smoke and embers |
 | **Easing** | Bending the speed of an animation (fast start, slow finish) so it feels natural rather than mechanical. | `easeOut()` in `effects.ts` |
@@ -111,3 +110,6 @@ New concepts as we meet them, with where they show up in our code.
 | **Pathfinding** | Dijkstra's algorithm with a memory: `cameFrom` records how we reached each cell, so the actual route can be read backward from the goal. | `findPath()` in `src/sim/armies.ts` |
 | **Interpolation** | Working out a point part of the way between two known points. Banners slide because we draw them between cells of the march instead of jumping. | `marchPosition()` in `src/render/armies.ts` |
 | **Derived value** | A number worked out from other data when needed, not stored, so it can't go out of date: a nation's total soldiers are always its reserve plus its armies. | `soldiers()` in `src/sim/manpower.ts` |
+| **Fall-through rules** | A list of rules tried in order, where a rule that can't work hands over to the next instead of giving up. An army that can't reach one target tries the next. | `direct()` in `src/sim/armies.ts` |
+| **Invariant** | Something that must always be true of the data. Here: land is only occupied by a nation at war with its owner. A sweep at the end of each year keeps it true whatever happened. | `releaseOccupations()` in `src/sim/siege.ts` |
+| **Breadth-first search (BFS)** | Exploring outward one ring of neighbors at a time, so the first match found is the nearest. Armies muster at the settlement closest to the front this way. | `musterCell()` in `src/sim/armies.ts` |

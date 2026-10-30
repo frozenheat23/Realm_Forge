@@ -101,7 +101,7 @@ let heat: HeatKind | null = null;
 const [nationLayer, nationCtx] = offscreen();
 const [heatLayer, heatCtx] = offscreen();
 // Animated war and unrest effects (SPEC §5.4g) remember last year themselves.
-const effects = createEffects(world, displayCells, state);
+const effects = createEffects(world, displayCells);
 function redrawNations(): void {
   nationCtx.putImageData(renderNationOverlay(world, displayCells, state, highlight, layers.races), 0, 0);
   if (heat) heatCtx.putImageData(renderHeatmap(world, displayCells, state, heat), 0, 0);

@@ -155,12 +155,12 @@ export const CAPITAL_RADIUS = 3;
 export const CAPITAL_FILL = "#fbf6e9";
 
 // --- War and unrest effects (SPEC §5.4g, key E). Times are real seconds. ---
-/** Sliding red stripes over war-front cells (color: WAR_FRONT_COLOR). */
-export const FRONT_HATCH_ALPHA = 0.35;
-export const FRONT_HATCH_SPACING = 8;
-export const FRONT_HATCH_WIDTH = 2.5;
+/** Sliding stripes in the occupier's color over occupied land. */
+export const OCCUPIED_HATCH_ALPHA = 0.45;
+export const OCCUPIED_HATCH_SPACING = 8;
+export const OCCUPIED_HATCH_WIDTH = 2.5;
 /** Pixels per second the stripes slide. */
-export const FRONT_HATCH_SPEED = 10;
+export const OCCUPIED_HATCH_SPEED = 10;
 /** Battle flash: a ring in the winner's color plus crossed swords. */
 export const BATTLE_SECONDS = 1.4;
 export const BATTLE_RADIUS = 16;
@@ -226,3 +226,7 @@ export const ARMY_BANNER_FULL = 1;
 /** Opacity of the dashed line to an army's target. */
 export const ARMY_TARGET_ALPHA = 0.5;
 export const ARMY_LABEL_COLOR = "#fbf6e9";
+/** Ring closing around a besieged cell as the siege progresses. */
+export const SIEGE_RING_RADIUS = 7;
+export const SIEGE_RING_WIDTH = 2;
+export const SIEGE_RING_COLOR = "#fbf6e9";

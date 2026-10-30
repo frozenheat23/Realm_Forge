@@ -9,10 +9,10 @@ import { rebellionEvent } from "../src/sim/events";
 import { expand } from "../src/sim/expansion";
 import { SIM } from "../src/sim/params";
 import { growPopulation } from "../src/sim/population";
+import { groundBonus } from "../src/sim/battle";
 import { rebel } from "../src/sim/rebellion";
 import { updateStability } from "../src/sim/stability";
 import { updateTotals } from "../src/sim/totals";
-import { averageDefense } from "../src/sim/war";
 import { makeCells, makeNation, makeState, row } from "./tinyWorld";
 
 describe("race traits", () => {
@@ -72,9 +72,10 @@ describe("races in the simulation", () => {
     expect(state.state.race[1]).toBe(Race.DarkElf);
   });
 
-  it("defends a dwarven front better than a human one", () => {
+  it("an army holds better among dwarves than among humans", () => {
     const state = makeState(row(2), [1, 1], [makeNation(1, 0)], undefined, [Race.Dwarf, Race.Human]);
-    expect(averageDefense(state, [0])).toBeGreaterThan(averageDefense(state, [1]));
+    const here = (cell: number) => groundBonus(state, { id: 1, owner: 1, war: 1, cell, size: 1, morale: 1, target: -1, path: [], trail: [] });
+    expect(here(0)).toBeGreaterThan(here(1));
   });
 
   it("starts rebellions among subject peoples, who then rule themselves", () => {

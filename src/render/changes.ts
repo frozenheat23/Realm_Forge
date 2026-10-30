@@ -1,47 +1,13 @@
-// Works out what to animate (SPEC §5.4g) by comparing the world before and after a year.
+// Works out what to animate (SPEC §5.4g) from the world.
 // Pure data in, data out: no canvas here, so it can be tested. Only reads the world.
-import type { Cell, CellId, NationId, WorldState } from "../core/types";
-import { pairKey } from "../sim/helpers";
+import type { CellId, WorldState } from "../core/types";
 
-/** Land one nation took from another in one year, and where to show it. */
-export interface Battle {
-  winner: NationId;
-  loser: NationId;
-  /** Average position of the captured cells, in map pixels. */
-  x: number;
-  y: number;
-  cells: CellId[];
-}
-
-/**
- * Cells that changed owner between two nations at war, grouped by (winner, loser).
- * `warPairs` holds the `pairKey` of every pair at war during the year (before or after it).
- */
-export function findBattles(cells: Cell[], before: Int32Array, after: Int32Array, warPairs: Set<number>): Battle[] {
-  // Key = winner and loser in that order, so A taking from B and B taking from A are separate battles.
-  const groups = new Map<string, Battle>();
-  for (let c = 0; c < after.length; c++) {
-    const loser = before[c]!;
-    const winner = after[c]!;
-    if (loser === winner || loser === 0 || winner === 0) continue;
-    if (!warPairs.has(pairKey(winner, loser))) continue;
-    const key = `${winner}>${loser}`;
-    let battle = groups.get(key);
-    if (!battle) {
-      battle = { winner, loser, x: 0, y: 0, cells: [] };
-      groups.set(key, battle);
-    }
-    battle.cells.push(c);
-  }
-  for (const battle of groups.values()) {
-    for (const c of battle.cells) {
-      battle.x += cells[c]!.site[0];
-      battle.y += cells[c]!.site[1];
-    }
-    battle.x /= battle.cells.length;
-    battle.y /= battle.cells.length;
-  }
-  return [...groups.values()];
+/** Cells under siege right now (occupied ones are finished). */
+export function siegeCells(state: WorldState): CellId[] {
+  const { siege, occupier } = state.state;
+  const found: CellId[] = [];
+  for (let c = 0; c < siege.length; c++) if (siege[c]! > 0 && occupier[c] === 0) found.push(c);
+  return found;
 }
 
 /** Owned cells whose value is at least `min` (e.g. devastated or restless land). */

@@ -84,6 +84,8 @@ interface CellState {
   settlement: Uint8Array; // 0 none, 1 village, 2 town, 3 city
   ownedSince: Int32Array; // year the current owner took it
   prevOwner: Int32Array;  // who had it before (0 = nobody)
+  occupier: Int32Array;   // nation holding it in a war (0 = nobody, §4.13); the owner stays the owner
+  siege: Float32Array;    // progress of the siege here, 0..1 (§4.13)
 }
 
 type RaceId = number;     // index into RACES; 0 = none
@@ -114,9 +116,9 @@ interface War {
   attacker: NationId;
   defender: NationId;
   startYear: number;
-  score: number;          // positive = attacker winning
+  score: number;          // positive = attacker winning; battle score + occupation score
+  battleScore: number;    // the part won in battle, which adds up over the war (§4.13)
   joined?: number;        // set if an ally joined someone else's war: that main war's id (§4.12)
-  prizes?: { cell: CellId; by: NationId }[]; // deposits captured, for the peace text
 }
 
 interface Army {          // one side's soldiers in one war (§4.13)
@@ -129,6 +131,13 @@ interface Army {          // one side's soldiers in one war (§4.13)
   target: CellId;         // where it's heading, or NO_TARGET (−1)
   path: CellId[];         // cells still to walk, next first
   trail: CellId[];        // cells walked this year, for the map animation
+}
+
+interface BattleReport { // this year's battles, for the map (§4.13)
+  cell: CellId;
+  winner: NationId;
+  loser: NationId;
+  lost: number;          // soldiers killed, both sides
 }
 
 interface Alliance {
@@ -152,6 +161,7 @@ interface WorldState {
   wars: War[];
   armies: Army[];
   nextArmyId: number;
+  battles: BattleReport[]; // not saved
   truces: { a: NationId; b: NationId; until: number }[];
   events: SimEvent[];
   raceHomes: { race: RaceId; at: [number, number] }[]; // homeland points (§4.10)
@@ -237,10 +247,10 @@ One tick = one year. The steps always run in this order:
 | 4b | Diplomacy | 4.12 |
 | 5 | War declared | 4.5 |
 | 5b | Armies raised and reinforced | 4.13 |
-| 6 | Armies march (`CAMPAIGN_STEPS` seasons) | 4.13 |
-| 6b | War fought | 4.5 |
+| 6 | Campaign (`CAMPAIGN_STEPS` seasons of target, march, battle, siege, attrition) | 4.13 |
+| 6b | Peace | 4.5 |
 | 7 | Rebellion | 4.6 |
-| 8 | Collapse, then armies with no war go home | 4.7, 4.13 |
+| 8 | Collapse, then armies with no war go home and leftover occupations end | 4.7, 4.13 |
 | 9 | Emergence | 4.8 |
 | 10 | Events | 4.9 |
 
@@ -250,7 +260,7 @@ Races (§4.10) and land detail (§4.11) don't add steps. They change numbers ins
 
 ### 4.1 Population
 - Each owned cell grows toward its capacity: `pop += POP_GROWTH × growth × pop × (1 − pop / capacity)` (logistic growth), where `growth` is the trait of the race living in the cell and `capacity` is the **effective capacity**: the cell's capacity × that race's affinity (§4.10) × `(1 − devastation × DEVASTATION_CAP_LOSS)` × the owner's grain bonus (§4.11).
-- Cells on an active war front lose `WAR_ATTRITION` of their population and gain `DEVASTATION_FRONT` devastation.
+- War hurts cells where armies actually are: battles kill people and devastate their cell, marching and sieges devastate the land (§4.13).
 - Unowned cells hold no population (simplification for now); their race, unrest, development and settlement are reset to 0. Devastation stays and heals.
 
 ### 4.2 Totals
@@ -258,8 +268,8 @@ For each living nation, recompute:
 - `area` = number of owned cells
 - `pop` = sum of owned cells' population
 - `strength = militaryPop ^ STRENGTH_POP_EXP × (0.5 + stability)`, where `militaryPop` = the sum over owned cells of `pop × martial` (the trait of the race living in each cell, so an orc province makes a human kingdom stronger), × the iron bonus
-- `access[resource]` = sum of richness over the nation's deposits of each resource (§4.11)
-- **Manpower** (§4.13): `manpowerCap = levyPop × LEVY_SHARE`, where `levyPop` = the sum over owned cells of `pop × martial × control` (× the iron bonus), so loosely held provinces send few soldiers. The reserve refills toward the cap.
+- `access[resource]` = sum of richness over the nation's deposits of each resource (§4.11); occupied cells don't count
+- **Manpower** (§4.13): `manpowerCap = levyPop × LEVY_SHARE`, where `levyPop` = the sum over owned cells of `pop × martial × control` (× the iron bonus), so loosely held provinces send few soldiers, and occupied cells send none. The reserve refills toward the cap.
 - `foreignShare` = share of `pop` living in cells whose race isn't the nation's race
 - `unrest` = population-weighted average of the `unrest` trait of the races living in the nation
 - **`control`** per cell, 0..1, the owner's grip (`sim/control.ts`, worked out fresh each year, never stored): travel cost from the capital through the nation's own cells (Dijkstra, paying each cell's move cost for the ruling race), then `control = exp(−travelCost / (CONTROL_RANGE × cohesion))`. Cells the capital can't reach over its own land (e.g. islands) get `CONTROL_ISLAND`. So mountains and marshes, not just distance, decide where an empire frays. The nation's `control` = population-weighted average.
@@ -301,22 +311,16 @@ motive     = (claim ? CLAIM_WAR_BONUS : 1) × (1 + WAR_VALUE_K × value of the d
 
 The chance is capped at `WAR_MAX_PROB`. The stronger side (by its own power) is the attacker; `aggression` is its ruling race's trait. A nation can be in at most `MAX_WARS_PER_NATION` wars it declares or is declared on. `opinion` and **helpers** (allies who would join) are from §4.12, so allies deter attacks and hatred invites them. A **claim** means the defender holds land the attacker lost to it within `CLAIM_YEARS`; cell **value** (as the attacker's race sees it) is in §4.11. The `war` event says why: *"…to reclaim its lost lands"* for a claim, otherwise *"…, coveting its iron"* when the best border cell holds a resource the attacker's race favors.
 
-**Allies join.** Right after a declaration, each of the defender's helpers joins with chance `ALLY_DEFEND_PROB`, and each of the attacker's with `ALLY_ATTACK_PROB`. A helper is an ally that borders the enemy, isn't allied with the enemy too, isn't already at war or in a truce with it, and isn't at its own war limit. Each joining ally gets its own `War` with the enemy (its own front and score), with `joined` set to the main war's id.
+**Allies join.** Right after a declaration, each of the defender's helpers joins with chance `ALLY_DEFEND_PROB`, and each of the attacker's with `ALLY_ATTACK_PROB`. A helper is an ally that borders the enemy, isn't allied with the enemy too, isn't already at war or in a truce with it, and isn't at its own war limit. Each joining ally gets its own `War` with the enemy (its own army and score), with `joined` set to the main war's id.
 
-**Fighting.** Each year, for each war:
-1. **Front cells** are owned cells that touch an enemy cell.
-2. Roll a weighted contest: attacker power vs defender power × `DEFENDER_BONUS` × `frontDefense` (each side's power counts only its share of soldiers for this war: half each if it fights two), where `frontDefense` = the average `defense` trait of the races living in the defender's front cells (dwarven hill forts hold even under a human king) × the average `defensibility` of those cells (hills, forests, rivers) × the defender's mithril bonus.
-   Both sides lose soldiers by the battle-loss rule in §4.13 (`battleLosses`), the loser many more; losses add war weariness. Until armies march (M11 step 3), this yearly roll stands in for that year's battles.
-3. The winner captures up to `FRONT_FLIPS_PER_YEAR` enemy front cells, most valuable first (by the winner's race, §4.11; the loser's capital always last). Captured cells change owner through `setOwner` (recording `prevOwner` and `ownedSince`), their unrest jumps to at least `UNREST_CONQUEST` and they gain `DEVASTATION_CAPTURE` devastation. Captured deposits are remembered for the peace text.
-4. Adjust `score` toward the winner by `SCORE_PER_FLIP` per captured cell.
-5. If a capital is captured, see §4.7.
+**Fighting.** Armies do this now, in seasons: march, battle, siege (§4.13). `DEFENDER_BONUS` helps the army that stood its ground. Cells don't change owner during a war; they're **occupied**.
 
 **Ending.** Peace when any of these is true:
 - `|score| ≥ PEACE_SCORE`
 - either side's war weariness ≥ `WEARINESS_PEACE`
 - the war has lasted `MAX_WAR_YEARS`
 
-The winner keeps captured cells. The two sides then can't fight again for `TRUCE_YEARS`. The `peace` event names a winner only if `|score|` ≥ `PEACE_SCORE` / 3; otherwise it's a white peace. If the winner took a deposit and still holds it, the text names it (*"…, taking 6 provinces and its iron."*). Wars with a side that has died end silently. A joined war can end on its own terms the same way, and otherwise ends silently (with a truce) in the year its main war ends.
+`score` is brought up to date first (`endWars`, §4.13 "War score and peace"). The peace event names a winner only if `|score|` ≥ `PEACE_SCORE` / 3, and that winner keeps the land it occupies, through `setOwner`, with unrest raised to at least `UNREST_CONQUEST`; otherwise it's a white peace and all occupations end. The two sides then can't fight again for `TRUCE_YEARS`. If the winner took a deposit, the text names it (*"…, taking 6 provinces and its iron."*). Wars with a side that has died end silently. A joined war can end on its own terms the same way, and otherwise ends silently (with a truce) in the year its main war ends.
 
 ### 4.6 Rebellion
 If a nation's stability is below `REBEL_THRESHOLD`, each year it has a `REBEL_PROB × unrest` chance of a rebellion (`unrest` from §4.2):
@@ -325,7 +329,7 @@ If a nation's stability is below `REBEL_THRESHOLD`, each year it has a `REBEL_PR
 3. Those cells become a new nation with a new name and color, ruled by the seed's race. Set `parent` to the old nation and give it starting stability `REBEL_START_STABILITY`. Its capital is the region's biggest settlement (then most populous cell). The rebel cells' unrest resets to 0, and since their `prevOwner` is the old nation, it has a claim to win them back. Opinion between the rebels and their old rulers starts at `REBEL_OPINION` (§4.12).
 
 ### 4.7 Collapse
-- **Capital lost:** the capital moves to the nation's biggest remaining settlement, then its most populous cell (`capital_moved` event), and stability drops by `CAPITAL_LOSS_STAB_HIT`.
+- **Capital lost:** (when the capital's cell changes owner, at peace or to rebels; merely *occupying* a capital costs stability in §4.13) the capital moves to the nation's biggest remaining settlement, then its most populous cell (`capital_moved` event), and stability drops by `CAPITAL_LOSS_STAB_HIT`.
 - **Collapse:** a nation with `area < MIN_AREA`, or with no cells left, dissolves. Each of its cells is annexed by the strongest nation bordering *that cell* (judged on ownership before the collapse, so it doesn't chain), or becomes unowned if there's none. Logged as `annexed` (naming the nation that took the most cells) or `collapse`. Annexed cells keep their people and race; cells left unowned are emptied (pop and race reset to 0).
 
 ### 4.8 Emergence
@@ -349,7 +353,7 @@ Every cell's people belong to one race, and every nation is ruled by one race. E
 | `affinity[biome]`, `mountainAffinity` | §4.1, §4.4 | × cell capacity for this race (missing = 1.0) |
 | `terrainCost[biome]`, `mountainCost` | §4.4 | × move cost when this race's nation expands (missing = 1.0) |
 | `martial` | §4.2 | × each cell's population in `militaryPop` |
-| `defense` | §4.5 | Averaged over the defender's front cells, × `DEFENDER_BONUS` |
+| `defense` | §4.13 | Of the race living in the battle's cell, for an army fighting in its own land, × `DEFENDER_BONUS` |
 | `aggression` | §4.5 | × war declaration chance |
 | `endurance` | §4.3 | ÷ `WEARINESS_GAIN` |
 | `cohesion` | §4.3 | × `ADMIN_CAP_BASE` |
@@ -393,7 +397,7 @@ Built in M9. Like §4.10 Races, this section describes the whole system in one p
 | Iron | Hills: land elevation from `HILL_H` up to `MOUNTAIN_H` | × `martial` in `militaryPop` | Dwarves, Orcs |
 | Gold | Mountains | × `STAB_RECOVERY` | Dwarves |
 | Horses | Grassland, savanna, shrubland | × `EXPANSION_RATE` | Orcs, Humans |
-| Mithril | High mountains only (land elevation ≥ `HIGH_MOUNTAIN_H`), rare | × `defense` on the war front | Dwarves, Dark Elves |
+| Mithril | High mountains only (land elevation ≥ `HIGH_MOUNTAIN_H`), rare | × `defense` of armies fighting in their own land | Dwarves, Dark Elves |
 
 - **Access, not stockpiles.** `access = sum of richness over the nation's cells with that resource`. Bonus = `1 + (effect − 1) × min(1, access / RESOURCE_SATURATION)`. Owning more stops helping once saturated, which limits snowballing.
 - **Race preference.** Each race gets a `favoredResources` list in `RACES`. Favored resources count `FAVORED_RESOURCE_VALUE` × in a cell's value (below), so Dwarves fight harder for iron hills. No direct stat effect.
@@ -406,7 +410,7 @@ Updated once a year right after Totals (`updateLand` in `sim/land.ts`), using th
 | Field | Type | Rises when | Falls when | Used for |
 |---|---|---|---|---|
 | `unrest` | `Float32Array` 0..1 | Captured (jumps to at least `UNREST_CONQUEST`); each year `+ UNREST_CONTROL_K × (1 − control) + UNREST_FOREIGN_K / tolerance` (if ruled by another race) `+ UNREST_DEVASTATION_K × devastation` | `UNREST_DECAY` per year, doubled in core land; reset to 0 when the cell rebels | Picks where rebellions start (§4.6) |
-| `devastation` | `Float32Array` 0..1 | `DEVASTATION_FRONT` per year on a war front; `DEVASTATION_CAPTURE` when it changes hands | Heals `DEVASTATION_HEAL` of itself per year | Cuts capacity and development; raises unrest |
+| `devastation` | `Float32Array` 0..1 | Battles (`DEVASTATION_BATTLE`), marching (`DEVASTATION_MARCH`) and being occupied (`DEVASTATION_CAPTURE`) | Heals `DEVASTATION_HEAL` of itself per year | Cuts capacity and development; raises unrest |
 | `development` | `Float32Array` 0..1 | `DEV_GROWTH × (pop / capacity) × control × (1 − devastation)` per year | `DEV_DEVASTATION_LOSS × devastation` per year | Cell value, settlement level |
 | `settlement` | `Uint8Array` 0 none, 1 village, 2 town, 3 city | One level a year when development passes `SETTLE_VILLAGE` / `SETTLE_TOWN` / `SETTLE_CITY` (towns and cities also need pop ≥ `SETTLE_MIN_POP_FRACTION` × capacity) | One level when development falls below that level's threshold × `SETTLE_DOWN_FACTOR` (so levels don't flicker) | City names and events, capital choice, map markers |
 | `ownedSince` | `Int32Array` year | Set when the owner changes | — | Core land: owned ≥ `CORE_YEARS` |
@@ -425,11 +429,11 @@ Updated once a year right after Totals (`updateLand` in `sim/land.ts`), using th
 
 | Step | What changes |
 |---|---|
-| 4.1 Population | Effective capacity (devastation, grain); fronts gain devastation; abandoned land is cleared. |
+| 4.1 Population | Effective capacity (devastation, grain); abandoned land is cleared. |
 | 4.2 Totals | Control, resource access, iron; then `updateLand` (table above). |
 | 4.3 Stability | Control penalty; gold. |
 | 4.4 Expansion | Horses, timber. |
-| 4.5 War | Claims and cell value raise war chance and give the reason; defensibility and mithril help defenders; captures take the most valuable cells and add unrest and devastation; peace text names a captured resource. |
+| 4.5 War | Claims and cell value raise war chance and give the reason; defensibility and mithril help defending armies; armies march on the most valuable cells; conquest adds unrest and devastation; peace text names a captured resource. |
 | 4.6 Rebellion | Seeds weighted by unrest; fill the seed's province first; rebels' capital is their biggest settlement. |
 | 4.7 Collapse | A moved capital goes to the biggest settlement. |
 
@@ -465,9 +469,9 @@ Allies never declare war on each other. Alliances are both defensive and offensi
 
 ### 4.13 Armies
 
-> **Being built in M11.** Done: **step 1, manpower** (reserve, cap, refill, losses, `fightingPower`; used by §4.2 and §4.5) and **step 2, armies raised, reinforced, marching and sent home**, drawn on the map. Step 2 armies don't fight yet: the yearly front roll (§4.5) still decides wars, its losses come out of the war's army first, and they only hold the same soldiers in a new place, so history is identical to step 1. The rest is still design. Sections §4.1–4.9 describe the code as it is; each M11 step updates them as it lands (like M9 did with §4.11). Numbers are in `PARAMS.md` → "Armies". Code will live in `sim/manpower.ts`, `sim/armies.ts`, `sim/battle.ts`, `sim/siege.ts`, `sim/warGoals.ts`.
+> **Being built in M11.** Done: **step 1, manpower**; **step 2, armies raised, reinforced, marching and sent home**, drawn on the map; **step 3, battles, sieges and occupation**, which replaced the yearly front roll. Still design: war goals and peace terms (step 4), rebel armies, allies marching and battle events (step 5). Sections §4.1–4.9 describe the code as it is; each M11 step updates them as it lands. Numbers are in `PARAMS.md` → "Armies". Code lives in `sim/manpower.ts`, `sim/armies.ts`, `sim/battle.ts`, `sim/siege.ts`; `sim/warGoals.ts` comes with step 4.
 
-**Goal.** Make war *happen somewhere*. Today a war is one weighted roll per year between whole-nation strengths, and the winner takes up to `FRONT_FLIPS_PER_YEAR` cells anywhere along the border. With armies, soldiers are a limited stock that takes decades to rebuild; armies march across the map, meet in battle and besiege towns; and peace hands over the land a war was fought *for*. A big empire with two wars has to split its soldiers, which is the overstretch the core loop needs.
+**Goal.** Make war *happen somewhere*. Before M11 a war was one weighted roll per year between whole-nation strengths, and the winner took a few cells anywhere along the border. With armies, soldiers are a limited stock that takes decades to rebuild; armies march across the map, meet in battle and besiege towns; and peace hands over the land a war was fought *for*. A big empire with two wars has to split its soldiers, which is the overstretch the core loop needs.
 
 **Principles**
 - **One army per side per war.** Simple to follow on the map, and fast: about 10–30 armies at a time.
@@ -480,7 +484,7 @@ Allies never declare war on each other. Alliances are both defensive and offensi
 Each nation has a **reserve** of trained soldiers who aren't in an army yet.
 
 ```
-cap      = levyPop × LEVY_SHARE      // levyPop = Σ pop × martial × control (× iron); occupied cells won't count
+cap      = levyPop × LEVY_SHARE      // levyPop = Σ pop × martial × control (× iron); occupied cells don't count
 soldiers = reserve + size of the nation's armies
 reserve += (cap − soldiers) × LEVY_REFILL × (0.5 + stability)    // only if soldiers < cap
 power    = soldiers × (0.5 + stability)                           // fightingPower
@@ -496,28 +500,27 @@ power    = soldiers × (0.5 + stability)                           // fightingPo
 
 #### Raising and reinforcing armies
 
-- **Raised** when a nation enters a war (declared, declared on, or joining as an ally) and doesn't yet have an army for that war: `size = reserve × MOBILIZE_SHARE / (number of its wars still without an army)`, placed at its city (then settlement, then capital) nearest to the enemy. Not raised if smaller than `MIN_ARMY_SIZE`. If an army is destroyed, a new one is raised the next year from whatever reserve is left.
-- **Reinforced** once a year: `REINFORCE_RATE` of the reserve is shared out equally among the nation's armies that are **in supply** (standing in own or allied land, or in occupied land connected to it).
+- **Raised** when a nation enters a war (declared, declared on, or joining as an ally) and doesn't yet have an army for that war: `size = reserve × MOBILIZE_SHARE / (number of its wars still without an army)`, placed at the settlement nearest to the front, searching outward through its own land from the cells that touch the enemy (the capital if it has no front, so an army never starts on a cut-off patch of land). Not raised if smaller than `MIN_ARMY_SIZE`. If an army is destroyed, a new one is raised the next year from whatever reserve is left.
+- **Reinforced** once a year: `REINFORCE_RATE` of the reserve is shared out equally among the nation's armies that are **in supply** (standing in own or allied land, or in land its side occupies; there's no check that this land connects back home).
 - **Disbanded** when its war ends, or when it shrinks below `MIN_ARMY_SIZE`: the soldiers go back into the reserve. A dead nation's armies just melt away.
 - Each army stores: `id`, `owner`, `war`, `cell`, `size`, `morale` (0..1, starts at 1), `target`, and `trail` (the cells it walked this year, so the renderer can animate the march).
 
 #### Each campaign step
 
-Armies act in order of `id` (deterministic). Random rolls use the `armies` and `battle` streams.
+Armies act in order of `id` (deterministic). Random rolls use the `campaign` stream.
 
-**1. Choose a target** (first rule that applies). Built so far: rule 4 only. An army keeps its target until that cell stops being the enemy's, then picks another; on arrival it camps there (sieges come in step 3). An army with no way to the enemy tries again next year, because a failed search covers the whole map.
+**1. Choose a target.** The first rule that works decides; a rule whose target can't be reached falls through to the next one, so one unreachable enemy doesn't leave an army idle. An army with no way to the enemy at all tries again next year, because a failed search covers the whole map.
 1. **Retreat**: morale below `RETREAT_MORALE` → head for the nearest own settlement and stay there until morale is back above it.
-2. **Attack**: a hostile army (any war this nation fights) within `ENGAGE_RANGE` steps, and `my power ≥ ENGAGE_RATIO × its power` → march at it.
-3. **Liberate**: own (or the war ally's) land occupied by the enemy → the nearest such cell.
-4. **Goal**: the nearest goal cell (below) not yet occupied. Defenders and raiders: the enemy's most valuable cell (§4.11 value) within `RAID_RANGE` steps of the border.
-5. **Defend**: too weak to attack and nothing else to do → stand in the own city closest to the enemy army.
+2. **Attack or fall back**: a hostile army (any war this nation fights) within `ENGAGE_RANGE` steps. If `my power ≥ ENGAGE_RATIO × its power` → march at it; if not → head for the nearest own settlement.
+3. **Liberate**: own land occupied by this enemy → the nearest such cell.
+4. **Goal**: rich enemy land (§4.11 value) within `RAID_RANGE` steps, or else near the border. Step 4 adds real goal cells (below).
 
-**2. March.** Shortest path by move cost (biome × mountain × river × ruling-race terrain cost, the same costs as §4.4 and `control`). An army may walk through its own land, allied land, and land of nations it's at war with; never through neutral nations or water (navies are in the backlog). It gets `ARMY_MOVE` move points per step and can always enter one cell per step, however hard the ground. *(Not yet built:)* it **stops** as soon as it steps into a cell next to a hostile army (contact). Paths are only recalculated when the target changes or the path is blocked, to keep the tick fast. Marching through enemy land adds `DEVASTATION_MARCH` to each cell.
+**2. March.** Shortest path by move cost (biome × mountain × river × ruling-race terrain cost, the same costs as §4.4 and `control`). An army may walk through its own land, allied land, and land of nations it's at war with; never through neutral nations or water (navies are in the backlog). It gets `ARMY_MOVE` move points per step and can always enter one cell per step, however hard the ground. It **stops** as soon as it steps into a cell next to a hostile army (contact), and a retreating army may walk away from one. Paths are only recalculated when the target changes or the path is blocked, to keep the tick fast. Marching through enemy land adds `DEVASTATION_MARCH` to each cell.
 
 **3. Battle.** Two hostile armies in the same or neighboring cells fight once per step. The **defender** is the army that didn't move into contact this step (if both moved, the one standing in its own land, then the larger).
 
 ```
-power    = size × morale
+power    = size × morale × (0.5 + stability)
 defender power × DEFENDER_BONUS × cell.defensibility × (1 + FORT_BONUS × settlement level)
                 × (in own land: defense trait of the cell's race × mithril bonus)
 winner   = weighted roll: P(A wins) = powerA / (powerA + powerB)
@@ -539,8 +542,8 @@ winner loses min(BATTLE_MAX_LOSS, BATTLE_LOSS × WINNER_LOSS_SHARE / ratio) of i
 steps to take it = SIEGE_STEPS × (1 + SIEGE_SETTLEMENT_K × settlement level) × defensibility × (capital ? CAPITAL_SIEGE_MULT : 1)
 ```
 
-- When done, the cell is **occupied** (`occupier` = the army's nation) and gains `DEVASTATION_CAPTURE`. Taking a town or city also occupies its unsettled neighbors (the countryside falls with its town).
-- An occupied cell gives its owner no soldiers and no resource access, and gains unrest each year.
+- `siege` is the progress, 0..1; it pauses while a hostile army is near, and work already done stays if the army leaves. When done, the cell is **occupied** (`occupier` = the army's nation) and gains `DEVASTATION_CAPTURE`. Taking a town or city also occupies its unsettled neighbors (the countryside falls with its town).
+- An occupied cell gives its owner no soldiers and no resource access, and gains `UNREST_OCCUPIED` unrest each year.
 - Occupying the enemy's **capital** costs it `CAPITAL_LOSS_STAB_HIT` stability once and scores `CAPITAL_SCORE`.
 - An army of the owner (or of an ally in the same war) entering an occupied cell frees it at once.
 
@@ -559,6 +562,8 @@ Joined allies fight in support: no goal cells; their armies hunt enemy armies an
 #### War score and peace
 
 `score = battle score (adds up over the war) + occupation score (worked out fresh each year)`. The occupation score is `SCORE_PER_OCCUPIED` per occupied cell (× `GOAL_SCORE_MULT` for goal cells), plus `CAPITAL_SCORE` for a held capital, attacker's minus defender's.
+
+Built so far: battle score, and the occupation score without goal cells. Step 4 adds goals to the rest of this section. **Until then the terms are simpler: a winner keeps everything it occupies of the loser's land, and a white peace frees it all.** Occupations can't outlive their war: at the end of each tick any occupier that's no longer at war with the owner lets go (`releaseOccupations`), and `setOwner` clears `occupier` and `siege`.
 
 **Peace** when any of these is true (the first is new):
 - the attacker occupies **every goal cell** (goal achieved; attacker wins)
@@ -582,16 +587,11 @@ Taken cells go through `setOwner` (unrest jumps to `UNREST_CONQUEST`). All other
 
 | Section | Change |
 |---|---|
-| §2 Data model | `Nation.reserve`; `War.goal`, `War.goalCells`, `War.battleScore`; new `Army` and `WorldState.armies`; `WorldState.battles` (this year's only); `CellState.occupier` (`Int32Array`) and `CellState.siege` (`Float32Array`) |
-| §4 tick table | Step 6 *War fought* becomes **6 Campaign** (`CAMPAIGN_STEPS` × target, march, battle, siege, attrition) then **6b Peace** |
-| §4.1 Population | No more front attrition or front devastation (`WAR_ATTRITION`, `DEVASTATION_FRONT` retire); battles and marching do this instead |
-| §4.2 Totals | Manpower cap and refill; occupied cells don't count for the owner's `militaryPop` or `access` |
-| §4.5 War | Declaring compares soldiers; goals; the front contest (`FRONT_FLIPS_PER_YEAR`, `SCORE_PER_FLIP`) is replaced by campaigns |
+| §2 Data model | `War.goal`, `War.goalCells` |
+| §4.5 War | Goals |
 | §4.6 Rebellion | Rebel armies, defection, independence wars |
-| §4.7 Collapse | A dead nation's armies disband; its occupations end |
 | §4.9 Events | New `battle` type (log filter off by default): *"Year 412: at the Battle of Arvenna, Velmora routs the host of Kethar (12,000 fell)."* Named after the nearest city within 3 steps, otherwise *"in the hills of Kethar"* |
-| §5.4h | New **Armies** layer (below) |
-| §6 | Save format **v5** (reserve and armies built; occupation, siege and war goals added as they land) |
+| §6 | War goals saved too |
 
 #### Done when (M11)
 
@@ -641,33 +641,30 @@ A layer toggle (**Resources**, key M, off by default) draws a small lettered mar
 A layer toggle (**Towns & cities**, key T, on by default): a small dot for each town, a light square and the city's name for each city. Villages aren't drawn.
 
 ### 5.4g War and unrest effects
-A layer toggle (**Effects**, key E, on by default) adds animation on top of the map, so wars and trouble read at a glance. Effects are worked out by the renderer from the world (comparing this year's owners with last year's); `sim/` doesn't change and no random numbers are used, so history stays exactly the same with effects on or off. Effects keep moving while paused.
+A layer toggle (**Effects**, key E, on by default) adds animation on top of the map, so wars and trouble read at a glance. Effects only read the world (`WorldState.battles`, `occupier`, `siege`, devastation, unrest) and use no random numbers, so history stays exactly the same with effects on or off. Effects keep moving while paused.
 
 | Effect | Where | Looks like |
 |---|---|---|
-| **Front hatch** | Every cell on an active war front | Red diagonal stripes sliding slowly (`FRONT_HATCH_*`) |
-| **Battle** | Average position of the cells one nation took from another this year | A ring in the winner's color expanding, with crossed swords fading out (`BATTLE_*`) |
+| **Occupied land** | Cells an enemy holds in a war | Diagonal stripes in the occupier's color, sliding slowly (`OCCUPIED_HATCH_*`). War borders stay red (`WAR_FRONT_COLOR`) |
+| **Siege** | Cells under siege | A small ring that closes as the siege nears its end (`SIEGE_RING_*`) |
+| **Battle** | Each battle in `WorldState.battles` | A ring in the winner's color expanding, with crossed swords fading out (`BATTLE_*`) |
 | **Smoke** | Owned cells with devastation ≥ `SMOKE_MIN_DEVASTATION` | Gray puffs rising and fading; thicker on worse damage (`SMOKE_*`) |
 | **Embers** | Cells with unrest ≥ `EMBER_MIN_UNREST` in nations unstable enough to rebel this year (stability < `REBEL_THRESHOLD`, §4.6); only an `EMBER_DENSITY` share of them, so it stays readable | Flickering orange glows: realms close to breaking apart (`EMBER_*`) |
 | **Event burst** | Capital of a nation that rebels, is founded, collapses or is annexed | A large ring in the nation's color (dark for collapse and annexation) (`EVENT_BURST_*`) |
 
-- Battles and bursts last a fixed number of real seconds, whatever the speed. Each pair of warring nations has at most one battle marker: a new year's battle restarts it at the new spot, so fast playback doesn't pile up swords. At most `MAX_BURSTS` play at once; the oldest give way.
+- Battles and bursts last a fixed number of real seconds, whatever the speed. Each pair of warring nations has at most one battle marker: a new battle restarts it at the new spot, so fast playback doesn't pile up swords. At most `MAX_BURSTS` play at once; the oldest give way.
 - The map underneath is drawn to an off-screen canvas only when the world changes; each screen frame copies it and draws the effects on top. Effects show up in recorded videos.
 
 ### 5.4h Armies
 
-> Built in M11 step 2: banners, sliding marches, target lines, hover. **Occupied land** and real **Battle** markers come with step 3.
-
-A layer toggle (**Armies**, key W, on by default). Like effects, it only reads the world.
+A layer toggle (**Armies**, key W, on by default) for banners and marches. Like effects, it only reads the world.
 
 | What | Looks like |
 |---|---|
 | **Army** | A banner (shield shape) in the nation's color at the army's cell, with its size in men (*"12k"*). Banner size grows with the army (`ARMY_BANNER_*`). Routed armies don't show. |
 | **March** | During playback the banner slides along this year's `trail`, so armies visibly walk instead of jumping once a year. A thin dashed line points to its target. |
-| **Occupied land** | Diagonal hatch in the occupier's color over the owner's color (replaces the M10 front hatch, since fronts are now where the armies are). Sieges in progress show a small ring filling up. |
-| **Battle** | The M10 battle marker (ring + crossed swords) at each real battle in `WorldState.battles` instead of a guessed spot. |
 
-Hovering over an army (or next to it, since banners are wider than a cell) shows its nation, size, morale and target.
+Hovering over an army (or next to it, since banners are wider than a cell) shows its nation, size, morale and target. Hovering over land also says who occupies it and how far a siege has come. Occupied land and sieges are in the Effects layer (§5.4g).
 
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 5 ms, smooth at 20 years per second.
@@ -682,7 +679,7 @@ Hovering over an army (or next to it, since banners are wider than a cell) shows
 - Event log: scrolling, newest first, filter checkboxes per type, click an event to highlight its nations for `HIGHLIGHT_SECONDS` (others fade to `HIGHLIGHT_DIM`).
 - Seed box + **New world** (Enter works too) and **Random**. Both reload the page with `?seed=`.
 - **Settings** panel: every `SIM` parameter editable live (`ui/settings.ts`), layer toggles (nations, labels, cell outlines), reset to defaults. Generation numbers are not live; they need a new world.
-- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, every per-cell array (owner, pop, race, unrest, devastation, development, settlement, ownership history), nations, wars, truces, events, race homelands, opinions, alliances and city names (format v5, which added each nation's soldier reserve and the armies). Saves made before races (v1), diplomacy (v2), land detail (v3) or armies (v4) are refused with a clear message. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
+- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, every per-cell array (owner, pop, race, unrest, devastation, development, settlement, ownership history), nations, wars, truces, events, race homelands, opinions, alliances and city names (format v5, which added each nation's soldier reserve, the armies, and each cell's occupier and siege). Saves made before races (v1), diplomacy (v2), land detail (v3) or armies (v4) are refused with a clear message. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
 - **Record** captures the canvas as WebM (`canvas.captureStream()` + `MediaRecorder`) and downloads it on stop.
 - Web Worker: not needed. A tick takes ~5–6 ms (M9, measured in Node; M8 was ~5 ms) and a redraw ~15 ms at 1600×900.
 

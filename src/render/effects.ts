@@ -4,8 +4,8 @@ import type { GeneratedWorld } from "../gen";
 import type { CellId, SimEvent, WorldState } from "../core/types";
 import { pairKey } from "../sim/helpers";
 import { SIM } from "../sim/params";
-import { allFrontCells } from "../sim/war";
-import { cellPhase, findBattles, hotCells, restlessCells } from "./changes";
+import { cellPhase, hotCells, restlessCells, siegeCells } from "./changes";
+import { hexToRgb } from "./color";
 import {
   BATTLE_RADIUS,
   BATTLE_RING_WIDTH,
@@ -22,11 +22,14 @@ import {
   EVENT_BURST_RADIUS,
   EVENT_BURST_SECONDS,
   EVENT_RING_WIDTH,
-  FRONT_HATCH_ALPHA,
-  FRONT_HATCH_SPACING,
-  FRONT_HATCH_SPEED,
-  FRONT_HATCH_WIDTH,
   MAX_BURSTS,
+  OCCUPIED_HATCH_ALPHA,
+  OCCUPIED_HATCH_SPACING,
+  OCCUPIED_HATCH_SPEED,
+  OCCUPIED_HATCH_WIDTH,
+  SIEGE_RING_COLOR,
+  SIEGE_RING_RADIUS,
+  SIEGE_RING_WIDTH,
   SMOKE_ALPHA,
   SMOKE_COLOR,
   SMOKE_MIN_DEVASTATION,
@@ -50,7 +53,7 @@ interface Burst {
 export interface Effects {
   /** Call after each simulated year with that year's events. `now` = milliseconds. */
   noteYear(state: WorldState, events: SimEvent[], now: number): void;
-  /** Call when the map is redrawn: finds the current fronts, smoke and embers. */
+  /** Call when the map is redrawn: finds the current occupations, sieges, smoke and embers. */
   refresh(state: WorldState): void;
   /** Draws one frame of animation on top of the map. */
   draw(ctx: CanvasRenderingContext2D, now: number): void;
@@ -58,22 +61,21 @@ export interface Effects {
 
 const TAU = Math.PI * 2;
 
-export function createEffects(world: GeneratedWorld, displayCells: Int32Array, initial: WorldState): Effects {
+export function createEffects(world: GeneratedWorld, displayCells: Int32Array): Effects {
   const { width, height, cells } = world;
 
-  // What the world looked like last year, to compare against.
-  const lastOwner = initial.state.owner.slice();
-  let lastWarPairs = warPairs(initial);
   let bursts: Burst[] = [];
 
   // Refreshed with the map: which cells smoke or glow, and how strongly.
   let smoke: CellId[] = [];
   let smokeStrength = new Float32Array(0);
   let embers: CellId[] = [];
-  let hasFront = false;
+  let sieges: CellId[] = [];
+  let siegeProgress = new Float32Array(0);
+  let hasOccupied = false;
 
-  // Off-screen canvases: the front cells as a stencil, and a scratch canvas to hatch them on.
-  const [frontMask, maskCtx] = makeCanvas(width, height);
+  // Off-screen canvases: occupied cells in their occupier's color, and a scratch canvas to hatch them on.
+  const [occupiedMask, maskCtx] = makeCanvas(width, height);
   const [hatch, hatchCtx] = makeCanvas(width, height);
   const stripes = hatchCtx.createPattern(stripeTile(), "repeat")!;
   const smokeSprite = glowSprite(SMOKE_COLOR);
@@ -86,16 +88,11 @@ export function createEffects(world: GeneratedWorld, displayCells: Int32Array, i
   }
 
   function noteYear(state: WorldState, events: SimEvent[], now: number): void {
-    // A war that ended this year still counts, so include last year's pairs too.
-    const pairs = warPairs(state);
-    for (const key of lastWarPairs) pairs.add(key);
-    for (const battle of findBattles(cells, lastOwner, state.state.owner, pairs)) {
+    for (const battle of state.battles) {
       const color = state.nations.get(battle.winner)?.color ?? WAR_FRONT_COLOR;
-      const key = pairKey(battle.winner, battle.loser);
-      addBurst({ kind: "battle", x: battle.x, y: battle.y, color, start: now, key });
+      const [x, y] = cells[battle.cell]!.site;
+      addBurst({ kind: "battle", x, y, color, start: now, key: pairKey(battle.winner, battle.loser) });
     }
-    lastOwner.set(state.state.owner);
-    lastWarPairs = warPairs(state);
 
     for (const event of events) {
       const nation = state.nations.get(event.actors[0]!);
@@ -113,17 +110,30 @@ export function createEffects(world: GeneratedWorld, displayCells: Int32Array, i
     smokeStrength = Float32Array.from(smoke, (c) => devastation[c]!);
     embers = restlessCells(state, EMBER_MIN_UNREST, SIM.REBEL_THRESHOLD, EMBER_DENSITY);
 
-    // Paint every pixel of a front cell solid white in the stencil; everything else stays clear.
-    const front = allFrontCells(state);
-    hasFront = front.size > 0;
-    if (!hasFront) return;
-    const onFront = new Uint8Array(cells.length);
-    for (const c of front) onFront[c] = 1;
+    sieges = siegeCells(state);
+    siegeProgress = Float32Array.from(sieges, (c) => state.state.siege[c]!);
+    paintOccupied(state);
+  }
+
+  /** Paints every pixel of an occupied cell in its occupier's color; everything else stays clear. */
+  function paintOccupied(state: WorldState): void {
+    const { occupier } = state.state;
+    hasOccupied = occupier.some((id) => id !== 0);
+    if (!hasOccupied) return;
     const image = maskCtx.createImageData(width, height);
     const px = new Uint32Array(image.data.buffer);
+    const colors = new Map<number, number>();
     for (let i = 0; i < px.length; i++) {
       const c = displayCells[i]!;
-      if (c >= 0 && onFront[c]) px[i] = 0xffffffff;
+      const id = c >= 0 ? occupier[c]! : 0;
+      if (id === 0) continue;
+      let color = colors.get(id);
+      if (color === undefined) {
+        const [r, g, b] = hexToRgb(state.nations.get(id)?.color ?? WAR_FRONT_COLOR);
+        color = ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0; // pixels are stored as ABGR
+        colors.set(id, color);
+      }
+      px[i] = color;
     }
     maskCtx.putImageData(image, 0, 0);
   }
@@ -131,25 +141,38 @@ export function createEffects(world: GeneratedWorld, displayCells: Int32Array, i
   function draw(ctx: CanvasRenderingContext2D, now: number): void {
     const seconds = now / 1000;
     ctx.save();
-    if (hasFront) drawFrontHatch(ctx, seconds);
+    if (hasOccupied) drawOccupiedHatch(ctx, seconds);
+    drawSiegeRings(ctx);
     drawSmoke(ctx, seconds);
     drawEmbers(ctx, seconds);
     bursts = bursts.filter((b) => drawBurst(ctx, b, now));
     ctx.restore();
   }
 
-  function drawFrontHatch(ctx: CanvasRenderingContext2D, seconds: number): void {
-    // Copy the stencil, then "source-in" keeps the stripes only where the stencil is solid.
+  function drawOccupiedHatch(ctx: CanvasRenderingContext2D, seconds: number): void {
+    // Copy the colored cells, then "destination-in" keeps them only where the stripes are.
     hatchCtx.globalCompositeOperation = "copy";
-    hatchCtx.drawImage(frontMask, 0, 0);
-    hatchCtx.globalCompositeOperation = "source-in";
-    const offset = (seconds * FRONT_HATCH_SPEED) % FRONT_HATCH_SPACING;
+    hatchCtx.drawImage(occupiedMask, 0, 0);
+    hatchCtx.globalCompositeOperation = "destination-in";
+    const offset = (seconds * OCCUPIED_HATCH_SPEED) % OCCUPIED_HATCH_SPACING;
     stripes.setTransform(new DOMMatrix().translateSelf(offset, 0));
     hatchCtx.fillStyle = stripes;
     hatchCtx.fillRect(0, 0, width, height);
-    ctx.globalAlpha = FRONT_HATCH_ALPHA;
+    ctx.globalAlpha = OCCUPIED_HATCH_ALPHA;
     ctx.drawImage(hatch, 0, 0);
     ctx.globalAlpha = 1;
+  }
+
+  /** A ring around each besieged cell, closing as the siege nears its end. */
+  function drawSiegeRings(ctx: CanvasRenderingContext2D): void {
+    ctx.strokeStyle = SIEGE_RING_COLOR;
+    ctx.lineWidth = SIEGE_RING_WIDTH;
+    for (let i = 0; i < sieges.length; i++) {
+      const [x, y] = cells[sieges[i]!]!.site;
+      ctx.beginPath();
+      ctx.arc(x, y, SIEGE_RING_RADIUS, -Math.PI / 2, -Math.PI / 2 + TAU * siegeProgress[i]!);
+      ctx.stroke();
+    }
   }
 
   function drawSmoke(ctx: CanvasRenderingContext2D, seconds: number): void {
@@ -203,11 +226,6 @@ export function createEffects(world: GeneratedWorld, displayCells: Int32Array, i
   return { noteYear, refresh, draw };
 }
 
-/** `pairKey` of every pair of nations at war right now. */
-function warPairs(state: WorldState): Set<number> {
-  return new Set(state.wars.map((w) => pairKey(w.attacker, w.defender)));
-}
-
 /** Fast at first, slowing at the end: feels like a shockwave. */
 function easeOut(p: number): number {
   return 1 - (1 - p) * (1 - p);
@@ -256,10 +274,10 @@ function makeCanvas(width: number, height: number): [HTMLCanvasElement, CanvasRe
 
 /** One square tile of a diagonal stripe; repeated, it makes seamless hatching. */
 function stripeTile(): HTMLCanvasElement {
-  const s = FRONT_HATCH_SPACING;
+  const s = OCCUPIED_HATCH_SPACING;
   const [tile, t] = makeCanvas(s, s);
-  t.strokeStyle = WAR_FRONT_COLOR;
-  t.lineWidth = FRONT_HATCH_WIDTH;
+  t.strokeStyle = "#000"; // only its shape matters: the colors come from the mask
+  t.lineWidth = OCCUPIED_HATCH_WIDTH;
   t.beginPath();
   // The main diagonal, plus the two corner pieces that join it to the next tiles.
   t.moveTo(0, s);

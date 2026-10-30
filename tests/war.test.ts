@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
 import { SIM } from "../src/sim/params";
-import { declareWars, fightBattle, fightWars, frontCells, neighborPairs } from "../src/sim/war";
+import { declareWars, endWars, frontCells, neighborPairs } from "../src/sim/war";
+import { releaseOccupations } from "../src/sim/siege";
 import { makeNation, makeState, row } from "./tinyWorld";
 
 // Two nations side by side on a row of 10 cells: nation 1 owns 0–4, nation 2 owns 5–9.
@@ -45,46 +46,12 @@ describe("declareWars", () => {
   });
 });
 
-describe("fightBattle", () => {
-  it("moves the front toward the loser, but no more than SIM.FRONT_FLIPS_PER_YEAR cells", () => {
-    const state = twoNations(1000, 1); // nation 1 is overwhelmingly stronger
-    const war = { id: 1, attacker: 1, defender: 2, startYear: 0, score: 0 };
-    state.wars.push(war);
-    const flipped = fightBattle(state, war, createRng("b"));
-    expect(flipped).toBeGreaterThan(0);
-    expect(flipped).toBeLessThanOrEqual(SIM.FRONT_FLIPS_PER_YEAR);
-    expect(state.state.owner[5]).toBe(1);
-    expect(war.score).toBeGreaterThan(0);
-  });
-
-  it("takes the capital last", () => {
-    // Cell 0 (nation 1) touches four nation-2 cells; cell 1 is nation 2's capital.
-    // With more front cells than SIM.FRONT_FLIPS_PER_YEAR, the capital survives this year.
-    const spec = [
-      { neighbors: [1, 2, 3, 4] },
-      { neighbors: [0] },
-      { neighbors: [0] },
-      { neighbors: [0] },
-      { neighbors: [0] },
-    ];
-    const state = makeState(spec, [1, 2, 2, 2, 2], [
-      makeNation(1, 0, { reserve: 1000 }),
-      makeNation(2, 1, { reserve: 1 }),
-    ]);
-    const war = { id: 1, attacker: 1, defender: 2, startYear: 0, score: 0 };
-    expect(SIM.FRONT_FLIPS_PER_YEAR).toBeLessThan(4);
-    fightBattle(state, war, createRng("cap"));
-    expect(state.state.owner[1]).toBe(2);
-  });
-});
-
-describe("fightWars", () => {
+describe("endWars", () => {
   it("ends a decisive war with peace and a truce", () => {
     const state = twoNations();
     state.year = 5;
-    // Well past the peace line, so one lost battle this year can't pull it back under.
-    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: SIM.PEACE_SCORE * 2 });
-    const events = fightWars(state, createRng("p"));
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: SIM.PEACE_SCORE });
+    const events = endWars(state);
     expect(state.wars).toHaveLength(0);
     expect(events[0]!.type).toBe("peace");
     expect(state.truces[0]!.until).toBe(5 + SIM.TRUCE_YEARS);
@@ -93,16 +60,52 @@ describe("fightWars", () => {
   it("ends a war that has gone on too long", () => {
     const state = twoNations();
     state.year = SIM.MAX_WAR_YEARS + 1;
-    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0 });
-    fightWars(state, createRng("long"));
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: 0 });
+    endWars(state);
     expect(state.wars).toHaveLength(0);
   });
 
   it("drops wars with a nation that no longer exists", () => {
     const state = twoNations();
     state.nations.get(2)!.alive = false;
-    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0 });
-    fightWars(state, createRng("dead"));
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 0 });
+    endWars(state);
     expect(state.wars).toHaveLength(0);
+  });
+
+  it("the winner keeps what it occupies; everything else goes back", () => {
+    const state = twoNations();
+    state.state.occupier[5] = 1;
+    state.state.occupier[6] = 1;
+    state.state.occupier[3] = 2; // the loser's foothold
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: SIM.PEACE_SCORE });
+    const events = endWars(state);
+    expect(state.state.owner[5]).toBe(1);
+    expect(state.state.owner[6]).toBe(1);
+    expect(state.state.unrest[5]).toBeCloseTo(SIM.UNREST_CONQUEST);
+    expect(state.state.occupier[5]).toBe(0);
+    expect(state.state.owner[3]).toBe(1); // still its own
+    expect(events[0]!.text).toContain("2 provinces");
+    releaseOccupations(state);
+    expect(state.state.occupier[3]).toBe(0);
+  });
+
+  it("a white peace hands nothing over", () => {
+    const state = twoNations();
+    state.year = SIM.MAX_WAR_YEARS + 1;
+    state.state.occupier[5] = 1; // worth too little for a clear win
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: 0 });
+    endWars(state);
+    releaseOccupations(state);
+    expect(state.state.owner[5]).toBe(2);
+    expect(state.state.occupier[5]).toBe(0);
+  });
+
+  it("score counts battles and occupied land, the enemy capital most", () => {
+    const state = twoNations();
+    state.state.occupier[9] = 1; // nation 2's capital
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 2 });
+    endWars(state);
+    expect(state.wars[0]!.score).toBe(2 + SIM.SCORE_PER_OCCUPIED + SIM.CAPITAL_SCORE);
   });
 });

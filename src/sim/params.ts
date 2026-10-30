@@ -4,7 +4,6 @@
 export const SIM = {
   // --- Population ---
   POP_GROWTH: 0.02,
-  WAR_ATTRITION: 0.05,
   /** Population a newly claimed cell starts with, as a share of its capacity. */
   NEW_CELL_POP_FRACTION: 0.05,
 
@@ -40,12 +39,12 @@ export const SIM = {
   UNREST_FOREIGN_K: 0.01,
   /** Unrest gained per year × devastation. */
   UNREST_DEVASTATION_K: 0.02,
+  /** Unrest gained per year while occupied by an enemy. */
+  UNREST_OCCUPIED: 0.05,
   /** Unrest lost per year (doubled in core land). */
   UNREST_DECAY: 0.02,
   /** Years of ownership before a cell counts as core land. */
   CORE_YEARS: 50,
-  /** Devastation gained per year on a war front. */
-  DEVASTATION_FRONT: 0.1,
   /** Devastation added when a cell changes hands in war. */
   DEVASTATION_CAPTURE: 0.5,
   /** Share of devastation healed per year. */
@@ -81,8 +80,6 @@ export const SIM = {
   WAR_MAX_PROB: 0.1,
   MAX_WARS_PER_NATION: 2,
   DEFENDER_BONUS: 1.2,
-  FRONT_FLIPS_PER_YEAR: 3,
-  SCORE_PER_FLIP: 5,
   PEACE_SCORE: 60,
   WEARINESS_PEACE: 0.9,
   MAX_WAR_YEARS: 25,
@@ -113,6 +110,41 @@ export const SIM = {
   ARMY_MOVE: 4,
   /** How far past the border armies look for rich cells to march on. */
   RAID_RANGE: 5,
+  /** Steps within which an army goes after an enemy army. */
+  ENGAGE_RANGE: 6,
+  /** How strong (vs the enemy army) an army must be to attack it. */
+  ENGAGE_RATIO: 0.8,
+  /** Below this morale an army falls back to its own settlement. */
+  RETREAT_MORALE: 0.4,
+  /** Size lost per season outside supply (× 2 in desert, tundra, ice and mountains). */
+  ARMY_ATTRITION: 0.03,
+  /** Defender's power per settlement level. */
+  FORT_BONUS: 0.15,
+  MORALE_LOSS: 0.35,
+  MORALE_GAIN: 0.1,
+  /** Morale regained per season in own land. */
+  MORALE_RECOVERY: 0.15,
+  /** Below this morale an army is destroyed. */
+  ROUT_MORALE: 0.15,
+  /** Share of a routed army's soldiers who get back to the reserve. */
+  ROUT_RETURN: 0.5,
+  /** People lost at a battle site. */
+  BATTLE_POP_LOSS: 0.1,
+  DEVASTATION_BATTLE: 0.3,
+  /** Devastation per enemy cell an army marches through. */
+  DEVASTATION_MARCH: 0.05,
+  /** Seasons to occupy an empty cell (× defensibility). */
+  SIEGE_STEPS: 0.5,
+  /** Extra siege time per settlement level. */
+  SIEGE_SETTLEMENT_K: 1.5,
+  CAPITAL_SIEGE_MULT: 2,
+  /** Score for winning a battle, and extra for destroying the enemy army. */
+  BATTLE_SCORE: 4,
+  ROUT_SCORE: 6,
+  /** Score per enemy cell occupied. */
+  SCORE_PER_OCCUPIED: 3,
+  /** Score for holding the enemy capital. */
+  CAPITAL_SCORE: 20,
   /** Base share of the loser's soldiers lost in a battle (× power ratio). */
   BATTLE_LOSS: 0.25,
   /** Most of an army one battle can kill. */

@@ -8,7 +8,8 @@ import { SIM } from "../src/sim/params";
 import { cellValue, effectiveCapacity, resourceBonus } from "../src/sim/resources";
 import { updateStability } from "../src/sim/stability";
 import { updateTotals } from "../src/sim/totals";
-import { declareWars, fightBattle } from "../src/sim/war";
+import { campaign } from "../src/sim/armies";
+import { declareWars, endWars } from "../src/sim/war";
 import { makeNation, makeState, row } from "./tinyWorld";
 
 describe("generation", () => {
@@ -79,23 +80,16 @@ describe("value and war", () => {
     expect(forDwarves - forElves).toBeCloseTo(0.5 * (SIM.FAVORED_RESOURCE_VALUE - 1));
   });
 
-  it("the winner takes the most valuable front cell first", () => {
-    // Nation 1 owns 0; nation 2 owns 1–4, all touching cell 0. Cell 3 has rich iron.
-    const spec = [
-      { neighbors: [1, 2, 3, 4] },
-      { neighbors: [0] },
-      { neighbors: [0] },
-      { neighbors: [0], resource: Resource.Iron, richness: 1 },
-      { neighbors: [0] },
-    ];
-    const state = makeState(spec, [1, 2, 2, 2, 2], [
-      makeNation(1, 0, { reserve: 1000, race: Race.Dwarf }),
-      makeNation(2, 1, { reserve: 1 }),
-    ]);
-    const war: War = { id: 1, attacker: 1, defender: 2, startYear: 0, score: 0 };
-    fightBattle(state, war, createRng("v"));
-    expect(state.state.owner[3]).toBe(1);
-    expect(war.prizes?.[0]?.cell).toBe(3);
+  it("armies go for the deposit their race prizes, and the peace text names it", () => {
+    // Nation 2 holds a plain cell, and an iron hill the same distance away. Dwarves want the iron.
+    const spec = [{ neighbors: [1, 2] }, { neighbors: [0] }, { neighbors: [0], resource: Resource.Iron, richness: 1 }];
+    const state = makeState(spec, [1, 2, 2], [makeNation(1, 0, { race: Race.Dwarf }), makeNation(2, 1)]);
+    const war: War = { id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: SIM.PEACE_SCORE };
+    state.wars.push(war);
+    state.armies.push({ id: 1, owner: 1, war: 1, cell: 0, size: 5, morale: 1, target: -1, path: [], trail: [0] });
+    campaign(state, createRng("v"));
+    expect(state.state.occupier[2]).toBe(1);
+    expect(endWars(state)[0]!.text).toContain("iron");
   });
 
   it("the log says when a race goes to war over a resource it prizes", () => {

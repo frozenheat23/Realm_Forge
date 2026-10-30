@@ -11,7 +11,7 @@ import { emptyAccess, resourceBonus } from "./resources";
 export function updateTotals(state: WorldState): Float32Array {
   const groups = cellsByNation(state);
   const control = controlMap(state);
-  const { pop, race } = state.state;
+  const { pop, race, occupier } = state.state;
   for (const nation of state.nations.values()) {
     if (!nation.alive) continue;
     const cells = groups.get(nation.id) ?? [];
@@ -29,12 +29,12 @@ export function updateTotals(state: WorldState): Float32Array {
       const t = traits(race[c]!);
       total += p;
       militaryPop += p * t.martial;
-      levyPop += p * t.martial * control[c]!;
+      if (occupier[c] === 0) levyPop += p * t.martial * control[c]!; // no recruits from occupied land
       unrestSum += p * t.unrest;
       controlSum += p * control[c]!;
       if (race[c] !== nation.race) foreign += p;
       const deposit = state.cells[c]!.resource;
-      if (deposit !== 0) access[deposit] = access[deposit]! + state.cells[c]!.richness;
+      if (deposit !== 0 && occupier[c] === 0) access[deposit] = access[deposit]! + state.cells[c]!.richness;
     }
     nation.access = access;
     militaryPop *= resourceBonus(nation, Resource.Iron); // iron arms the troops
