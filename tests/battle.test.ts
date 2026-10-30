@@ -15,7 +15,7 @@ function atWar() {
     makeNation(1, 0, { manpowerCap: 10 }),
     makeNation(2, 19, { manpowerCap: 10 }),
   ]);
-  state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 0 });
+  state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [] });
   return state;
 }
 

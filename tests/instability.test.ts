@@ -47,7 +47,7 @@ describe("stability", () => {
 
   it("builds war weariness only while at war", () => {
     const state = makeState(row(2), [1, 2], [makeNation(1, 0), makeNation(2, 1)]);
-    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 0 });
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [] });
     updateStability(state);
     expect(state.nations.get(1)!.warWeariness).toBeGreaterThan(0);
   });

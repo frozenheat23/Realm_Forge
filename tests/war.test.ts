@@ -50,7 +50,7 @@ describe("endWars", () => {
   it("ends a decisive war with peace and a truce", () => {
     const state = twoNations();
     state.year = 5;
-    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: SIM.PEACE_SCORE });
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: SIM.PEACE_SCORE, goal: "conquer" as const, goalCells: [] });
     const events = endWars(state);
     expect(state.wars).toHaveLength(0);
     expect(events[0]!.type).toBe("peace");
@@ -60,7 +60,7 @@ describe("endWars", () => {
   it("ends a war that has gone on too long", () => {
     const state = twoNations();
     state.year = SIM.MAX_WAR_YEARS + 1;
-    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: 0 });
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [] });
     endWars(state);
     expect(state.wars).toHaveLength(0);
   });
@@ -68,7 +68,7 @@ describe("endWars", () => {
   it("drops wars with a nation that no longer exists", () => {
     const state = twoNations();
     state.nations.get(2)!.alive = false;
-    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 0 });
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [] });
     endWars(state);
     expect(state.wars).toHaveLength(0);
   });
@@ -78,7 +78,7 @@ describe("endWars", () => {
     state.state.occupier[5] = 1;
     state.state.occupier[6] = 1;
     state.state.occupier[3] = 2; // the loser's foothold
-    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: SIM.PEACE_SCORE });
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: SIM.PEACE_SCORE, goal: "conquer" as const, goalCells: [] });
     const events = endWars(state);
     expect(state.state.owner[5]).toBe(1);
     expect(state.state.owner[6]).toBe(1);
@@ -94,7 +94,7 @@ describe("endWars", () => {
     const state = twoNations();
     state.year = SIM.MAX_WAR_YEARS + 1;
     state.state.occupier[5] = 1; // worth too little for a clear win
-    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: 0 });
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [] });
     endWars(state);
     releaseOccupations(state);
     expect(state.state.owner[5]).toBe(2);
@@ -104,7 +104,7 @@ describe("endWars", () => {
   it("score counts battles and occupied land, the enemy capital most", () => {
     const state = twoNations();
     state.state.occupier[9] = 1; // nation 2's capital
-    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 2 });
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 2, goal: "conquer" as const, goalCells: [] });
     endWars(state);
     expect(state.wars[0]!.score).toBe(2 + SIM.SCORE_PER_OCCUPIED + SIM.CAPITAL_SCORE);
   });

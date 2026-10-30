@@ -4,6 +4,7 @@ import { Settlement, type Army, type CellId, type NationId, type War, type World
 import { allied } from "./diplomacy";
 import { pairKey, warPairs } from "./helpers";
 import { SIM } from "./params";
+import { goalsHeld } from "./warGoals";
 
 /** Seasons an army needs to take `cell`: empty land falls fast, cities and capitals hold out. */
 export function siegeSteps(state: WorldState, cell: CellId): number {
@@ -105,7 +106,8 @@ export function occupationScore(state: WorldState, war: War, counts: Map<number,
     const capital = state.nations.get(to)!.capital;
     return (counts.get(heldKey(from, to)) ?? 0) * SIM.SCORE_PER_OCCUPIED + (occupier[capital] === from ? SIM.CAPITAL_SCORE : 0);
   };
-  return side(war.attacker, war.defender) - side(war.defender, war.attacker);
+  const goalBonus = goalsHeld(state, war) * SIM.SCORE_PER_OCCUPIED * (SIM.GOAL_SCORE_MULT - 1);
+  return side(war.attacker, war.defender) + goalBonus - side(war.defender, war.attacker);
 }
 
 /** After the year's wars: occupations with no war behind them end, and so do sieges of nations now at peace. */

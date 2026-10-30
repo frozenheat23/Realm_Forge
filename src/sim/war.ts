@@ -1,15 +1,16 @@
 // Steps 5 and 6b (SPEC §4.5): neighbors go to war (allies may join), and wars end in peace and a truce.
 import type { Rng } from "../core/rng";
-import type { CellId, Nation, NationId, ResourceKind, SimEvent, War, WorldState } from "../core/types";
+import type { CellId, Nation, NationId, ResourceKind, SimEvent, War, WarGoal, WorldState } from "../core/types";
 import { RESOURCES } from "../gen/params";
 import { traits } from "../gen/races";
 import { allied, alliesOf, opinion } from "./diplomacy";
-import { joinAttackEvent, joinDefenseEvent, peaceEvent, warEvent } from "./events";
-import { neighborPairs, pairKey, setOwner } from "./helpers";
+import { joinAttackEvent, joinDefenseEvent, peaceEvent, raidEvent, warEvent } from "./events";
+import { neighborPairs, pairKey } from "./helpers";
 import { fightingPower } from "./manpower";
 import { SIM } from "./params";
 import { cellValue, effectiveCapacity, grainBonuses } from "./resources";
 import { occupationCounts, occupationScore } from "./siege";
+import { chooseGoal, goalAchieved, payTribute, takeLand } from "./warGoals";
 
 // They used to live here; other files still import them from war.ts.
 export { neighborPairs, pairKey };
@@ -96,13 +97,16 @@ export function borderPrizes(state: WorldState): Map<number, { cell: CellId; val
   return best;
 }
 
-/** Why `attacker` goes to war, for the event text: claims first, then a deposit its race prizes. */
-function warMotive(state: WorldState, attacker: Nation, claim: boolean, prize?: CellId): string | undefined {
-  if (claim) return " to reclaim its lost lands";
-  if (prize === undefined) return undefined;
-  const deposit = state.cells[prize]!.resource;
-  if (deposit === 0 || !traits(attacker.race).favoredResources.includes(deposit as ResourceKind)) return undefined;
-  return `, coveting its ${RESOURCES[deposit as ResourceKind].name}`;
+/** Why `attacker` goes to war, for the event text: its goal, and the deposit or city it's after. */
+function warMotive(state: WorldState, attacker: Nation, goal: WarGoal, goalCells: CellId[], prize?: CellId): string | undefined {
+  if (goal === "reclaim") return " to reclaim its lost lands";
+  if (goal === "raid") return " to raid its lands";
+  const deposit = prize === undefined ? 0 : state.cells[prize]!.resource;
+  if (deposit !== 0 && traits(attacker.race).favoredResources.includes(deposit as ResourceKind)) {
+    return `, coveting its ${RESOURCES[deposit as ResourceKind].name}`;
+  }
+  const city = goalCells.find((c) => state.cityNames.has(c));
+  return city === undefined ? undefined : ` to seize the lands around ${state.cityNames.get(city)}`;
 }
 
 export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
@@ -128,8 +132,8 @@ export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
   const help = (allies: Nation[], joinChance: number) => allies.reduce((sum, n) => sum + fightingPower(state, n) * joinChance, 0);
 
   let created = 0;
-  const start = (attacker: Nation, defender: Nation, joined?: number): War => {
-    const war: War = { id: state.year * 1000 + created++, attacker: attacker.id, defender: defender.id, startYear: state.year, score: 0, battleScore: 0 };
+  const start = (attacker: Nation, defender: Nation, goal: WarGoal, goalCells: CellId[], joined?: number): War => {
+    const war: War = { id: state.year * 1000 + created++, attacker: attacker.id, defender: defender.id, startYear: state.year, score: 0, battleScore: 0, goal, goalCells };
     if (joined !== undefined) war.joined = joined;
     state.wars.push(war);
     atWar.add(pairKey(attacker.id, defender.id));
@@ -155,16 +159,17 @@ export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
     const chance = warChance(state, attacker, defender, help(attackAllies, SIM.ALLY_ATTACK_PROB), help(defendAllies, SIM.ALLY_DEFEND_PROB), motive);
     if (!rng.chance(chance)) continue;
 
-    const war = start(attacker, defender);
-    events.push(warEvent(state.year, attacker, defender, warMotive(state, attacker, claim, prize?.cell)));
+    const { goal, goalCells } = chooseGoal(state, attacker, defender, claim, prize?.cell, rng);
+    const war = start(attacker, defender, goal, goalCells);
+    events.push(warEvent(state.year, attacker, defender, warMotive(state, attacker, goal, goalCells, prize?.cell)));
     for (const ally of defendAllies) {
       if (!free(ally.id, attacker.id) || !rng.chance(SIM.ALLY_DEFEND_PROB)) continue;
-      start(attacker, ally, war.id);
+      start(attacker, ally, "support", [], war.id);
       events.push(joinDefenseEvent(state.year, ally, defender, attacker));
     }
     for (const ally of attackAllies) {
       if (!free(ally.id, defender.id) || !rng.chance(SIM.ALLY_ATTACK_PROB)) continue;
-      start(ally, defender, war.id);
+      start(ally, defender, "support", [], war.id);
       events.push(joinAttackEvent(state.year, ally, attacker, defender));
     }
   }
@@ -173,6 +178,7 @@ export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
 
 /** Why a war should end now, or null if it goes on. */
 function peaceReason(state: WorldState, war: War, attacker: Nation, defender: Nation): string | null {
+  if (goalAchieved(state, war)) return "goal";
   if (Math.abs(war.score) >= SIM.PEACE_SCORE) return "decisive";
   if (attacker.warWeariness >= SIM.WEARINESS_PEACE || defender.warWeariness >= SIM.WEARINESS_PEACE) return "exhausted";
   if (state.year - war.startYear >= SIM.MAX_WAR_YEARS) return "too long";
@@ -183,19 +189,6 @@ function peaceReason(state: WorldState, war: War, attacker: Nation, defender: Na
 function clearWinner(war: War, attacker: Nation, defender: Nation): Nation | null {
   if (Math.abs(war.score) < SIM.PEACE_SCORE / 3) return null;
   return war.score > 0 ? attacker : defender;
-}
-
-/** Peace terms: the winner keeps all it occupies of the loser's land. Returns those cells. */
-function handOver(state: WorldState, winner: Nation, loser: Nation): CellId[] {
-  const { owner, occupier, unrest } = state.state;
-  const taken: CellId[] = [];
-  for (let c = 0; c < owner.length; c++) {
-    if (owner[c] !== loser.id || occupier[c] !== winner.id) continue;
-    setOwner(state, c, winner.id);
-    unrest[c] = Math.max(unrest[c]!, SIM.UNREST_CONQUEST); // conquered people resent their new rulers
-    taken.push(c);
-  }
-  return taken;
 }
 
 /** Step 6b: war scores are brought up to date, and wars that are over end in peace. */
@@ -214,15 +207,23 @@ export function endWars(state: WorldState): SimEvent[] {
     war.score = war.battleScore + occupationScore(state, war, counts);
     const mainOver = war.joined !== undefined && !ongoingIds.has(war.joined);
 
-    if (!mainOver && !peaceReason(state, war, attacker, defender)) {
+    const reason = peaceReason(state, war, attacker, defender);
+    if (!mainOver && !reason) {
       ongoing.push(war);
       ongoingIds.add(war.id);
       continue;
     }
-    const winner = clearWinner(war, attacker, defender);
-    const taken = winner ? handOver(state, winner, winner === attacker ? defender : attacker) : [];
+    const winner = reason === "goal" ? attacker : clearWinner(war, attacker, defender);
+    const loser = winner === attacker ? defender : attacker;
+    const raided = winner === attacker && war.goal === "raid";
+    if (raided) payTribute(attacker, defender);
+    const taken = winner && !raided ? takeLand(state, war, winner, loser) : [];
     state.truces.push({ a: attacker.id, b: defender.id, until: state.year + SIM.TRUCE_YEARS });
     if (mainOver) continue; // allies go home quietly when the war they joined is over
+    if (raided) {
+      events.push(raidEvent(state.year, attacker, defender));
+      continue;
+    }
     // Name a deposit the winner took, if any.
     const prize = taken.find((c) => state.cells[c]!.resource !== 0);
     const prizeName = prize !== undefined ? RESOURCES[state.cells[prize]!.resource as ResourceKind].name : undefined;

@@ -9,7 +9,7 @@ import { fromSnapshot, toSnapshot } from "../src/sim/snapshot";
 import { tick } from "../src/sim/tick";
 import { makeNation, makeState, row } from "./tinyWorld";
 
-const war = (id = 1) => ({ id, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 0 });
+const war = (id = 1) => ({ id, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [] });
 
 // Nation 1 owns 0–9, nation 2 owns 10–19, in a row.
 function atWar() {

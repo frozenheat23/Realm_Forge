@@ -84,7 +84,7 @@ describe("value and war", () => {
     // Nation 2 holds a plain cell, and an iron hill the same distance away. Dwarves want the iron.
     const spec = [{ neighbors: [1, 2] }, { neighbors: [0] }, { neighbors: [0], resource: Resource.Iron, richness: 1 }];
     const state = makeState(spec, [1, 2, 2], [makeNation(1, 0, { race: Race.Dwarf }), makeNation(2, 1)]);
-    const war: War = { id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: SIM.PEACE_SCORE };
+    const war: War = { id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: SIM.PEACE_SCORE, goal: "conquer" as const, goalCells: [] };
     state.wars.push(war);
     state.armies.push({ id: 1, owner: 1, war: 1, cell: 0, size: 5, morale: 1, target: -1, path: [], trail: [0] });
     campaign(state, createRng("v"));

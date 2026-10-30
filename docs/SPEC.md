@@ -118,6 +118,8 @@ interface War {
   startYear: number;
   score: number;          // positive = attacker winning; battle score + occupation score
   battleScore: number;    // the part won in battle, which adds up over the war (§4.13)
+  goal: "conquer" | "reclaim" | "raid" | "support"; // what it's for; support = an ally who joined (§4.13)
+  goalCells: CellId[];    // what the attacker went to war to take; empty for raid and support
   joined?: number;        // set if an ally joined someone else's war: that main war's id (§4.12)
 }
 
@@ -309,18 +311,19 @@ mood       = max(0, 1 − opinion × OPINION_WAR_K)
 motive     = (claim ? CLAIM_WAR_BONUS : 1) × (1 + WAR_VALUE_K × value of the defender's best border cell)
 ```
 
-The chance is capped at `WAR_MAX_PROB`. The stronger side (by its own power) is the attacker; `aggression` is its ruling race's trait. A nation can be in at most `MAX_WARS_PER_NATION` wars it declares or is declared on. `opinion` and **helpers** (allies who would join) are from §4.12, so allies deter attacks and hatred invites them. A **claim** means the defender holds land the attacker lost to it within `CLAIM_YEARS`; cell **value** (as the attacker's race sees it) is in §4.11. The `war` event says why: *"…to reclaim its lost lands"* for a claim, otherwise *"…, coveting its iron"* when the best border cell holds a resource the attacker's race favors.
+The chance is capped at `WAR_MAX_PROB`. The stronger side (by its own power) is the attacker; `aggression` is its ruling race's trait. A nation can be in at most `MAX_WARS_PER_NATION` wars it declares or is declared on. `opinion` and **helpers** (allies who would join) are from §4.12, so allies deter attacks and hatred invites them. A **claim** means the defender holds land the attacker lost to it within `CLAIM_YEARS`; cell **value** (as the attacker's race sees it) is in §4.11. Each war gets a **goal** (§4.13). The `war` event says why: *"…to reclaim its lost lands"* for a claim, *"…to raid its lands"* for a raid, otherwise *"…, coveting its iron"* when the best border cell holds a resource the attacker's race favors, or else *"…to seize the lands around Arvenna"* when the goal holds a city.
 
 **Allies join.** Right after a declaration, each of the defender's helpers joins with chance `ALLY_DEFEND_PROB`, and each of the attacker's with `ALLY_ATTACK_PROB`. A helper is an ally that borders the enemy, isn't allied with the enemy too, isn't already at war or in a truce with it, and isn't at its own war limit. Each joining ally gets its own `War` with the enemy (its own army and score), with `joined` set to the main war's id.
 
 **Fighting.** Armies do this now, in seasons: march, battle, siege (§4.13). `DEFENDER_BONUS` helps the army that stood its ground. Cells don't change owner during a war; they're **occupied**.
 
 **Ending.** Peace when any of these is true:
+- the attacker occupies every goal cell (it wins, whatever the score)
 - `|score| ≥ PEACE_SCORE`
 - either side's war weariness ≥ `WEARINESS_PEACE`
 - the war has lasted `MAX_WAR_YEARS`
 
-`score` is brought up to date first (`endWars`, §4.13 "War score and peace"). The peace event names a winner only if `|score|` ≥ `PEACE_SCORE` / 3, and that winner keeps the land it occupies, through `setOwner`, with unrest raised to at least `UNREST_CONQUEST`; otherwise it's a white peace and all occupations end. The two sides then can't fight again for `TRUCE_YEARS`. If the winner took a deposit, the text names it (*"…, taking 6 provinces and its iron."*). Wars with a side that has died end silently. A joined war can end on its own terms the same way, and otherwise ends silently (with a truce) in the year its main war ends.
+`score` is brought up to date first (`endWars`, §4.13 "War score and peace"). The peace event names a winner if the goal was reached or `|score|` ≥ `PEACE_SCORE` / 3, and that winner takes land by the terms in §4.13, through `setOwner`, with unrest raised to at least `UNREST_CONQUEST`; otherwise it's a white peace. Either way all other occupations end. The two sides then can't fight again for `TRUCE_YEARS`. If the winner took a deposit, the text names it (*"…, taking 6 provinces and its iron."*). Wars with a side that has died end silently. A joined war can end on its own terms the same way, and otherwise ends silently (with a truce) in the year its main war ends.
 
 ### 4.6 Rebellion
 If a nation's stability is below `REBEL_THRESHOLD`, each year it has a `REBEL_PROB × unrest` chance of a rebellion (`unrest` from §4.2):
@@ -469,7 +472,7 @@ Allies never declare war on each other. Alliances are both defensive and offensi
 
 ### 4.13 Armies
 
-> **Being built in M11.** Done: **step 1, manpower**; **step 2, armies raised, reinforced, marching and sent home**, drawn on the map; **step 3, battles, sieges and occupation**, which replaced the yearly front roll. Still design: war goals and peace terms (step 4), rebel armies, allies marching and battle events (step 5). Sections §4.1–4.9 describe the code as it is; each M11 step updates them as it lands. Numbers are in `PARAMS.md` → "Armies". Code lives in `sim/manpower.ts`, `sim/armies.ts`, `sim/battle.ts`, `sim/siege.ts`; `sim/warGoals.ts` comes with step 4.
+> **Being built in M11.** Done: **step 1, manpower**; **step 2, armies raised, reinforced, marching and sent home**, drawn on the map; **step 3, battles, sieges and occupation**, which replaced the yearly front roll. **Step 4, war goals and peace terms.** Still design: rebel armies, allies marching and battle events (step 5). Sections §4.1–4.9 describe the code as it is; each M11 step updates them as it lands. Numbers are in `PARAMS.md` → "Armies". Code lives in `sim/manpower.ts`, `sim/armies.ts`, `sim/battle.ts`, `sim/siege.ts`, `sim/warGoals.ts`.
 
 **Goal.** Make war *happen somewhere*. Before M11 a war was one weighted roll per year between whole-nation strengths, and the winner took a few cells anywhere along the border. With armies, soldiers are a limited stock that takes decades to rebuild; armies march across the map, meet in battle and besiege towns; and peace hands over the land a war was fought *for*. A big empire with two wars has to split its soldiers, which is the overstretch the core loop needs.
 
@@ -513,7 +516,9 @@ Armies act in order of `id` (deterministic). Random rolls use the `campaign` str
 1. **Retreat**: morale below `RETREAT_MORALE` → head for the nearest own settlement and stay there until morale is back above it.
 2. **Attack or fall back**: a hostile army (any war this nation fights) within `ENGAGE_RANGE` steps. If `my power ≥ ENGAGE_RATIO × its power` → march at it; if not → head for the nearest own settlement.
 3. **Liberate**: own land occupied by this enemy → the nearest such cell.
-4. **Goal**: rich enemy land (§4.11 value) within `RAID_RANGE` steps, or else near the border. Step 4 adds real goal cells (below).
+4. **Support** (only an ally's army in a war it joined): the friend's land held by this enemy, or else the enemy's armies, however far.
+5. **Goal** (only the attacker): the nearest goal cell it hasn't taken. It keeps a goal cell it's already heading for.
+6. **Plunder**: rich enemy land (§4.11 value) within `RAID_RANGE` steps, or else near the border. This is what defenders and raiders do, and what an attacker does if it can't reach its goal.
 
 **2. March.** Shortest path by move cost (biome × mountain × river × ruling-race terrain cost, the same costs as §4.4 and `control`). An army may walk through its own land, allied land, and land of nations it's at war with; never through neutral nations or water (navies are in the backlog). It gets `ARMY_MOVE` move points per step and can always enter one cell per step, however hard the ground. It **stops** as soon as it steps into a cell next to a hostile army (contact), and a retreating army may walk away from one. Paths are only recalculated when the target changes or the path is blocked, to keep the tick fast. Marching through enemy land adds `DEVASTATION_MARCH` to each cell.
 
@@ -557,24 +562,24 @@ steps to take it = SIEGE_STEPS × (1 + SIEGE_SETTLEMENT_K × settlement level) �
 | **Raid** | Otherwise, with chance `RAID_CHANCE × aggression` (ruling race) | None: armies go for rich cells and the enemy army | *"…to raid its lands"* |
 | **Conquer** | Otherwise | The defender's cells in the province holding its most valuable border cell (§4.11 value, as the attacker's race sees it) | *"…to seize the lands around Arvenna"* (nearest city) or *"…, coveting its iron"* |
 
-Joined allies fight in support: no goal cells; their armies hunt enemy armies and free occupied allied land.
+Goal cells that break away to rebels stop counting. Joined allies fight in support (goal `support`): no goal cells; their armies hunt enemy armies and free occupied allied land.
 
 #### War score and peace
 
 `score = battle score (adds up over the war) + occupation score (worked out fresh each year)`. The occupation score is `SCORE_PER_OCCUPIED` per occupied cell (× `GOAL_SCORE_MULT` for goal cells), plus `CAPITAL_SCORE` for a held capital, attacker's minus defender's.
 
-Built so far: battle score, and the occupation score without goal cells. Step 4 adds goals to the rest of this section. **Until then the terms are simpler: a winner keeps everything it occupies of the loser's land, and a white peace frees it all.** Occupations can't outlive their war: at the end of each tick any occupier that's no longer at war with the owner lets go (`releaseOccupations`), and `setOwner` clears `occupier` and `siege`.
+Occupations can't outlive their war: at the end of each tick any occupier that's no longer at war with the owner lets go (`releaseOccupations`), and `setOwner` clears `occupier` and `siege`.
 
-**Peace** when any of these is true (the first is new):
-- the attacker occupies **every goal cell** (goal achieved; attacker wins)
+**Peace** when any of these is true:
+- the attacker occupies **every goal cell** still held by the defender, at least one (goal achieved; attacker wins whatever the score)
 - `|score| ≥ PEACE_SCORE`
 - either side's war weariness ≥ `WEARINESS_PEACE`
 - the war has lasted `MAX_WAR_YEARS`
 
-**Terms.** A winner (`|score|` ≥ `PEACE_SCORE` / 3) takes:
-- the goal cells it occupies;
-- up to `PEACE_EXTRA_CELLS` other occupied cells that touch its own land, most valuable first;
-- for a **raid**, no land. Instead the loser loses `RAID_TRIBUTE` stability and the winner gains it.
+**Terms.** A winner (goal achieved, or `|score|` ≥ `PEACE_SCORE` / 3) takes:
+- the goal cells it occupies (only the attacker has goals);
+- up to `PEACE_EXTRA_CELLS` other occupied cells that touch its own land, most valuable first; each cell taken can make the next one touch;
+- for a raid the **attacker** won, no land. Instead the loser loses `RAID_TRIBUTE` stability, the winner gains it, and the event reads *"…plunders Kethar and goes home laden with spoils."* A defender who beats a raid still takes what it occupies.
 
 Taken cells go through `setOwner` (unrest jumps to `UNREST_CONQUEST`). All other occupations end; armies go home and disband. White peace: everyone keeps what they had. Truces and peace text as before.
 
@@ -587,11 +592,8 @@ Taken cells go through `setOwner` (unrest jumps to `UNREST_CONQUEST`). All other
 
 | Section | Change |
 |---|---|
-| §2 Data model | `War.goal`, `War.goalCells` |
-| §4.5 War | Goals |
 | §4.6 Rebellion | Rebel armies, defection, independence wars |
 | §4.9 Events | New `battle` type (log filter off by default): *"Year 412: at the Battle of Arvenna, Velmora routs the host of Kethar (12,000 fell)."* Named after the nearest city within 3 steps, otherwise *"in the hills of Kethar"* |
-| §6 | War goals saved too |
 
 #### Done when (M11)
 
@@ -679,7 +681,7 @@ Hovering over an army (or next to it, since banners are wider than a cell) shows
 - Event log: scrolling, newest first, filter checkboxes per type, click an event to highlight its nations for `HIGHLIGHT_SECONDS` (others fade to `HIGHLIGHT_DIM`).
 - Seed box + **New world** (Enter works too) and **Random**. Both reload the page with `?seed=`.
 - **Settings** panel: every `SIM` parameter editable live (`ui/settings.ts`), layer toggles (nations, labels, cell outlines), reset to defaults. Generation numbers are not live; they need a new world.
-- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, every per-cell array (owner, pop, race, unrest, devastation, development, settlement, ownership history), nations, wars, truces, events, race homelands, opinions, alliances and city names (format v5, which added each nation's soldier reserve, the armies, and each cell's occupier and siege). Saves made before races (v1), diplomacy (v2), land detail (v3) or armies (v4) are refused with a clear message. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
+- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, every per-cell array (owner, pop, race, unrest, devastation, development, settlement, ownership history), nations, wars, truces, events, race homelands, opinions, alliances and city names (format v6, which has each nation's soldier reserve, the armies, each cell's occupier and siege, and war goals). Saves made before races (v1), diplomacy (v2), land detail (v3), armies (v4) or battles and war goals (v5) are refused with a clear message. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
 - **Record** captures the canvas as WebM (`canvas.captureStream()` + `MediaRecorder`) and downloads it on stop.
 - Web Worker: not needed. A tick takes ~5–6 ms (M9, measured in Node; M8 was ~5 ms) and a redraw ~15 ms at 1600×900.
 

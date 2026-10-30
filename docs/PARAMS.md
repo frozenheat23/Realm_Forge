@@ -174,12 +174,12 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `WAR_BASE_PROB` | 0.002 | 0.001–0.02 | Base yearly chance a neighbor pair goes to war (0.004 before M9's war motives, 0.003 before M11 manpower) | Constant warfare | Peaceful eras |
+| `WAR_BASE_PROB` | 0.0015 | 0.001–0.02 | Base yearly chance a neighbor pair goes to war (0.004 before M9's war motives, 0.003 before M11 manpower) | Constant warfare | Peaceful eras |
 | `WAR_STRENGTH_EXP` | 0.7 | 0.5–2.0 | How much a power gap encourages war (1.0 before M11: soldier counts differ more between nations than the old `strength` did) | Strong prey on weak | Wars between equals too |
 | `WAR_MAX_PROB` | 0.1 | 0.02–0.3 | Ceiling on a pair's yearly war chance, however lopsided | Bullies attack almost at once | Even giants hesitate |
 | `MAX_WARS_PER_NATION` | 2 | 1–4 | Concurrent wars per nation | Multi-front collapses | Focused wars |
 | `DEFENDER_BONUS` | 1.2 | 1.0–1.6 | Defender strength multiplier | Hard to conquer; stable borders | Snowballing conquests |
-| `PEACE_SCORE` | 60 | 30–150 | Score needed to force peace | Bigger land grabs per war | Short border wars |
+| `PEACE_SCORE` | 90 | 30–150 | Score needed to force peace | Bigger land grabs per war | Short border wars |
 | `WEARINESS_PEACE` | 0.9 | 0.6–1.0 | Weariness that forces peace | Wars fought to exhaustion | Quick white peace |
 | `MAX_WAR_YEARS` | 25 | 10–50 | Hard cap on war length | Generational wars | Short conflicts |
 | `TRUCE_YEARS` | 10 | 0–30 | Years before the same pair can fight again | Calmer rivalries | Constant re-matches |
@@ -355,11 +355,13 @@ Opinion between two nations moves `OPINION_DRIFT` of the way toward a target eac
 
 ## Armies
 
-> **Being built in M11** (SPEC §4.13). **Live now** (in `src/sim/params.ts`, Settings → Armies): everything below except `RAID_CHANCE`, `GOAL_SCORE_MULT`, `PEACE_EXTRA_CELLS`, `RAID_TRIBUTE` (step 4) and the Rebels table (step 5). Soldiers are in the same units as `pop` (1 ≈ a fully settled grassland cell); a big realm has a cap of about 0.5–1.5.
+> **Being built in M11** (SPEC §4.13). **Live now** (in `src/sim/params.ts`, Settings → Armies): everything below except the Rebels table (step 5). Soldiers are in the same units as `pop` (1 ≈ a fully settled grassland cell); a big realm has a cap of about 0.5–1.5.
 
 Measured after step 1 (5 seeds × 1,000 years, vs before): ~100 wars per century (81), shorter and more decisive (~5 at once, was ~6); 49 nations alive at year 1000 (38); biggest 578 cells (681); nations sit at ~80% of their cap on average. Race balance: biggest race 40%, no takeovers.
 
 Measured after step 3 (same 5 seeds, vs step 2): ~128 wars per century (103), ~20% white peace (13%), ~680 battles per century, 6.6 cells per war won, ~9 wars and ~10 armies at once; 51 nations alive (49); biggest 398 cells (578); soldiers at ~87% of cap; tick 8.1 ms (7.5). Rebellions ~21 and collapses ~18 per century, both about as before. Race balance: biggest race 40%, no takeovers. Tuned from the first guesses: `SIEGE_STEPS` 1 → 0.5, `BATTLE_SCORE` 10 → 4, `ROUT_SCORE` 10 → 6, because wars were ending on battles alone with about 3 cells moved.
+
+Measured after step 4 (same 5 seeds, vs step 3): ~106 wars per century (128), 11% white peace (20%), ~710 battles per century (~680), 6 cells per war won (6.6), ~6 wars and ~7 armies at once (~9, ~10); 66 nations alive (51); biggest 338 cells (398); rebellions ~20 (~21), collapses ~16 (~18); tick 8.9 ms (8.1). Race balance: biggest race 40%, no takeovers. Tuned: `RAID_CHANCE` 0.25 → 0.15, `WAR_BASE_PROB` 0.002 → 0.0015, `PEACE_SCORE` 60 → 90 (goal cells score double, so at 60 wars stopped at about 10 cells, short of their goal).
 
 **Manpower**
 
@@ -419,12 +421,12 @@ Measured after step 3 (same 5 seeds, vs step 2): ~128 wars per century (103), ~2
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `RAID_CHANCE` | 0.25 | 0–0.6 | Chance a war without a claim is a raid (× ruling race `aggression`) | Lots of plundering, few border changes | Every war is for land |
+| `RAID_CHANCE` | 0.15 | 0–0.6 | Chance a war without a claim is a raid (× ruling race `aggression`) | Lots of plundering, few border changes | Every war is for land |
 | `BATTLE_SCORE` / `ROUT_SCORE` | 4 / 6 | 0–30 | Score for winning a battle / destroying an army | Battles decide wars | Sieges decide wars |
 | `SCORE_PER_OCCUPIED` | 3 | 1–10 | Score per occupied enemy cell | Wars end sooner | Wars drag on |
 | `GOAL_SCORE_MULT` | 2 | 1–4 | Goal cells count this much more | Wars focus on their goal | Any occupation will do |
 | `CAPITAL_SCORE` | 20 | 0–60 | Score for holding the enemy capital | Taking the capital wins the war | Capitals don't matter |
-| `PEACE_EXTRA_CELLS` | 10 | 0–40 | Occupied non-goal cells a winner may also keep | Wars grab more land | Wars only take the goal (0) |
+| `PEACE_EXTRA_CELLS` | 10 | 0–40 | Occupied non-goal cells a winner may also keep, if they touch its land | Wars grab more land | Wars only take the goal (0) |
 | `RAID_TRIBUTE` | 0.1 | 0–0.3 | Stability moved from loser to winner after a raid | Raids break nations | Raids only burn land |
 
 `PEACE_SCORE`, `WEARINESS_PEACE`, `MAX_WAR_YEARS` and `TRUCE_YEARS` (War) still apply.

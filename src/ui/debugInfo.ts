@@ -1,6 +1,6 @@
 // Debug helpers on screen: key toggles, and hover to inspect a cell.
 import type { GeneratedWorld } from "../gen";
-import { NO_TARGET, type CellId, type Nation, type NationId, type ResourceKind, type WorldState } from "../core/types";
+import { NO_TARGET, type CellId, type Nation, type NationId, type ResourceKind, type WarGoal, type WorldState } from "../core/types";
 import { BIOME_STATS, RESOURCES } from "../gen/params";
 import { traits } from "../gen/races";
 import { ARMY_MEN_PER_UNIT } from "../render/palette";
@@ -18,13 +18,16 @@ function soldierText(state: WorldState, nation: Nation): string {
   return `soldiers ${men(soldiers(state, nation))} of ${men(nation.manpowerCap)}`;
 }
 
-/** " · army of Velmora: 12,000 men, morale 100%, heading for cell 412" for each army at `cells`. */
+const GOAL_WORDS: Record<WarGoal, string> = { conquer: "conquest", reclaim: "reclaiming", raid: "raid", support: "helping an ally" };
+
+/** " · army of Velmora (conquest): 12,000 men, morale 100%, heading for cell 412" for each army at `cells`. */
 function armyText(state: WorldState, cells: CellId[]): string {
   return cells
     .flatMap((c) => armiesIn(state, c))
     .map((a) => {
       const heading = a.target === NO_TARGET ? "holding" : `heading for cell ${a.target}`;
-      return ` · army of ${state.nations.get(a.owner)!.name}: ${men(a.size)} men, morale ${Math.round(a.morale * 100)}%, ${heading}`;
+      const purpose = GOAL_WORDS[state.wars.find((w) => w.id === a.war)?.goal ?? "support"];
+      return ` · army of ${state.nations.get(a.owner)!.name} (${purpose}): ${men(a.size)} men, morale ${Math.round(a.morale * 100)}%, ${heading}`;
     })
     .join("");
 }

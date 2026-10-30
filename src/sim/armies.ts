@@ -12,6 +12,7 @@ import { SIM } from "./params";
 import { cellValue, effectiveCapacity, grainBonuses } from "./resources";
 import { besiege, hostileNear, liberate, occupiedLand } from "./siege";
 import { frontCells } from "./war";
+import { openGoals } from "./warGoals";
 
 /** Armies standing in `cell`. */
 export function armiesIn(state: WorldState, cell: CellId): Army[] {
@@ -246,8 +247,21 @@ function aim(state: WorldState, army: Army, target: CellId): boolean {
   return true;
 }
 
+/** Is this army an ally's, in a war it joined rather than one of the two who started it? */
+function helping(army: Army, main: War | undefined): main is War {
+  return main !== undefined && army.owner !== main.attacker && army.owner !== main.defender;
+}
+
+/** Where a helping army goes: the friend's land the enemy holds, or else after the enemy's armies. */
+function supportCell(state: WorldState, army: Army, enemy: Nation, main: War, held: Map<NationId, CellId[]>): CellId {
+  const friend = main.attacker === enemy.id ? main.defender : main.attacker;
+  const lost = (held.get(friend) ?? []).filter((c) => state.state.occupier[c] === enemy.id);
+  const prey = state.armies.filter((a) => a.owner === enemy.id && a.size > 0).map((a) => a.cell);
+  return nearestOf(state, army, lost.length > 0 ? lost : prey);
+}
+
 /** The rules in SPEC §4.13: the first that gives somewhere the army can reach wins. */
-function direct(state: WorldState, army: Army, enemy: Nation, hostile: Set<number>, held: Map<NationId, CellId[]>, grain: Float64Array, season: number): void {
+function direct(state: WorldState, army: Army, war: War, enemy: Nation, main: War | undefined, hostile: Set<number>, held: Map<NationId, CellId[]>, grain: Float64Array, season: number): void {
   if (army.morale < SIM.RETREAT_MORALE && aim(state, army, homeCell(state, army))) return;
   const foe = nearestHostile(state, army, hostile);
   if (foe) {
@@ -256,8 +270,13 @@ function direct(state: WorldState, army: Army, enemy: Nation, hostile: Set<numbe
   }
   const lost = (held.get(army.owner) ?? []).filter((c) => state.state.occupier[c] === enemy.id);
   if (aim(state, army, nearestOf(state, army, lost))) return;
+  if (helping(army, main) && aim(state, army, supportCell(state, army, enemy, main, held))) return;
   // An army with no way to its enemy only tries again next year.
   if (army.target === NO_TARGET && season > 0) return;
+  if (war.attacker === army.owner) {
+    const goals = openGoals(state, war);
+    if (aim(state, army, goals.includes(army.target) ? army.target : nearestOf(state, army, goals))) return;
+  }
   if (aim(state, army, goalCell(state, army, enemy, grain))) return;
   army.target = NO_TARGET;
   army.path = [];
@@ -321,7 +340,8 @@ export function campaign(state: WorldState, rng: Rng): void {
       if (!war) continue;
       const enemy = state.nations.get(war.attacker === army.owner ? war.defender : war.attacker)!;
       if (!enemy.alive) continue;
-      direct(state, army, enemy, hostile, held, grain, season);
+      const main = war.joined === undefined ? undefined : wars.get(war.joined);
+      direct(state, army, war, enemy, main, hostile, held, grain, season);
       walk(state, army, hostile, moved);
     }
     fightBattles(state, hostile, moved, rng.fork(`season-${season}`));

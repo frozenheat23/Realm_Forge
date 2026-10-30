@@ -62,7 +62,7 @@ describe("opinion", () => {
 
     const war = twoNations();
     war.relations.set(pairKey(1, 2), 1);
-    war.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 0 });
+    war.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [] });
     updateOpinions(war, neighborPairs(war));
     expect(opinion(war, 1, 2)).toBeLessThan(opinion(peace, 1, 2));
   });
@@ -185,8 +185,8 @@ describe("alliances", () => {
   it("allies go home when the war they joined ends", () => {
     const state = triangle();
     state.year = 5;
-    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: SIM.PEACE_SCORE });
-    state.wars.push({ id: 2, attacker: 1, defender: 3, startYear: 1, score: 0, battleScore: 0, joined: 1 });
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: SIM.PEACE_SCORE, goal: "conquer" as const, goalCells: [] });
+    state.wars.push({ id: 2, attacker: 1, defender: 3, startYear: 1, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [], joined: 1 });
     endWars(state);
     expect(state.wars).toHaveLength(0);
     expect(state.truces).toHaveLength(2);
@@ -195,8 +195,8 @@ describe("alliances", () => {
   it("allies keep fighting while the main war goes on", () => {
     const state = triangle();
     state.year = 2;
-    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: 0 });
-    state.wars.push({ id: 2, attacker: 1, defender: 3, startYear: 1, score: 0, battleScore: 0, joined: 1 });
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [] });
+    state.wars.push({ id: 2, attacker: 1, defender: 3, startYear: 1, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [], joined: 1 });
     endWars(state);
     expect(state.wars.map((w) => w.id)).toEqual([1, 2]);
   });

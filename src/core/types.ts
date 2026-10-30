@@ -195,6 +195,9 @@ export interface Nation {
   access: number[];
 }
 
+/** What a war is for. "support" = an ally who joined someone else's war. */
+export type WarGoal = "conquer" | "reclaim" | "raid" | "support";
+
 export interface War {
   id: number;
   attacker: NationId;
@@ -204,6 +207,9 @@ export interface War {
   score: number;
   /** Score from battles so far (same sign rule as `score`). */
   battleScore: number;
+  goal: WarGoal;
+  /** Cells the attacker went to war to take; empty for a raid or support. */
+  goalCells: CellId[];
   /** Set if an ally joined someone else's war: the id of that main war. Ends when it ends. */
   joined?: number;
 }

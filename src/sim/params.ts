@@ -74,13 +74,13 @@ export const SIM = {
   EXPANSION_RATE: 0.1,
 
   // --- War ---
-  WAR_BASE_PROB: 0.002,
+  WAR_BASE_PROB: 0.0015,
   WAR_STRENGTH_EXP: 0.7,
   /** Ceiling on the yearly chance a pair goes to war, however lopsided they are. */
   WAR_MAX_PROB: 0.1,
   MAX_WARS_PER_NATION: 2,
   DEFENDER_BONUS: 1.2,
-  PEACE_SCORE: 60,
+  PEACE_SCORE: 90,
   WEARINESS_PEACE: 0.9,
   MAX_WAR_YEARS: 25,
   TRUCE_YEARS: 10,
@@ -145,6 +145,14 @@ export const SIM = {
   SCORE_PER_OCCUPIED: 3,
   /** Score for holding the enemy capital. */
   CAPITAL_SCORE: 20,
+  /** Goal cells count this many times over in the score. */
+  GOAL_SCORE_MULT: 2,
+  /** Chance a war without a claim is a raid (× ruling race aggression). */
+  RAID_CHANCE: 0.15,
+  /** Occupied non-goal cells a winner may also keep. */
+  PEACE_EXTRA_CELLS: 10,
+  /** Stability the loser of a raid loses and the winner gains. */
+  RAID_TRIBUTE: 0.1,
   /** Base share of the loser's soldiers lost in a battle (× power ratio). */
   BATTLE_LOSS: 0.25,
   /** Most of an army one battle can kill. */

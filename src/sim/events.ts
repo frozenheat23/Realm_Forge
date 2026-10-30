@@ -103,6 +103,10 @@ export function allianceEndedEvent(year: number, a: Nation, b: Nation): SimEvent
  * `winner` is null for a white peace (nobody clearly won). `cells` = land the winner gained;
  * `prize` = a resource it took, if any.
  */
+export function raidEvent(year: number, winner: Nation, loser: Nation): SimEvent {
+  return { year, type: "peace", actors: [winner.id, loser.id], text: `Year ${year}: ${winner.name} plunders ${loser.name} and goes home laden with spoils.` };
+}
+
 export function peaceEvent(year: number, a: Nation, b: Nation, winner: Nation | null, cells: number, prize?: string): SimEvent {
   const loser = winner === a ? b : a;
   const spoils = prize ? ` and its ${prize}` : "";
