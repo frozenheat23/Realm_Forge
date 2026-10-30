@@ -113,6 +113,8 @@ export function makeState(
     },
     nations: byId,
     wars: [],
+    armies: [],
+    nextArmyId: 1,
     truces: [],
     events: [],
     cultureHomes: [[0, 0]],

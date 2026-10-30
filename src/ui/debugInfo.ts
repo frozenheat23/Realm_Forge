@@ -1,16 +1,32 @@
 // Debug helpers on screen: key toggles, and hover to inspect a cell.
 import type { GeneratedWorld } from "../gen";
-import type { Nation, NationId, ResourceKind, WorldState } from "../core/types";
+import { NO_TARGET, type CellId, type Nation, type NationId, type ResourceKind, type WorldState } from "../core/types";
 import { BIOME_STATS, RESOURCES } from "../gen/params";
 import { traits } from "../gen/races";
 import { ARMY_MEN_PER_UNIT } from "../render/palette";
+import { armiesIn } from "../sim/armies";
 import { soldiers } from "../sim/manpower";
 import { alliesOf, opinion } from "../sim/diplomacy";
 
+/** Rounds soldier units to men, e.g. 12,000. */
+function men(units: number): string {
+  return (Math.round((units * ARMY_MEN_PER_UNIT) / 100) * 100).toLocaleString("en-US");
+}
+
 /** "soldiers 12,000 of 20,000": the nation's soldiers and its cap, in men. */
-function soldierText(nation: Nation): string {
-  const men = (units: number) => (Math.round((units * ARMY_MEN_PER_UNIT) / 100) * 100).toLocaleString("en-US");
-  return `soldiers ${men(soldiers(nation))} of ${men(nation.manpowerCap)}`;
+function soldierText(state: WorldState, nation: Nation): string {
+  return `soldiers ${men(soldiers(state, nation))} of ${men(nation.manpowerCap)}`;
+}
+
+/** " · army of Velmora: 12,000 men, morale 100%, heading for cell 412" for each army at `cells`. */
+function armyText(state: WorldState, cells: CellId[]): string {
+  return cells
+    .flatMap((c) => armiesIn(state, c))
+    .map((a) => {
+      const heading = a.target === NO_TARGET ? "holding" : `heading for cell ${a.target}`;
+      return ` · army of ${state.nations.get(a.owner)!.name}: ${men(a.size)} men, morale ${Math.round(a.morale * 100)}%, ${heading}`;
+    })
+    .join("");
 }
 
 /** Calls `action` each time `key` is pressed (upper or lower case). */
@@ -69,7 +85,7 @@ export function showCellOnHover(
     const people = traits(state.state.race[cell.id]!).plural;
     const ruler = nation ? traits(nation.race).plural : "";
     const ownerText = nation
-      ? `${nation.name} (${ruler}) · ${people}, pop ${state.state.pop[cell.id]!.toFixed(2)} · ${soldierText(nation)}${diplomacyText(state, nation.id)}`
+      ? `${nation.name} (${ruler}) · ${people}, pop ${state.state.pop[cell.id]!.toFixed(2)} · ${soldierText(state, nation)}${diplomacyText(state, nation.id)}`
       : "unowned";
     const s = state.state;
     const deposit = cell.resource ? ` · ${RESOURCES[cell.resource as ResourceKind].name} (richness ${cell.richness.toFixed(2)})` : "";
@@ -81,7 +97,7 @@ export function showCellOnHover(
         ` · devastation ${s.devastation[cell.id]!.toFixed(2)} · held since year ${s.ownedSince[cell.id]}`
       : "";
     panel.textContent =
-      `${ownerText}${land}${deposit} · Cell ${cell.id} · ${BIOME_STATS[cell.biome].name} · province ${cell.province} · defense ${cell.defensibility.toFixed(2)}` +
+      `${ownerText}${armyText(state, [cell.id, ...cell.neighbors])}${land}${deposit} · Cell ${cell.id} · ${BIOME_STATS[cell.biome].name} · province ${cell.province} · defense ${cell.defensibility.toFixed(2)}` +
       ` · ${cell.temp.toFixed(0)}°C · moisture ${cell.moisture.toFixed(2)}` +
       ` · elevation ${cell.elevation.toFixed(2)} · capacity ${cell.capacity.toFixed(2)}` +
       (tags ? ` · ${tags}` : "");

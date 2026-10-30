@@ -1,6 +1,7 @@
 // One year of history (SPEC §4). Steps always run in this order.
 import type { Rng } from "../core/rng";
 import type { SimEvent, WorldState } from "../core/types";
+import { disbandArmies, marchArmies, musterArmies } from "./armies";
 import { collapses } from "./collapse";
 import { diplomacy } from "./diplomacy";
 import { emergence } from "./emergence";
@@ -31,9 +32,12 @@ export function tick(state: WorldState, rng: Rng): SimEvent[] {
   expand(state, year.fork("expansion")); //               4. Expansion
   events.push(...diplomacy(state, year.fork("diplomacy"))); // 4b. Diplomacy
   events.push(...declareWars(state, year.fork("declare"))); //  5. War declared
-  events.push(...fightWars(state, year.fork("fight"))); //      6. War fought
+  musterArmies(state); //                                 5b. Armies raised and reinforced
+  marchArmies(state); //                                  6. Armies march
+  events.push(...fightWars(state, year.fork("fight"))); //      6b. War fought
   events.push(...rebellions(state, year.fork("rebellion"))); // 7. Rebellion
   events.push(...collapses(state)); //                    8. Collapse
+  disbandArmies(state); //                                … armies whose war is over go home
   events.push(...emergence(state, year.fork("emergence"))); //  9. Emergence
 
   state.events.push(...events); //                        10. Events

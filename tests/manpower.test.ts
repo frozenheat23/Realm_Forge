@@ -32,10 +32,11 @@ describe("manpower", () => {
 
   it("losses shrink the reserve and add war weariness", () => {
     const nation = makeNation(1, 0, { reserve: 10, manpowerCap: 10 });
-    loseSoldiers(nation, 4);
+    const state = makeState(row(1), [1], [nation]);
+    loseSoldiers(state, nation, 4);
     expect(nation.reserve).toBeCloseTo(6);
     expect(nation.warWeariness).toBeCloseTo(0.4 * SIM.WEARINESS_LOSS_K);
-    loseSoldiers(nation, 100); // can't lose more than it has
+    loseSoldiers(state, nation, 100); // can't lose more than it has
     expect(nation.reserve).toBe(0);
   });
 

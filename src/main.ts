@@ -1,10 +1,11 @@
 // Entry point: generates a world from a seed, draws it, and plays its history.
 // Page address options: ?seed=anything picks the world, ?style=painted switches the look.
-// Keys: Space play/pause, → step, C cell outlines, N nations, R races, A alliances, M resources, T towns, H heatmaps, E effects. Hover the map to inspect a cell.
+// Keys: Space play/pause, → step, C cell outlines, N nations, R races, A alliances, M resources, T towns, H heatmaps, E effects, W armies. Hover the map to inspect a cell.
 import { createRng } from "./core/rng";
 import type { NationId, WorldState } from "./core/types";
 import { generateWorld } from "./gen";
 import { drawAlliances } from "./render/alliances";
+import { drawArmies } from "./render/armies";
 import { drawCellOutlines } from "./render/debug";
 import { buildDisplayCells } from "./render/displayCells";
 import { createEffects } from "./render/effects";
@@ -90,7 +91,7 @@ terrainCtx.putImageData(terrainImage, 0, 0);
 drawRivers(terrainCtx, world);
 
 // --- Drawing ---
-const layers: Layers = { nations: true, races: false, alliances: true, resources: false, settlements: true, labels: true, effects: true, cells: query.get("debug") === "cells" };
+const layers: Layers = { nations: true, races: false, alliances: true, resources: false, settlements: true, labels: true, effects: true, armies: true, cells: query.get("debug") === "cells" };
 let highlight = new Set<NationId>();
 let highlightTimer = 0;
 /** Which heatmap is showing (H cycles through them), or null for none. */
@@ -127,6 +128,7 @@ function draw(): void {
 function present(now: number): void {
   ctx.drawImage(base, 0, 0);
   if (layers.effects) effects.draw(ctx, now);
+  if (layers.armies) drawArmies(ctx, world, state, (now - yearStart) * controls.speed / 1000);
 }
 
 // --- Event log (click an event → its nations light up for a few seconds) ---
@@ -146,8 +148,12 @@ eventLog.add(state.events, state);
 // --- History playback ---
 const simRng = createRng(seed).fork("sim");
 
+/** When the latest year began playing (milliseconds): armies slide along its march. */
+let yearStart = 0;
+
 function advanceYear(): void {
   const events = tick(state, simRng);
+  yearStart = performance.now();
   eventLog.add(events, state);
   effects.noteYear(state, events, performance.now());
 }
@@ -248,6 +254,10 @@ onKey("h", () => {
 onKey("e", () => {
   layers.effects = !layers.effects;
   if (layers.effects) effects.refresh(state);
+  present(performance.now());
+});
+onKey("w", () => {
+  layers.armies = !layers.armies;
   present(performance.now());
 });
 onKey("t", () => {

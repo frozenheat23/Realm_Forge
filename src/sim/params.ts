@@ -101,6 +101,18 @@ export const SIM = {
   LEVY_REFILL: 0.1,
   /** War weariness gained per share of the cap lost in battle. */
   WEARINESS_LOSS_K: 0.25,
+  /** Share of the reserve raised into a new army (split between wars still without one). */
+  MOBILIZE_SHARE: 0.8,
+  /** Share of the reserve sent each year to armies in supply. */
+  REINFORCE_RATE: 0.3,
+  /** Smallest army worth raising; smaller ones go home. */
+  MIN_ARMY_SIZE: 0.05,
+  /** War steps (seasons) per year. */
+  CAMPAIGN_STEPS: 4,
+  /** Move points per step. Grassland costs 1; an army can always enter one cell per step. */
+  ARMY_MOVE: 4,
+  /** How far past the border armies look for rich cells to march on. */
+  RAID_RANGE: 5,
   /** Base share of the loser's soldiers lost in a battle (× power ratio). */
   BATTLE_LOSS: 0.25,
   /** Most of an army one battle can kill. */

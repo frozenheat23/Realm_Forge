@@ -359,7 +359,7 @@ Opinion between two nations moves `OPINION_DRIFT` of the way toward a target eac
 
 ## Armies
 
-> **Being built in M11** (SPEC §4.13). **Live now** (in `src/sim/params.ts`, Settings → Armies): the Manpower table and `BATTLE_LOSS`, `BATTLE_MAX_LOSS`, `WINNER_LOSS_SHARE` (used by the yearly front roll until armies march). Everything else is still a first guess, not in code yet. Soldiers are in the same units as `pop` (1 ≈ a fully settled grassland cell); a big realm has a cap of about 0.5–1.5.
+> **Being built in M11** (SPEC §4.13). **Live now** (in `src/sim/params.ts`, Settings → Armies): the Manpower table, the Raising armies table, `CAMPAIGN_STEPS`, `ARMY_MOVE`, `RAID_RANGE`, and `BATTLE_LOSS`, `BATTLE_MAX_LOSS`, `WINNER_LOSS_SHARE` (used by the yearly front roll until armies fight). Everything else is still a first guess, not in code yet. Soldiers are in the same units as `pop` (1 ≈ a fully settled grassland cell); a big realm has a cap of about 0.5–1.5.
 
 Measured after step 1 (5 seeds × 1,000 years, vs before): ~100 wars per century (81), shorter and more decisive (~5 at once, was ~6); 49 nations alive at year 1000 (38); biggest 578 cells (681); nations sit at ~80% of their cap on average. Race balance: biggest race 40%, no takeovers.
 
@@ -388,7 +388,7 @@ Measured after step 1 (5 seeds × 1,000 years, vs before): ~100 wars per century
 | `ENGAGE_RANGE` | 6 | 2–15 | Steps within which an army goes after an enemy army | Wars are battle-hunts | Armies ignore each other; more sieges |
 | `ENGAGE_RATIO` | 0.8 | 0.5–1.5 | How strong (vs the enemy) an army must be to attack it | Cautious; defenders sit in cities | Reckless attacks |
 | `RETREAT_MORALE` | 0.4 | 0.2–0.6 | Below this an army falls back to its own settlement | Armies retreat early | Fight to the end |
-| `RAID_RANGE` | 5 | 2–10 | How far past the border raiders and defenders look for rich targets | Deep raids | Border skirmishes |
+| `RAID_RANGE` | 5 | 2–10 | How far past the border armies look for rich targets | Deep raids | Border skirmishes |
 | `ARMY_ATTRITION` | 0.03 | 0–0.1 | Size lost per step outside supply (× 2 in desert, tundra, ice, mountains) | Long invasions bleed out | Armies roam freely |
 
 **Battle**
@@ -524,12 +524,13 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 
 ### Armies
 
-> **Planned for M11** (SPEC §5.4h). Layer key W. Visual only. `ARMY_MEN_PER_UNIT` is live already (hover info shows *soldiers X of Y*); the rest is not in code yet.
+> Built in M11 step 2 except `OCCUPIED_HATCH_ALPHA` (step 3). Layer key W. Visual only. In `src/render/palette.ts`.
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
 | `ARMY_MEN_PER_UNIT` | 20000 | 5000–50000 | Men shown per soldier unit (the label only) | Bigger numbers on banners | Smaller numbers |
 | `ARMY_BANNER_MIN` / `ARMY_BANNER_MAX` | 7 / 16 | 4–12 / 10–24 | Banner half-height for the smallest / largest armies (pixels) | Armies dominate the map | Discreet markers |
+| `ARMY_BANNER_FULL` | 1 | 0.3–3 | Soldiers at which a banner reaches full size | Only giant hosts look big | Most armies look big |
 | `ARMY_TARGET_ALPHA` | 0.5 | 0–1 | Opacity of the dashed line to the army's target | Clear war plans | Hidden (0) |
 | `OCCUPIED_HATCH_ALPHA` | 0.45 | 0–0.8 | Opacity of the occupier's stripes on occupied land | Occupations glare | Faint |
 

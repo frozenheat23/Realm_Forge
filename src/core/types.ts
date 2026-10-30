@@ -129,6 +129,28 @@ export interface Cell {
 
 export type NationId = number; // 0 = unowned
 
+/** Army.target when it has nowhere to go. */
+export const NO_TARGET = -1;
+
+/** One side's soldiers in one war, marching across the map (SPEC §4.13). */
+export interface Army {
+  id: number;
+  owner: NationId;
+  /** The war it was raised for. */
+  war: number;
+  cell: CellId;
+  /** Soldiers, in pop units. */
+  size: number;
+  /** 0..1 */
+  morale: number;
+  /** Where it's heading, or NO_TARGET. */
+  target: CellId;
+  /** Cells still to walk to reach the target, next first. */
+  path: CellId[];
+  /** Cells walked this year, starting where it stood, so the map can animate the march. */
+  trail: CellId[];
+}
+
 export interface Nation {
   id: NationId;
   name: string;
@@ -230,6 +252,9 @@ export interface WorldState {
   state: CellState;
   nations: Map<NationId, Nation>;
   wars: War[];
+  armies: Army[];
+  /** Id for the next army raised. */
+  nextArmyId: number;
   truces: { a: NationId; b: NationId; until: number }[];
   events: SimEvent[];
   /** Each name culture's home point on the map; new nations take the nearest one's names. */

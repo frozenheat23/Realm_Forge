@@ -3,7 +3,7 @@
 // `Map` and typed arrays don't survive JSON.stringify, so they're converted to plain
 // arrays here. The map itself (cells, terrain) isn't saved: it's rebuilt from the seed,
 // which always gives the same map.
-import type { Alliance, CellState, Nation, RaceHome, SimEvent, War, WorldState } from "../core/types";
+import type { Alliance, Army, CellState, Nation, RaceHome, SimEvent, War, WorldState } from "../core/types";
 import type { GeneratedWorld } from "../gen";
 import type { SimParams } from "./params";
 
@@ -27,6 +27,8 @@ export interface Snapshot {
   cells: Record<keyof CellState, number[]>;
   nations: Nation[];
   wars: War[];
+  armies: Army[];
+  nextArmyId: number;
   truces: { a: number; b: number; until: number }[];
   events: SimEvent[];
   cultureHomes: [number, number][];
@@ -59,6 +61,8 @@ export function toSnapshot(state: WorldState, params: SimParams): Snapshot {
     },
     nations: [...state.nations.values()],
     wars: state.wars,
+    armies: state.armies,
+    nextArmyId: state.nextArmyId,
     truces: state.truces,
     events: state.events,
     cultureHomes: state.cultureHomes,
@@ -95,6 +99,8 @@ export function fromSnapshot(snapshot: Snapshot, world: GeneratedWorld): WorldSt
     },
     nations: new Map(snapshot.nations.map((n) => [n.id, { ...n }])),
     wars: snapshot.wars.map((w) => ({ ...w })),
+    armies: snapshot.armies.map((a) => ({ ...a, path: [...a.path], trail: [...a.trail] })),
+    nextArmyId: snapshot.nextArmyId,
     truces: snapshot.truces.map((t) => ({ ...t })),
     events: [...snapshot.events],
     cultureHomes: snapshot.cultureHomes,

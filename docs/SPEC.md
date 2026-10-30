@@ -32,8 +32,8 @@ core/      types, seeded random generator, math, graph helpers
 src/
   core/    rng.ts, types.ts, math.ts, graph.ts
   gen/     params.ts, heightmap.ts, climate.ts, biomes.ts, rivers.ts, cells.ts, races.ts, resources.ts, provinces.ts, nations.ts, names.ts, index.ts
-  sim/     params.ts, tick.ts, population.ts, totals.ts, control.ts, land.ts, resources.ts, stability.ts, expansion.ts, diplomacy.ts, war.ts, rebellion.ts, collapse.ts, emergence.ts, events.ts, snapshot.ts
-  render/  palette.ts, terrain*.ts, overlay.ts, labels.ts, alliances.ts, heatmap.ts, resources.ts, settlements.ts, hud.ts
+  sim/     params.ts, tick.ts, population.ts, totals.ts, manpower.ts, control.ts, land.ts, resources.ts, stability.ts, expansion.ts, diplomacy.ts, war.ts, armies.ts, rebellion.ts, collapse.ts, emergence.ts, events.ts, snapshot.ts
+  render/  palette.ts, terrain*.ts, overlay.ts, labels.ts, alliances.ts, armies.ts, heatmap.ts, resources.ts, settlements.ts, hud.ts
   ui/      controls.ts, eventLog.ts, timeline.ts, export.ts
   main.ts
 tests/
@@ -119,6 +119,18 @@ interface War {
   prizes?: { cell: CellId; by: NationId }[]; // deposits captured, for the peace text
 }
 
+interface Army {          // one side's soldiers in one war (§4.13)
+  id: number;
+  owner: NationId;
+  war: number;            // the war it was raised for
+  cell: CellId;
+  size: number;           // soldiers, in pop units
+  morale: number;         // 0..1
+  target: CellId;         // where it's heading, or NO_TARGET (−1)
+  path: CellId[];         // cells still to walk, next first
+  trail: CellId[];        // cells walked this year, for the map animation
+}
+
 interface Alliance {
   a: NationId; b: NationId; // a < b
   since: number;            // year
@@ -138,6 +150,8 @@ interface WorldState {
   state: CellState;
   nations: Map<NationId, Nation>;
   wars: War[];
+  armies: Army[];
+  nextArmyId: number;
   truces: { a: NationId; b: NationId; until: number }[];
   events: SimEvent[];
   raceHomes: { race: RaceId; at: [number, number] }[]; // homeland points (§4.10)
@@ -222,9 +236,11 @@ One tick = one year. The steps always run in this order:
 | 4 | Expansion | 4.4 |
 | 4b | Diplomacy | 4.12 |
 | 5 | War declared | 4.5 |
-| 6 | War fought | 4.5 |
+| 5b | Armies raised and reinforced | 4.13 |
+| 6 | Armies march (`CAMPAIGN_STEPS` seasons) | 4.13 |
+| 6b | War fought | 4.5 |
 | 7 | Rebellion | 4.6 |
-| 8 | Collapse | 4.7 |
+| 8 | Collapse, then armies with no war go home | 4.7, 4.13 |
 | 9 | Emergence | 4.8 |
 | 10 | Events | 4.9 |
 
@@ -449,7 +465,7 @@ Allies never declare war on each other. Alliances are both defensive and offensi
 
 ### 4.13 Armies
 
-> **Being built in M11.** Done: **step 1, manpower** (reserve, cap, refill, losses, `fightingPower`; used by §4.2 and §4.5). The rest is still design. Sections §4.1–4.9 describe the code as it is; each M11 step updates them as it lands (like M9 did with §4.11). Numbers are in `PARAMS.md` → "Armies". Code will live in `sim/manpower.ts`, `sim/armies.ts`, `sim/battle.ts`, `sim/siege.ts`, `sim/warGoals.ts`.
+> **Being built in M11.** Done: **step 1, manpower** (reserve, cap, refill, losses, `fightingPower`; used by §4.2 and §4.5) and **step 2, armies raised, reinforced, marching and sent home**, drawn on the map. Step 2 armies don't fight yet: the yearly front roll (§4.5) still decides wars, its losses come out of the war's army first, and they only hold the same soldiers in a new place, so history is identical to step 1. The rest is still design. Sections §4.1–4.9 describe the code as it is; each M11 step updates them as it lands (like M9 did with §4.11). Numbers are in `PARAMS.md` → "Armies". Code will live in `sim/manpower.ts`, `sim/armies.ts`, `sim/battle.ts`, `sim/siege.ts`, `sim/warGoals.ts`.
 
 **Goal.** Make war *happen somewhere*. Today a war is one weighted roll per year between whole-nation strengths, and the winner takes up to `FRONT_FLIPS_PER_YEAR` cells anywhere along the border. With armies, soldiers are a limited stock that takes decades to rebuild; armies march across the map, meet in battle and besiege towns; and peace hands over the land a war was fought *for*. A big empire with two wars has to split its soldiers, which is the overstretch the core loop needs.
 
@@ -482,21 +498,21 @@ power    = soldiers × (0.5 + stability)                           // fightingPo
 
 - **Raised** when a nation enters a war (declared, declared on, or joining as an ally) and doesn't yet have an army for that war: `size = reserve × MOBILIZE_SHARE / (number of its wars still without an army)`, placed at its city (then settlement, then capital) nearest to the enemy. Not raised if smaller than `MIN_ARMY_SIZE`. If an army is destroyed, a new one is raised the next year from whatever reserve is left.
 - **Reinforced** once a year: `REINFORCE_RATE` of the reserve is shared out equally among the nation's armies that are **in supply** (standing in own or allied land, or in occupied land connected to it).
-- **Disbanded** when its war ends: the soldiers go back into the reserve.
+- **Disbanded** when its war ends, or when it shrinks below `MIN_ARMY_SIZE`: the soldiers go back into the reserve. A dead nation's armies just melt away.
 - Each army stores: `id`, `owner`, `war`, `cell`, `size`, `morale` (0..1, starts at 1), `target`, and `trail` (the cells it walked this year, so the renderer can animate the march).
 
 #### Each campaign step
 
 Armies act in order of `id` (deterministic). Random rolls use the `armies` and `battle` streams.
 
-**1. Choose a target** (first rule that applies)
+**1. Choose a target** (first rule that applies). Built so far: rule 4 only. An army keeps its target until that cell stops being the enemy's, then picks another; on arrival it camps there (sieges come in step 3). An army with no way to the enemy tries again next year, because a failed search covers the whole map.
 1. **Retreat**: morale below `RETREAT_MORALE` → head for the nearest own settlement and stay there until morale is back above it.
 2. **Attack**: a hostile army (any war this nation fights) within `ENGAGE_RANGE` steps, and `my power ≥ ENGAGE_RATIO × its power` → march at it.
 3. **Liberate**: own (or the war ally's) land occupied by the enemy → the nearest such cell.
 4. **Goal**: the nearest goal cell (below) not yet occupied. Defenders and raiders: the enemy's most valuable cell (§4.11 value) within `RAID_RANGE` steps of the border.
 5. **Defend**: too weak to attack and nothing else to do → stand in the own city closest to the enemy army.
 
-**2. March.** Shortest path by move cost (biome × mountain × river × ruling-race terrain cost, the same costs as §4.4 and `control`). An army may walk through its own land, allied land, and land of nations it's at war with; never through neutral nations or water (navies are in the backlog). It gets `ARMY_MOVE` move points per step. It **stops** as soon as it steps into a cell next to a hostile army (contact). Paths are only recalculated when the target changes or the path is blocked, to keep the tick fast. Marching through enemy land adds `DEVASTATION_MARCH` to each cell.
+**2. March.** Shortest path by move cost (biome × mountain × river × ruling-race terrain cost, the same costs as §4.4 and `control`). An army may walk through its own land, allied land, and land of nations it's at war with; never through neutral nations or water (navies are in the backlog). It gets `ARMY_MOVE` move points per step and can always enter one cell per step, however hard the ground. *(Not yet built:)* it **stops** as soon as it steps into a cell next to a hostile army (contact). Paths are only recalculated when the target changes or the path is blocked, to keep the tick fast. Marching through enemy land adds `DEVASTATION_MARCH` to each cell.
 
 **3. Battle.** Two hostile armies in the same or neighboring cells fight once per step. The **defender** is the army that didn't move into contact this step (if both moved, the one standing in its own land, then the larger).
 
@@ -575,7 +591,7 @@ Taken cells go through `setOwner` (unrest jumps to `UNREST_CONQUEST`). All other
 | §4.7 Collapse | A dead nation's armies disband; its occupations end |
 | §4.9 Events | New `battle` type (log filter off by default): *"Year 412: at the Battle of Arvenna, Velmora routs the host of Kethar (12,000 fell)."* Named after the nearest city within 3 steps, otherwise *"in the hills of Kethar"* |
 | §5.4h | New **Armies** layer (below) |
-| §6 | Save format **v5** (reserve from step 1; armies, occupation, siege and war goals added as they land) |
+| §6 | Save format **v5** (reserve and armies built; occupation, siege and war goals added as they land) |
 
 #### Done when (M11)
 
@@ -640,7 +656,7 @@ A layer toggle (**Effects**, key E, on by default) adds animation on top of the 
 
 ### 5.4h Armies
 
-> **Planned for M11, not built yet** (§4.13).
+> Built in M11 step 2: banners, sliding marches, target lines, hover. **Occupied land** and real **Battle** markers come with step 3.
 
 A layer toggle (**Armies**, key W, on by default). Like effects, it only reads the world.
 
@@ -651,7 +667,7 @@ A layer toggle (**Armies**, key W, on by default). Like effects, it only reads t
 | **Occupied land** | Diagonal hatch in the occupier's color over the owner's color (replaces the M10 front hatch, since fronts are now where the armies are). Sieges in progress show a small ring filling up. |
 | **Battle** | The M10 battle marker (ring + crossed swords) at each real battle in `WorldState.battles` instead of a guessed spot. |
 
-Hovering over an army shows its nation, war, size, morale and target.
+Hovering over an army (or next to it, since banners are wider than a cell) shows its nation, size, morale and target.
 
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 5 ms, smooth at 20 years per second.
@@ -666,7 +682,7 @@ Hovering over an army shows its nation, war, size, morale and target.
 - Event log: scrolling, newest first, filter checkboxes per type, click an event to highlight its nations for `HIGHLIGHT_SECONDS` (others fade to `HIGHLIGHT_DIM`).
 - Seed box + **New world** (Enter works too) and **Random**. Both reload the page with `?seed=`.
 - **Settings** panel: every `SIM` parameter editable live (`ui/settings.ts`), layer toggles (nations, labels, cell outlines), reset to defaults. Generation numbers are not live; they need a new world.
-- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, every per-cell array (owner, pop, race, unrest, devastation, development, settlement, ownership history), nations, wars, truces, events, race homelands, opinions, alliances and city names (format v5, which added each nation's soldier reserve). Saves made before races (v1), diplomacy (v2), land detail (v3) or armies (v4) are refused with a clear message. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
+- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, every per-cell array (owner, pop, race, unrest, devastation, development, settlement, ownership history), nations, wars, truces, events, race homelands, opinions, alliances and city names (format v5, which added each nation's soldier reserve and the armies). Saves made before races (v1), diplomacy (v2), land detail (v3) or armies (v4) are refused with a clear message. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
 - **Record** captures the canvas as WebM (`canvas.captureStream()` + `MediaRecorder`) and downloads it on stop.
 - Web Worker: not needed. A tick takes ~5–6 ms (M9, measured in Node; M8 was ~5 ms) and a redraw ~15 ms at 1600×900.
 

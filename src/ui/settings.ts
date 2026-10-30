@@ -17,7 +17,7 @@ const GROUPS: { title: string; names: SimParamName[] }[] = [
     title: "War",
     names: ["WAR_BASE_PROB", "WAR_STRENGTH_EXP", "WAR_MAX_PROB", "MAX_WARS_PER_NATION", "DEFENDER_BONUS", "FRONT_FLIPS_PER_YEAR", "SCORE_PER_FLIP", "PEACE_SCORE", "WEARINESS_PEACE", "MAX_WAR_YEARS", "TRUCE_YEARS", "WAR_VALUE_K", "CLAIM_YEARS", "CLAIM_WAR_BONUS"],
   },
-  { title: "Armies", names: ["LEVY_SHARE", "LEVY_REFILL", "WEARINESS_LOSS_K", "BATTLE_LOSS", "BATTLE_MAX_LOSS", "WINNER_LOSS_SHARE"] },
+  { title: "Armies", names: ["LEVY_SHARE", "LEVY_REFILL", "WEARINESS_LOSS_K", "MOBILIZE_SHARE", "REINFORCE_RATE", "MIN_ARMY_SIZE", "CAMPAIGN_STEPS", "ARMY_MOVE", "RAID_RANGE", "BATTLE_LOSS", "BATTLE_MAX_LOSS", "WINNER_LOSS_SHARE"] },
   {
     title: "Diplomacy",
     names: ["OPINION_DRIFT", "BORDER_FRICTION", "SHARED_ENEMY_BONUS","WAR_OPINION_PENALTY", "WAR_OPINION_HIT", "REBEL_OPINION", "OPINION_WAR_K", "ALLIANCE_MIN_OPINION", "ALLIANCE_BREAK_OPINION", "ALLIANCE_PROB", "MAX_ALLIES", "ALLY_DEFEND_PROB", "ALLY_ATTACK_PROB"],
@@ -39,6 +39,8 @@ export interface Layers {
   labels: boolean;
   /** Animated war fronts, battles, smoke and unrest (SPEC §5.4g). */
   effects: boolean;
+  /** Army banners and marches (SPEC §5.4h). */
+  armies: boolean;
   cells: boolean;
 }
 
@@ -59,6 +61,7 @@ export function createSettings(container: HTMLElement, layers: Layers, onLayersC
     ["settlements", "Towns & cities"],
     ["labels", "Labels"],
     ["effects", "Effects"],
+    ["armies", "Armies"],
     ["cells", "Cell outlines"],
   ];
   for (const [key, label] of layerNames) {
