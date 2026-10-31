@@ -1,11 +1,16 @@
 // Faiths (SPEC §4.14): table lookups, and which faith a people starts with.
-import type { FaithId, FaithInfo, FaithKind, RaceHome, RaceId } from "../core/types";
+import type { FaithId, FaithInfo, FaithKind, Nation, RaceHome, RaceId } from "../core/types";
 import { FAITHS } from "./params";
 import { traits } from "./races";
 
 /** A faith's row in the table. Takes a plain number because per-cell faiths are stored in a Uint8Array. */
 export function faithInfo(faith: number): FaithInfo {
   return FAITHS[faith as FaithKind];
+}
+
+/** × some rule for a nation of `faith`; other nations get 1 (no change). */
+export function blessing(nation: Nation, faith: FaithKind): number {
+  return nation.faith === faith ? FAITHS[faith].blessing : 1;
 }
 
 /** The faith of a people of `race` at (x, y): each of the race's homelands holds the next of its faiths, and the nearest one counts. */

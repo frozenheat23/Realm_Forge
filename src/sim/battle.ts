@@ -1,6 +1,7 @@
 // Battles (SPEC §4.13): when hostile armies meet, one weighted roll decides it.
 import type { Rng } from "../core/rng";
-import { Resource, type Army, type CellId, type SimEvent, type WorldState } from "../core/types";
+import { Faith, Resource, type Army, type CellId, type SimEvent, type WorldState } from "../core/types";
+import { blessing } from "../gen/faiths";
 import { HILL_H } from "../gen/params";
 import { traits } from "../gen/races";
 import { battleEvent } from "./events";
@@ -18,13 +19,14 @@ function defenderOf(state: WorldState, a: Army, b: Army, moved: Set<number>): [A
   return a.size >= b.size ? [b, a] : [a, b];
 }
 
-/** How much the ground helps `army`, the defender: hills, walls, a stubborn people, mithril. */
+/** How much the ground helps `army`, the defender: hills, walls, a stubborn people, mithril, sacred groves. */
 export function groundBonus(state: WorldState, army: Army): number {
   const { owner, race, settlement } = state.state;
   const cell = state.cells[army.cell]!;
   let bonus = SIM.DEFENDER_BONUS * cell.defensibility * (1 + SIM.FORT_BONUS * settlement[army.cell]!);
   if (owner[army.cell] === army.owner) {
-    bonus *= traits(race[army.cell]!).defense * resourceBonus(state.nations.get(army.owner), Resource.Mithril);
+    const nation = state.nations.get(army.owner)!;
+    bonus *= traits(race[army.cell]!).defense * resourceBonus(nation, Resource.Mithril) * blessing(nation, Faith.EvergreenVow);
   }
   return bonus;
 }

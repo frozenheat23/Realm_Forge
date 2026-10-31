@@ -1,6 +1,7 @@
 // War goals (SPEC §4.13): what a war is fought for, and what the winner gets at peace.
 import type { Rng } from "../core/rng";
-import type { CellId, Nation, War, WarGoal, WorldState } from "../core/types";
+import { Faith, type CellId, type Nation, type War, type WarGoal, type WorldState } from "../core/types";
+import { blessing } from "../gen/faiths";
 import { traits } from "../gen/races";
 import { clamp } from "../core/math";
 import { setOwner } from "./helpers";
@@ -8,12 +9,17 @@ import { fightingPower } from "./manpower";
 import { SIM } from "./params";
 import { cellValue, effectiveCapacity, grainBonuses } from "./resources";
 
+/** How long a nation remembers land it lost. */
+export function claimYears(nation: Nation): number {
+  return SIM.CLAIM_YEARS * blessing(nation, Faith.DeepAncestors);
+}
+
 /** Cells `defender` holds that `attacker` lost to it recently: what a claim is about. */
 export function claimedCells(state: WorldState, attacker: Nation, defender: Nation): CellId[] {
   const { owner, prevOwner, ownedSince } = state.state;
   const cells: CellId[] = [];
   for (let c = 0; c < owner.length; c++) {
-    if (owner[c] === defender.id && prevOwner[c] === attacker.id && state.year - ownedSince[c]! <= SIM.CLAIM_YEARS) cells.push(c);
+    if (owner[c] === defender.id && prevOwner[c] === attacker.id && state.year - ownedSince[c]! <= claimYears(attacker)) cells.push(c);
   }
   return cells;
 }

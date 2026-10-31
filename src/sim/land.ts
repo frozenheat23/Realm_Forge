@@ -1,9 +1,10 @@
 // Step 2, second half (SPEC §4.11): each cell's slow-changing memory of what has happened to it.
 import type { Rng } from "../core/rng";
-import { Settlement, type CellId, type SimEvent, type WorldState } from "../core/types";
+import { Faith, Settlement, type CellId, type SimEvent, type WorldState } from "../core/types";
 import { clamp } from "../core/math";
-import { faithInfo } from "../gen/faiths";
+import { blessing, faithInfo } from "../gen/faiths";
 import { nameNationAt } from "../gen/nations";
+import { FAITHS } from "../gen/params";
 import { traits } from "../gen/races";
 import { cityFoundedEvent } from "./events";
 import { isCore, takenNames } from "./helpers";
@@ -83,11 +84,15 @@ export function updateLand(state: WorldState, control: Float32Array, rng: Rng): 
       0,
       1,
     );
+    // Whispers: a hidden shrine troubles the land around it.
+    if (faith[c] === Faith.OldGods && nation.faith !== Faith.OldGods) {
+      for (const n of state.cells[c]!.neighbors) unrest[n] = Math.min(1, unrest[n]! + FAITHS[Faith.OldGods].blessing);
+    }
 
     const capacity = effectiveCapacity(state, c, grain);
     const full = capacity > 0 ? Math.min(1, pop[c]! / capacity) : 0;
     development[c] = clamp(
-      development[c]! + SIM.DEV_GROWTH * full * control[c]! * (1 - devastation[c]!) - SIM.DEV_DEVASTATION_LOSS * devastation[c]!,
+      development[c]! + SIM.DEV_GROWTH * blessing(nation, Faith.AnvilOath) * full * control[c]! * (1 - devastation[c]!) - SIM.DEV_DEVASTATION_LOSS * devastation[c]!,
       0,
       1,
     );

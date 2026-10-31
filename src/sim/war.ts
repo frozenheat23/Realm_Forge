@@ -1,6 +1,7 @@
 // Steps 5 and 6b (SPEC §4.5): neighbors go to war (allies may join), and wars end in peace and a truce.
 import type { Rng } from "../core/rng";
-import type { CellId, Nation, NationId, ResourceKind, SimEvent, War, WarGoal, WorldState } from "../core/types";
+import { Faith, type CellId, type Nation, type NationId, type ResourceKind, type SimEvent, type War, type WarGoal, type WorldState } from "../core/types";
+import { blessing } from "../gen/faiths";
 import { RESOURCES } from "../gen/params";
 import { traits } from "../gen/races";
 import { allied, alliesOf, opinion } from "./diplomacy";
@@ -10,7 +11,7 @@ import { fightingPower } from "./manpower";
 import { SIM } from "./params";
 import { cellValue, effectiveCapacity, grainBonuses } from "./resources";
 import { occupationCounts, occupationScore } from "./siege";
-import { chooseGoal, goalAchieved, payTribute, takeLand } from "./warGoals";
+import { chooseGoal, claimYears, goalAchieved, payTribute, takeLand } from "./warGoals";
 
 // They used to live here; other files still import them from war.ts.
 export { neighborPairs, pairKey };
@@ -46,7 +47,7 @@ export function warChance(state: WorldState, attacker: Nation, defender: Nation,
   const mood = Math.max(0, 1 - opinion(state, attacker.id, defender.id) * SIM.OPINION_WAR_K);
   return Math.min(
     SIM.WAR_MAX_PROB,
-    SIM.WAR_BASE_PROB * traits(attacker.race).aggression * ratio ** SIM.WAR_STRENGTH_EXP * (1 - attacker.warWeariness) * mood * motive,
+    SIM.WAR_BASE_PROB * traits(attacker.race).aggression * blessing(attacker, Faith.RedHunger) * ratio ** SIM.WAR_STRENGTH_EXP * (1 - attacker.warWeariness) * mood * motive,
   );
 }
 
@@ -57,15 +58,15 @@ function directedKey(from: NationId, to: NationId): number {
 
 /**
  * Who has a claim on whom: directedKey(claimant, holder) for every nation
- * holding a cell the claimant lost to it within SIM.CLAIM_YEARS.
+ * holding a cell the claimant lost to it within its `claimYears`.
  */
 export function claims(state: WorldState): Set<number> {
   const { owner, prevOwner, ownedSince } = state.state;
   const found = new Set<number>();
   for (let c = 0; c < owner.length; c++) {
-    const lost = prevOwner[c]!;
-    if (lost === 0 || owner[c] === 0 || state.year - ownedSince[c]! > SIM.CLAIM_YEARS) continue;
-    if (state.nations.get(lost)?.alive) found.add(directedKey(lost, owner[c]!));
+    const claimant = state.nations.get(prevOwner[c]!);
+    if (!claimant?.alive || owner[c] === 0 || state.year - ownedSince[c]! > claimYears(claimant)) continue;
+    found.add(directedKey(claimant.id, owner[c]!));
   }
   return found;
 }

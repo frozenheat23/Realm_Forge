@@ -62,6 +62,8 @@ export interface FaithInfo {
   reach: number;
   /** × UNREST_FAITH_K: how hard its believers resent rulers of another faith. */
   fervor: number;
+  /** Strength of its one small gift to nations of this faith. SPEC §4.14 and PARAMS.md say what each one multiplies. */
+  blessing: number;
   /** If set, only these races can take it up. */
   races?: RaceId[];
 }

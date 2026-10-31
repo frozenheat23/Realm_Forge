@@ -1,7 +1,8 @@
 // Soldiers (SPEC §4.13 "Manpower"): each nation has a reserve of trained soldiers
 // that refills slowly up to a cap, and shrinks when it loses battles.
-import type { Army, Nation, WorldState } from "../core/types";
+import { Faith, type Army, type Nation, type WorldState } from "../core/types";
 import { clamp } from "../core/math";
+import { blessing } from "../gen/faiths";
 import { SIM } from "./params";
 
 /**
@@ -17,7 +18,7 @@ export function updateManpower(state: WorldState, nation: Nation, levyPop: numbe
     nation.reserve = nation.manpowerCap;
   } else if (gap > 0) {
     // Unstable realms train new soldiers slowly.
-    nation.reserve += gap * SIM.LEVY_REFILL * (0.5 + nation.stability);
+    nation.reserve += gap * SIM.LEVY_REFILL * (0.5 + nation.stability) * blessing(nation, Faith.HollowMother);
   }
 }
 

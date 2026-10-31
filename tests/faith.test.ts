@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
-import { Faith, Race } from "../src/core/types";
-import { faithAt } from "../src/gen/faiths";
+import { Faith, Race, type Army, type FaithId } from "../src/core/types";
+import { blessing, faithAt } from "../src/gen/faiths";
+import { groundBonus } from "../src/sim/battle";
 import { opinionTarget } from "../src/sim/diplomacy";
 import { commonFaith, conversionChance, convertRealms, spreadFaith } from "../src/sim/faith";
 import { updateLand } from "../src/sim/land";
 import { SIM } from "../src/sim/params";
+import { updateStability } from "../src/sim/stability";
+import { claimYears } from "../src/sim/warGoals";
 import { makeNation, makeState, row } from "./tinyWorld";
 
 /** Run spreading for `years` and return the state. */
@@ -152,5 +155,52 @@ describe("faith and the realm", () => {
     const same = opinionTarget(a, b, false, new Map());
     b.faith = Faith.RedHunger;
     expect(opinionTarget(a, b, false, new Map())).toBeLessThan(same);
+  });
+});
+
+describe("blessings", () => {
+  const humans = (faith: FaithId = Faith.None as FaithId) => makeNation(1, 0, { faith });
+
+  it("only help nations of that faith", () => {
+    expect(blessing(humans(Faith.RadiantCovenant), Faith.RadiantCovenant)).toBeGreaterThan(1);
+    expect(blessing(humans(Faith.RedHunger), Faith.RadiantCovenant)).toBe(1);
+  });
+
+  it("Order: stability recovers faster", () => {
+    const gain = (faith: FaithId) => {
+      const state = makeState(row(2), [1, 1], [makeNation(1, 0, { faith, stability: 0.5, control: 1 })]);
+      updateStability(state);
+      return state.nations.get(1)!.stability;
+    };
+    expect(gain(Faith.RadiantCovenant)).toBeGreaterThan(gain(Faith.BoneDrums));
+  });
+
+  it("Grudges: claims last longer", () => {
+    expect(claimYears(humans(Faith.DeepAncestors))).toBeGreaterThan(SIM.CLAIM_YEARS);
+    expect(claimYears(humans(Faith.AnvilOath))).toBe(SIM.CLAIM_YEARS);
+  });
+
+  it("Forge: land develops faster", () => {
+    const grown = (faith: FaithId) => {
+      const state = makeState(row(2), [1, 1], [makeNation(1, 0, { faith })], [1, 1]);
+      updateLand(state, new Float32Array([1, 1]), createRng("l"));
+      return state.state.development[1]!;
+    };
+    expect(grown(Faith.AnvilOath)).toBeGreaterThan(grown(Faith.BoneDrums));
+  });
+
+  it("Sanctuary: defenders fight better on their own land", () => {
+    const power = (faith: FaithId) => {
+      const state = makeState(row(2), [1, 1], [makeNation(1, 0, { faith })]);
+      return groundBonus(state, { owner: 1, cell: 1 } as Army);
+    };
+    expect(power(Faith.EvergreenVow)).toBeGreaterThan(power(Faith.BoneDrums));
+  });
+
+  it("Whispers: a hidden shrine troubles the land around it", () => {
+    const state = makeState(row(3), [1, 1, 1], [makeNation(1, 0)]);
+    state.state.faith[1] = Faith.OldGods;
+    updateLand(state, new Float32Array([1, 1, 1]), createRng("l"));
+    expect(state.state.unrest[2]).toBeGreaterThan(0);
   });
 });

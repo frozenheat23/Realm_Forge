@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
-import { Race } from "../src/core/types";
+import { Faith, Race, type FaithId } from "../src/core/types";
 import { assimilate } from "../src/sim/culture";
 import { SIM } from "../src/sim/params";
 import { rebel } from "../src/sim/rebellion";
@@ -70,6 +70,31 @@ describe("assimilation", () => {
       }
     }
     expect(orcs).toBeGreaterThan(humans);
+  });
+});
+
+describe("blessings on assimilation", () => {
+  /** How many of 300 runs saw the last cell assimilate within 10 years. */
+  function changed(rulerFaith: FaithId, cellFaith: FaithId) {
+    let count = 0;
+    for (let i = 0; i < 300; i++) {
+      const state = makeState(row(3), [1, 1, 1], [makeNation(1, 0, { faith: rulerFaith })]);
+      state.state.culture.set([1, 1, 2]);
+      state.state.faith[2] = cellFaith;
+      state.year = SIM.CORE_YEARS + 1;
+      const rng = createRng(`b-${i}`);
+      for (let y = 0; y < 10; y++) assimilate(state, fullControl, rng);
+      if (state.state.culture[2] === 1) count++;
+    }
+    return count;
+  }
+
+  it("Kinship: Bone Drums rulers gather people in faster", () => {
+    expect(changed(Faith.BoneDrums, Faith.BoneDrums)).toBeGreaterThan(changed(Faith.RedHunger, Faith.BoneDrums));
+  });
+
+  it("Remembrance: the Silver Choir keep their ways longer", () => {
+    expect(changed(Faith.RedHunger, Faith.SilverChoir)).toBeLessThan(changed(Faith.RedHunger, Faith.RedHunger));
   });
 });
 
