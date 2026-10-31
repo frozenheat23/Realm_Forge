@@ -117,6 +117,7 @@ export function makeState(
     wars: [],
     armies: [],
     nextArmyId: 1,
+    nextWarId: 1,
     battles: [],
     truces: [],
     events: [],

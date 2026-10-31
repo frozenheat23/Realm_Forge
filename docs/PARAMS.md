@@ -174,7 +174,7 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `WAR_BASE_PROB` | 0.0015 | 0.001–0.02 | Base yearly chance a neighbor pair goes to war (0.004 before M9's war motives, 0.003 before M11 manpower) | Constant warfare | Peaceful eras |
+| `WAR_BASE_PROB` | 0.0014 | 0.001–0.02 | Base yearly chance a neighbor pair goes to war (0.004 before M9's war motives, 0.003 before M11 manpower) | Constant warfare | Peaceful eras |
 | `WAR_STRENGTH_EXP` | 0.7 | 0.5–2.0 | How much a power gap encourages war (1.0 before M11: soldier counts differ more between nations than the old `strength` did) | Strong prey on weak | Wars between equals too |
 | `WAR_MAX_PROB` | 0.1 | 0.02–0.3 | Ceiling on a pair's yearly war chance, however lopsided | Bullies attack almost at once | Even giants hesitate |
 | `MAX_WARS_PER_NATION` | 2 | 1–4 | Concurrent wars per nation | Multi-front collapses | Focused wars |
@@ -355,7 +355,7 @@ Opinion between two nations moves `OPINION_DRIFT` of the way toward a target eac
 
 ## Armies
 
-> **Being built in M11** (SPEC §4.13). **Live now** (in `src/sim/params.ts`, Settings → Armies): everything below except the Rebels table (step 5). Soldiers are in the same units as `pop` (1 ≈ a fully settled grassland cell); a big realm has a cap of about 0.5–1.5.
+> Built in M11 (SPEC §4.13). In `src/sim/params.ts`, Settings → Armies. Soldiers are in the same units as `pop` (1 ≈ a fully settled grassland cell); a big realm has a cap of about 0.5–1.5.
 
 Measured after step 1 (5 seeds × 1,000 years, vs before): ~100 wars per century (81), shorter and more decisive (~5 at once, was ~6); 49 nations alive at year 1000 (38); biggest 578 cells (681); nations sit at ~80% of their cap on average. Race balance: biggest race 40%, no takeovers.
 
@@ -363,12 +363,14 @@ Measured after step 3 (same 5 seeds, vs step 2): ~128 wars per century (103), ~2
 
 Measured after step 4 (same 5 seeds, vs step 3): ~106 wars per century (128), 11% white peace (20%), ~710 battles per century (~680), 6 cells per war won (6.6), ~6 wars and ~7 armies at once (~9, ~10); 66 nations alive (51); biggest 338 cells (398); rebellions ~20 (~21), collapses ~16 (~18); tick 8.9 ms (8.1). Race balance: biggest race 40%, no takeovers. Tuned: `RAID_CHANCE` 0.25 → 0.15, `WAR_BASE_PROB` 0.002 → 0.0015, `PEACE_SCORE` 60 → 90 (goal cells score double, so at 60 wars stopped at about 10 cells, short of their goal).
 
+Measured after step 5, the finished milestone (same 5 seeds, vs step 4): ~113 wars per century including ~8 to crush rebels (106), 13% white peace (11%), ~980 battles per century (~710), 5 cells per war won (6), ~6 wars and ~8 armies at once; 61 nations alive (66); biggest 341 cells (338); rebellions ~18 (~20), collapses ~15 (~16); both sides have an army in 26% of war-years (was 15%, because a lost army took decades to replace); 18% of wars end because a side died; tick 9.3 ms (8.9). 10-seed race balance: biggest race 40%, no takeovers. Tuned: `MORALE_LOSS` 0.35 → 0.25, `ROUT_RETURN` 0.5 → 0.75, `MIN_ARMY_SIZE` 0.05 → 0.03, `LEVY_REFILL` 0.1 → 0.15, `REBEL_LEVY` 0.15 → 0.1, `WAR_BASE_PROB` 0.0015 → 0.0014.
+
 **Manpower**
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
 | `LEVY_SHARE` | 0.08 | 0.03–0.2 | Most soldiers a nation can have, as a share of `levyPop` (people × martial × control) | Huge armies; wars decided by numbers | Small armies; terrain and forts matter more |
-| `LEVY_REFILL` | 0.1 | 0.03–0.3 | Share of the gap to the cap refilled per year (× 0.5 + stability) | Losers bounce back fast | A lost army means decades of weakness |
+| `LEVY_REFILL` | 0.15 | 0.03–0.3 | Share of the gap to the cap refilled per year (× 0.5 + stability) | Losers bounce back fast | A lost army means decades of weakness |
 | `WEARINESS_LOSS_K` | 0.25 | 0–2 | War weariness gained per share of the cap lost | Bloody wars end quickly | Losses don't push toward peace (0) |
 
 **Raising armies**
@@ -377,7 +379,7 @@ Measured after step 4 (same 5 seeds, vs step 3): ~106 wars per century (128), 11
 |---|---|---|---|---|---|
 | `MOBILIZE_SHARE` | 0.8 | 0.3–1 | Share of the reserve raised into a new army | Everything thrown in at once | Big reserve held back |
 | `REINFORCE_RATE` | 0.3 | 0–1 | Share of the reserve sent each year to armies in supply | Armies refill quickly | Armies wear down |
-| `MIN_ARMY_SIZE` | 0.05 | 0.01–0.2 | Smallest army worth raising; smaller ones rout | Weak nations can't field armies | Tiny armies wander the map |
+| `MIN_ARMY_SIZE` | 0.03 | 0.01–0.2 | Smallest army worth raising; smaller ones rout | Weak nations can't field armies | Tiny armies wander the map |
 
 **Campaign and movement**
 
@@ -399,10 +401,10 @@ Measured after step 4 (same 5 seeds, vs step 3): ~106 wars per century (128), 11
 | `BATTLE_MAX_LOSS` | 0.6 | 0.3–0.9 | Cap on losses in one battle | Armies wiped out in one day | Even defeats leave a core |
 | `WINNER_LOSS_SHARE` | 0.4 | 0.1–1 | Winner's losses relative to the loser's (÷ ratio) | Pyrrhic victories | Cheap victories |
 | `FORT_BONUS` | 0.15 | 0–0.5 | Defender power per settlement level (city = +45%) | Cities are fortresses | Cities don't help |
-| `MORALE_LOSS` / `MORALE_GAIN` | 0.35 / 0.1 | 0.1–0.6 / 0–0.3 | Morale lost by the loser / gained by the winner | Swingy wars | Steady wars |
+| `MORALE_LOSS` / `MORALE_GAIN` | 0.25 / 0.1 | 0.1–0.6 / 0–0.3 | Morale lost by the loser / gained by the winner | Swingy wars | Steady wars |
 | `MORALE_RECOVERY` | 0.15 | 0.05–0.4 | Morale regained per step in own land | Beaten armies return fast | Defeats linger |
 | `ROUT_MORALE` | 0.15 | 0–0.3 | Below this an army is destroyed | Armies shatter | Armies always limp home |
-| `ROUT_RETURN` | 0.5 | 0–1 | Share of a routed army's soldiers who return to the reserve | Defeats are survivable | Routs are catastrophes |
+| `ROUT_RETURN` | 0.75 | 0–1 | Share of a routed army's soldiers who return to the reserve | Defeats are survivable | Routs are catastrophes |
 | `BATTLE_POP_LOSS` / `DEVASTATION_BATTLE` | 0.1 / 0.3 | 0–0.3 / 0–0.6 | People lost and devastation at a battle site | Battlefields scar the land | Clean battles |
 | `DEVASTATION_MARCH` | 0.05 | 0–0.2 | Devastation per enemy cell an army marches through | Invasion trails of ruin | Armies pass lightly |
 
@@ -435,8 +437,14 @@ Measured after step 4 (same 5 seeds, vs step 3): ~106 wars per century (128), 11
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `REBEL_LEVY` | 0.15 | 0.05–0.4 | Rebel army size as a share of the region's `militaryPop` (the old nation loses the same share of its reserve) | Rebels win their freedom | Rebels get crushed |
+| `REBEL_LEVY` | 0.1 | 0.05–0.4 | Rebel army size as a share of the region's people × martial (the old nation loses the same share of its reserve) | Rebels win their freedom | Rebels get crushed |
 | `REBEL_WAR_PROB` | 0.5 | 0–1 | Chance the old nation fights at once to take the rebels back | Every rebellion is a civil war | Peaceful breakaways; claims may bring war later |
+
+**Log**
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `BATTLE_NAME_RANGE` | 3 | 0–6 | Steps from a battle to a city it can be named after (log text only) | More named battles | More "in the hills of…" |
 
 ---
 
@@ -525,7 +533,7 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 
 ### Armies
 
-> Layer key W. Occupied land and sieges are in "War and unrest effects" above (key E). Visual only. In `src/render/palette.ts`.
+> Layer key W. Occupied land and sieges are in "War and unrest effects" above (key E). In `src/render/palette.ts`, except `ARMY_MEN_PER_UNIT`, which is in `src/sim/params.ts` because the event log uses it too. Visual only.
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
@@ -572,7 +580,7 @@ Common problems and which knobs to try first.
 | Rebellions start in random places | ↑ `UNREST_CONTROL_K` (check the unrest heatmap, key H) |
 | No cities / cities everywhere | ↑ / ↓ `DEV_GROWTH`, ↓ / ↑ `SETTLE_CITY`, `CITY_MIN_SPACING` |
 | Armies: wars end without battles | ↑ `ENGAGE_RANGE`, ↓ `ENGAGE_RATIO` |
-| Armies (M11, planned): rebels always crushed | ↑ `REBEL_LEVY`, ↓ `REBEL_WAR_PROB` |
+| Armies: rebels always crushed | ↑ `REBEL_LEVY`, ↓ `REBEL_WAR_PROB` |
 | Armies: one lost battle ends a nation | ↓ `BATTLE_MAX_LOSS`, ↑ `ROUT_RETURN`, ↑ `LEVY_REFILL` |
 | Wars too frequent since M9 | ↓ `WAR_VALUE_K`, ↓ `CLAIM_WAR_BONUS` before touching `WAR_BASE_PROB` |
 

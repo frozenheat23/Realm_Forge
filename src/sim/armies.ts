@@ -46,7 +46,7 @@ function musterCell(state: WorldState, nation: Nation, enemy: Nation): CellId {
   return front[0]!;
 }
 
-function raiseArmy(state: WorldState, nation: Nation, war: War, enemy: Nation, size: number): void {
+export function raiseArmy(state: WorldState, nation: Nation, war: War, enemy: Nation, size: number): void {
   const cell = musterCell(state, nation, enemy);
   state.armies.push({ id: state.nextArmyId++, owner: nation.id, war: war.id, cell, size, morale: 1, target: NO_TARGET, path: [], trail: [cell] });
   nation.reserve -= size;

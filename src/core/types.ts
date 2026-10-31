@@ -136,6 +136,8 @@ export interface BattleReport {
   loser: NationId;
   /** Soldiers killed on both sides. */
   lost: number;
+  /** Was the loser's army destroyed? */
+  routed: boolean;
 }
 
 /** Army.target when it has nowhere to go. */
@@ -223,7 +225,7 @@ export interface Alliance {
 
 export interface SimEvent {
   year: number;
-  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved" | "alliance" | "alliance_ended" | "city_founded";
+  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved" | "alliance" | "alliance_ended" | "city_founded" | "battle";
   actors: NationId[];
   text: string;
 }
@@ -274,6 +276,7 @@ export interface WorldState {
   armies: Army[];
   /** Id for the next army raised. */
   nextArmyId: number;
+  nextWarId: number;
   /** This year's battles (not saved: only the map needs them). */
   battles: BattleReport[];
   truces: { a: NationId; b: NationId; until: number }[];

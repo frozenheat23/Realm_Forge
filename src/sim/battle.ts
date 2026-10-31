@@ -1,7 +1,9 @@
 // Battles (SPEC §4.13): when hostile armies meet, one weighted roll decides it.
 import type { Rng } from "../core/rng";
-import { Resource, type Army, type CellId, type WorldState } from "../core/types";
+import { Resource, type Army, type CellId, type SimEvent, type WorldState } from "../core/types";
+import { HILL_H } from "../gen/params";
 import { traits } from "../gen/races";
+import { battleEvent } from "./events";
 import { pairKey } from "./helpers";
 import { armyPower, battleLosses, loseSoldiers } from "./manpower";
 import { SIM } from "./params";
@@ -88,7 +90,7 @@ function fight(state: WorldState, a: Army, b: Army, moved: Set<number>, rng: Rng
     const points = SIM.BATTLE_SCORE + (routed ? SIM.ROUT_SCORE : 0);
     war.battleScore += war.attacker === winner.owner ? points : -points;
   }
-  state.battles.push({ cell: site, winner: winner.owner, loser: loser.owner, lost: winnerDead + loserDead });
+  state.battles.push({ cell: site, winner: winner.owner, loser: loser.owner, lost: winnerDead + loserDead, routed });
 }
 
 /** Season step: every hostile pair of armies in or next to the same cell fights, each army once. */
@@ -107,4 +109,33 @@ export function fightBattles(state: WorldState, hostile: Set<number>, moved: Set
       fight(state, a, b, moved, rng);
     }
   }
+}
+
+/** The nearest city's name within SIM.BATTLE_NAME_RANGE steps of `cell`, if there is one. */
+function nearbyCity(state: WorldState, cell: CellId): string | undefined {
+  const seen = new Set([cell]);
+  let ring = [cell];
+  for (let step = 0; step <= SIM.BATTLE_NAME_RANGE; step++) {
+    const city = ring.find((c) => state.cityNames.has(c));
+    if (city !== undefined) return state.cityNames.get(city);
+    ring = ring.flatMap((c) => state.cells[c]!.neighbors).filter((n) => !seen.has(n) && seen.add(n));
+  }
+  return undefined;
+}
+
+/** Where a battle happened, as the start of a sentence. */
+function battlePlace(state: WorldState, cell: CellId): string {
+  const city = nearbyCity(state, cell);
+  if (city) return `at the Battle of ${city}`;
+  const { mountain, elevation } = state.cells[cell]!;
+  const ground = mountain ? "mountains" : elevation >= HILL_H ? "hills" : "fields";
+  const owner = state.nations.get(state.state.owner[cell]!);
+  return owner ? `in the ${ground} of ${owner.name}` : `in the empty ${ground}`;
+}
+
+/** This year's battles, for the event log. */
+export function battleEvents(state: WorldState): SimEvent[] {
+  return state.battles.map((b) =>
+    battleEvent(state.year, battlePlace(state, b.cell), state.nations.get(b.winner)!, state.nations.get(b.loser)!, b.lost, b.routed),
+  );
 }

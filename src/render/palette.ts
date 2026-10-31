@@ -217,8 +217,6 @@ export const CEL_HIGHLIGHT = 1.08;
 export const CEL_SHADOW = 0.8;
 
 // --- Armies (SPEC §5.4h) ---
-/** Men shown per soldier unit (soldiers are counted in pop units). Label only. */
-export const ARMY_MEN_PER_UNIT = 20000;
 /** Banner half-height (pixels) for the smallest army and for one of ARMY_BANNER_FULL soldiers or more. */
 export const ARMY_BANNER_MIN = 7;
 export const ARMY_BANNER_MAX = 16;

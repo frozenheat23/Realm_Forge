@@ -8,7 +8,7 @@ import { SIM } from "./params";
 import { cellValue, effectiveCapacity, grainBonuses } from "./resources";
 
 /** Cells `defender` holds that `attacker` lost to it recently: what a claim is about. */
-function claimedCells(state: WorldState, attacker: Nation, defender: Nation): CellId[] {
+export function claimedCells(state: WorldState, attacker: Nation, defender: Nation): CellId[] {
   const { owner, prevOwner, ownedSince } = state.state;
   const cells: CellId[] = [];
   for (let c = 0; c < owner.length; c++) {

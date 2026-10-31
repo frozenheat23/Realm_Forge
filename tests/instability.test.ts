@@ -4,7 +4,7 @@ import { generateWorld } from "../src/gen";
 import { collapses } from "../src/sim/collapse";
 import { emergence, emptyRegions } from "../src/sim/emergence";
 import { SIM } from "../src/sim/params";
-import { rebel } from "../src/sim/rebellion";
+import { rebel, rebellions } from "../src/sim/rebellion";
 import { controlMap } from "../src/sim/control";
 import { updateStability } from "../src/sim/stability";
 import { tick } from "../src/sim/tick";
@@ -140,3 +140,58 @@ describe("1,000 years of history", () => {
     expect(state.events.some((e) => e.type === "rebellion")).toBe(true);
   });
 }, 60000);
+
+describe("rebel armies", () => {
+  // A long row: nation 1's far end rises up.
+  function restless() {
+    const state = makeState(row(30), Array(30).fill(1), [makeNation(1, 0, { reserve: 10, manpowerCap: 10, stability: 0 })]);
+    state.state.pop.fill(5);
+    state.state.unrest.fill(1);
+    state.year = 100;
+    return state;
+  }
+  const rise = (state: ReturnType<typeof restless>) => {
+    const nation = state.nations.get(1)!;
+    const before = SIM.REBEL_PROB;
+    SIM.REBEL_PROB = 100; // always rebels
+    const events = rebellions(state, createRng("rise"));
+    SIM.REBEL_PROB = before;
+    return { nation, events };
+  };
+
+  it("some of the old nation's soldiers go over to the rebels", () => {
+    const state = restless();
+    const { nation } = rise(state);
+    expect(nation.reserve).toBeCloseTo(10 * (1 - SIM.REBEL_LEVY));
+  });
+
+  it("if the old nation fights, the rebels raise an army at once and it's a war to reclaim the land", () => {
+    const before = SIM.REBEL_WAR_PROB;
+    SIM.REBEL_WAR_PROB = 1;
+    const state = restless();
+    const { events } = rise(state);
+    SIM.REBEL_WAR_PROB = before;
+    const war = state.wars[0]!;
+    expect(war.goal).toBe("reclaim");
+    expect(war.goalCells.length).toBeGreaterThan(0);
+    expect(state.armies.map((a) => a.owner)).toEqual([war.defender]);
+    expect(state.armies[0]!.size).toBeGreaterThan(0);
+    expect(events.some((e) => e.text.includes("crush the rebellion"))).toBe(true);
+  });
+
+  it("no war if the old nation lets them go, or is already at its limit", () => {
+    const before = SIM.REBEL_WAR_PROB;
+    SIM.REBEL_WAR_PROB = 0;
+    const state = restless();
+    rise(state);
+    SIM.REBEL_WAR_PROB = 1;
+    const busy = restless();
+    for (let i = 0; i < SIM.MAX_WARS_PER_NATION; i++) {
+      busy.wars.push({ id: i + 100, attacker: 1, defender: 9, startYear: 0, score: 0, battleScore: 0, goal: "raid" as const, goalCells: [] });
+    }
+    rise(busy);
+    SIM.REBEL_WAR_PROB = before;
+    expect(state.wars).toHaveLength(0);
+    expect(busy.wars).toHaveLength(SIM.MAX_WARS_PER_NATION);
+  });
+});

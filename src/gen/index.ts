@@ -130,6 +130,7 @@ export function generateWorld(seed: string, width = MAP_WIDTH, height = MAP_HEIG
     wars: [],
     armies: [],
     nextArmyId: 1,
+    nextWarId: 1,
     battles: [],
     truces: [],
     events: start.events,

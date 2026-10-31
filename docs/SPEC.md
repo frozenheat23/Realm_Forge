@@ -140,6 +140,7 @@ interface BattleReport { // this year's battles, for the map (§4.13)
   winner: NationId;
   loser: NationId;
   lost: number;          // soldiers killed, both sides
+  routed: boolean;       // was the loser's army destroyed?
 }
 
 interface Alliance {
@@ -149,7 +150,7 @@ interface Alliance {
 
 interface SimEvent {
   year: number;
-  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved" | "alliance" | "alliance_ended" | "city_founded";
+  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved" | "alliance" | "alliance_ended" | "city_founded" | "battle";
   actors: NationId[];
   text: string;
 }
@@ -163,6 +164,7 @@ interface WorldState {
   wars: War[];
   armies: Army[];
   nextArmyId: number;
+  nextWarId: number;
   battles: BattleReport[]; // not saved
   truces: { a: NationId; b: NationId; until: number }[];
   events: SimEvent[];
@@ -313,7 +315,7 @@ motive     = (claim ? CLAIM_WAR_BONUS : 1) × (1 + WAR_VALUE_K × value of the d
 
 The chance is capped at `WAR_MAX_PROB`. The stronger side (by its own power) is the attacker; `aggression` is its ruling race's trait. A nation can be in at most `MAX_WARS_PER_NATION` wars it declares or is declared on. `opinion` and **helpers** (allies who would join) are from §4.12, so allies deter attacks and hatred invites them. A **claim** means the defender holds land the attacker lost to it within `CLAIM_YEARS`; cell **value** (as the attacker's race sees it) is in §4.11. Each war gets a **goal** (§4.13). The `war` event says why: *"…to reclaim its lost lands"* for a claim, *"…to raid its lands"* for a raid, otherwise *"…, coveting its iron"* when the best border cell holds a resource the attacker's race favors, or else *"…to seize the lands around Arvenna"* when the goal holds a city.
 
-**Allies join.** Right after a declaration, each of the defender's helpers joins with chance `ALLY_DEFEND_PROB`, and each of the attacker's with `ALLY_ATTACK_PROB`. A helper is an ally that borders the enemy, isn't allied with the enemy too, isn't already at war or in a truce with it, and isn't at its own war limit. Each joining ally gets its own `War` with the enemy (its own army and score), with `joined` set to the main war's id.
+**Allies join.** Right after a declaration, each of the defender's helpers joins with chance `ALLY_DEFEND_PROB`, and each of the attacker's with `ALLY_ATTACK_PROB`. A helper is an ally that borders the enemy or the ally it's helping, isn't allied with the enemy too, isn't already at war or in a truce with it, and isn't at its own war limit. Each joining ally gets its own `War` with the enemy (its own army and score), with `joined` set to the main war's id.
 
 **Fighting.** Armies do this now, in seasons: march, battle, siege (§4.13). `DEFENDER_BONUS` helps the army that stood its ground. Cells don't change owner during a war; they're **occupied**.
 
@@ -330,6 +332,7 @@ If a nation's stability is below `REBEL_THRESHOLD`, each year it has a `REBEL_PR
 1. Pick a seed cell at least `REBEL_MIN_CAPITAL_DIST` steps from the capital (walking only through the nation's own land), or one the capital can't reach that way at all (e.g. an island). **If any such cell is of a foreign race, the seed is picked only from foreign-race cells** (subject peoples rise first). Among the candidates the seed is picked at random **weighted by each cell's unrest** (§4.11), so rebellions start in weakly held, recently conquered or war-torn land (uniform if none is restless).
 2. Flood-fill outward through the nation's cells **of the seed's race**, up to `REBEL_MAX_CELLS`, never taking the capital, **filling the seed's own province first** before spilling into neighboring ones. If the region is smaller than `MIN_AREA`, no rebellion happens.
 3. Those cells become a new nation with a new name and color, ruled by the seed's race. Set `parent` to the old nation and give it starting stability `REBEL_START_STABILITY`. Its capital is the region's biggest settlement (then most populous cell). The rebel cells' unrest resets to 0, and since their `prevOwner` is the old nation, it has a claim to win them back. Opinion between the rebels and their old rulers starts at `REBEL_OPINION` (§4.12).
+4. Part of the old nation's soldiers go over to the rebels, and it may fight at once to take the land back (§4.13 "Rebels and allies").
 
 ### 4.7 Collapse
 - **Capital lost:** (when the capital's cell changes owner, at peace or to rebels; merely *occupying* a capital costs stability in §4.13) the capital moves to the nation's biggest remaining settlement, then its most populous cell (`capital_moved` event), and stability drops by `CAPITAL_LOSS_STAB_HIT`.
@@ -339,7 +342,7 @@ If a nation's stability is below `REBEL_THRESHOLD`, each year it has a `REBEL_PR
 If a connected unowned land region has at least `EMERGENCE_MIN_REGION` habitable cells, each year it has an `EMERGENCE_PROB` chance of spawning a new nation at its highest-capacity cell, claiming `EMERGENCE_CORE_SIZE` cells around it. The new nation's race is the race of the nearest race homeland (§4.10), and its cells are settled by that race.
 
 ### 4.9 Events
-Emit a `SimEvent` for: nation founded, war declared (and allies joining, also type `war`), peace signed, rebellion, collapse, annexation, capital moved, alliance formed, alliance broken, city founded (§4.11). Each event gets a short readable sentence, e.g. *"Year 412: Velmora declares war on the Kethari Reach."*
+Emit a `SimEvent` for: nation founded, war declared (and allies joining, also type `war`), peace signed, rebellion, collapse, annexation, capital moved, alliance formed, alliance broken, city founded (§4.11), battle. Battles are named after a city within `BATTLE_NAME_RANGE` steps (*"Year 412: at the Battle of Arvenna, Velmora routs the host of Kethar (12,000 fell)."*), otherwise after the land (*"in the hills of Kethar"*). Each event gets a short readable sentence, e.g. *"Year 412: Velmora declares war on the Kethari Reach."*
 
 Race shows in the text where it adds to the story: *"Year 88: Kazdrum, a realm of Dwarves, rises in the wilderness."* and, when rebels are of a different race than their rulers, *"Year 412: the Dark Elves of Vael rise against Kethar."*
 
@@ -472,7 +475,7 @@ Allies never declare war on each other. Alliances are both defensive and offensi
 
 ### 4.13 Armies
 
-> **Being built in M11.** Done: **step 1, manpower**; **step 2, armies raised, reinforced, marching and sent home**, drawn on the map; **step 3, battles, sieges and occupation**, which replaced the yearly front roll. **Step 4, war goals and peace terms.** Still design: rebel armies, allies marching and battle events (step 5). Sections §4.1–4.9 describe the code as it is; each M11 step updates them as it lands. Numbers are in `PARAMS.md` → "Armies". Code lives in `sim/manpower.ts`, `sim/armies.ts`, `sim/battle.ts`, `sim/siege.ts`, `sim/warGoals.ts`.
+> Built in M11, in five steps (see the Decision log). Numbers are in `PARAMS.md` → "Armies". Code lives in `sim/manpower.ts`, `sim/armies.ts`, `sim/battle.ts`, `sim/siege.ts`, `sim/warGoals.ts`.
 
 **Goal.** Make war *happen somewhere*. Before M11 a war was one weighted roll per year between whole-nation strengths, and the winner took a few cells anywhere along the border. With armies, soldiers are a limited stock that takes decades to rebuild; armies march across the map, meet in battle and besiege towns; and peace hands over the land a war was fought *for*. A big empire with two wars has to split its soldiers, which is the overstretch the core loop needs.
 
@@ -585,15 +588,8 @@ Taken cells go through `setOwner` (unrest jumps to `UNREST_CONQUEST`). All other
 
 #### Rebels and allies
 
-- **Rebel armies.** A rebellion raises an army at once from the rebel region: `size = rebel region's militaryPop × REBEL_LEVY`, and the old nation loses the same share of its reserve (its soldiers defect). With chance `REBEL_WAR_PROB` the old nation goes straight to war to take them back (goal **Reclaim**). If it can't, or doesn't, it can still come back later through its claim.
-- **Allies.** A helper (§4.5) no longer has to border the enemy. It only needs to border the enemy or the ally it's helping, because its army can march through allied land.
-
-#### What changes in other sections
-
-| Section | Change |
-|---|---|
-| §4.6 Rebellion | Rebel armies, defection, independence wars |
-| §4.9 Events | New `battle` type (log filter off by default): *"Year 412: at the Battle of Arvenna, Velmora routs the host of Kethar (12,000 fell)."* Named after the nearest city within 3 steps, otherwise *"in the hills of Kethar"* |
+- **Rebel armies.** When a rebellion starts, the old nation loses `REBEL_LEVY` of its reserve (its soldiers defect). With chance `REBEL_WAR_PROB`, if it isn't already at `MAX_WARS_PER_NATION`, it goes straight to war to take them back (goal **Reclaim**, goal cells = the rebel region), and the rebels raise an army at once: `size = the region's Σ pop × martial × REBEL_LEVY`. Otherwise there's no war for now, though the old nation's claim can bring one later (§4.5).
+- **Allies.** A helper (§4.5) needs to border the enemy *or* the ally it's helping, because its army can march through allied land. If it doesn't touch the enemy it musters at its capital.
 
 #### Done when (M11)
 
@@ -601,6 +597,8 @@ Taken cells go through `setOwner` (unrest jumps to `UNREST_CONQUEST`). All other
 - A nation that loses its army is visibly weak for decades; big empires in two wars are stretched.
 - Tick still under ~10 ms; history identical with every effect layer on or off; same seed = same history.
 - 10-seed balance check: no race takes over; rebellions still break up big empires (rebels win their independence war at least sometimes).
+
+Met: tick 9.3 ms; biggest race 40%; of ~8 rebel wars a century, rebels win ~2, are crushed ~3.5, and in ~2 the old nation dies.
 
 ---
 
@@ -678,10 +676,10 @@ Hovering over an army (or next to it, since banners are wider than a cell) shows
 
 - Play / pause, step one year, speed options from `SPEEDS` (Space, →). Stops at `SIM_YEARS`.
 - Year counter drawn on the map canvas itself (`render/hud.ts`) so it appears in videos.
-- Event log: scrolling, newest first, filter checkboxes per type, click an event to highlight its nations for `HIGHLIGHT_SECONDS` (others fade to `HIGHLIGHT_DIM`).
+- Event log: scrolling, newest first, filter checkboxes per type (Battles starts off, and battles are only kept while it's on, so they can't push everything else past `EVENT_LOG_MAX`), click an event to highlight its nations for `HIGHLIGHT_SECONDS` (others fade to `HIGHLIGHT_DIM`).
 - Seed box + **New world** (Enter works too) and **Random**. Both reload the page with `?seed=`.
 - **Settings** panel: every `SIM` parameter editable live (`ui/settings.ts`), layer toggles (nations, labels, cell outlines), reset to defaults. Generation numbers are not live; they need a new world.
-- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, every per-cell array (owner, pop, race, unrest, devastation, development, settlement, ownership history), nations, wars, truces, events, race homelands, opinions, alliances and city names (format v6, which has each nation's soldier reserve, the armies, each cell's occupier and siege, and war goals). Saves made before races (v1), diplomacy (v2), land detail (v3), armies (v4) or battles and war goals (v5) are refused with a clear message. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
+- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, every per-cell array (owner, pop, race, unrest, devastation, development, settlement, ownership history), nations, wars, truces, events, race homelands, opinions, alliances and city names (format v7, which has each nation's soldier reserve, the armies, each cell's occupier and siege, and war goals). Saves made before races (v1), diplomacy (v2), land detail (v3), armies (v4), battles and war goals (v5) or the war counter (v6) are refused with a clear message. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
 - **Record** captures the canvas as WebM (`canvas.captureStream()` + `MediaRecorder`) and downloads it on stop.
 - Web Worker: not needed. A tick takes ~5–6 ms (M9, measured in Node; M8 was ~5 ms) and a redraw ~15 ms at 1600×900.
 

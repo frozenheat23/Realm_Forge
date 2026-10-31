@@ -8,10 +8,10 @@ import {
   ARMY_BANNER_MAX,
   ARMY_BANNER_MIN,
   ARMY_LABEL_COLOR,
-  ARMY_MEN_PER_UNIT,
   ARMY_TARGET_ALPHA,
   CEL_INK_COLOR,
 } from "./palette";
+import { ARMY_MEN_PER_UNIT } from "../sim/params";
 
 /** A short size for a banner: "12k", or "800" under a thousand. */
 export function menLabel(size: number): string {

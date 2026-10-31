@@ -74,7 +74,7 @@ export const SIM = {
   EXPANSION_RATE: 0.1,
 
   // --- War ---
-  WAR_BASE_PROB: 0.0015,
+  WAR_BASE_PROB: 0.0014,
   WAR_STRENGTH_EXP: 0.7,
   /** Ceiling on the yearly chance a pair goes to war, however lopsided they are. */
   WAR_MAX_PROB: 0.1,
@@ -95,7 +95,7 @@ export const SIM = {
   /** Most soldiers a nation can keep, as a share of its militaryPop. */
   LEVY_SHARE: 0.08,
   /** Share of the gap to the cap refilled per year (× 0.5 + stability). */
-  LEVY_REFILL: 0.1,
+  LEVY_REFILL: 0.15,
   /** War weariness gained per share of the cap lost in battle. */
   WEARINESS_LOSS_K: 0.25,
   /** Share of the reserve raised into a new army (split between wars still without one). */
@@ -103,7 +103,7 @@ export const SIM = {
   /** Share of the reserve sent each year to armies in supply. */
   REINFORCE_RATE: 0.3,
   /** Smallest army worth raising; smaller ones go home. */
-  MIN_ARMY_SIZE: 0.05,
+  MIN_ARMY_SIZE: 0.03,
   /** War steps (seasons) per year. */
   CAMPAIGN_STEPS: 4,
   /** Move points per step. Grassland costs 1; an army can always enter one cell per step. */
@@ -120,14 +120,14 @@ export const SIM = {
   ARMY_ATTRITION: 0.03,
   /** Defender's power per settlement level. */
   FORT_BONUS: 0.15,
-  MORALE_LOSS: 0.35,
+  MORALE_LOSS: 0.25,
   MORALE_GAIN: 0.1,
   /** Morale regained per season in own land. */
   MORALE_RECOVERY: 0.15,
   /** Below this morale an army is destroyed. */
   ROUT_MORALE: 0.15,
   /** Share of a routed army's soldiers who get back to the reserve. */
-  ROUT_RETURN: 0.5,
+  ROUT_RETURN: 0.75,
   /** People lost at a battle site. */
   BATTLE_POP_LOSS: 0.1,
   DEVASTATION_BATTLE: 0.3,
@@ -153,6 +153,12 @@ export const SIM = {
   PEACE_EXTRA_CELLS: 10,
   /** Stability the loser of a raid loses and the winner gains. */
   RAID_TRIBUTE: 0.1,
+  /** Rebel army size as a share of the rebel region's people × martial. The old nation loses this share of its reserve. */
+  REBEL_LEVY: 0.1,
+  /** Chance the old nation fights at once to take the rebels back. */
+  REBEL_WAR_PROB: 0.5,
+  /** A battle is named after a city at most this many steps away. Only changes the log text. */
+  BATTLE_NAME_RANGE: 3,
   /** Base share of the loser's soldiers lost in a battle (× power ratio). */
   BATTLE_LOSS: 0.25,
   /** Most of an army one battle can kill. */
@@ -201,6 +207,9 @@ export const SIM = {
   /** Cells a newly emerged nation starts with (keep it at least MIN_AREA so it survives). */
   EMERGENCE_CORE_SIZE: 8,
 };
+
+/** Men shown per soldier unit, on banners and in the log. Only changes the text. */
+export const ARMY_MEN_PER_UNIT = 20000;
 
 export type SimParams = typeof SIM;
 export type SimParamName = keyof SimParams;

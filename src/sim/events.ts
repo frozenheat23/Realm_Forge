@@ -1,6 +1,12 @@
 // Readable sentences for the event log (SPEC §4.9).
 import type { Nation, SimEvent } from "../core/types";
 import { traits } from "../gen/races";
+import { ARMY_MEN_PER_UNIT } from "./params";
+
+/** "12,000": soldier units as a number of men. */
+export function menText(units: number): string {
+  return (Math.round((units * ARMY_MEN_PER_UNIT) / 100) * 100).toLocaleString("en-US");
+}
 
 export function foundedEvent(year: number, nation: Nation, where: string): SimEvent {
   return {
@@ -103,6 +109,12 @@ export function allianceEndedEvent(year: number, a: Nation, b: Nation): SimEvent
  * `winner` is null for a white peace (nobody clearly won). `cells` = land the winner gained;
  * `prize` = a resource it took, if any.
  */
+/** `place` starts the sentence, e.g. "at the Battle of Arvenna" or "in the hills of Kethar". */
+export function battleEvent(year: number, place: string, winner: Nation, loser: Nation, lost: number, routed: boolean): SimEvent {
+  const verb = routed ? "routs" : "beats back";
+  return { year, type: "battle", actors: [winner.id, loser.id], text: `Year ${year}: ${place}, ${winner.name} ${verb} the host of ${loser.name} (${menText(lost)} fell).` };
+}
+
 export function raidEvent(year: number, winner: Nation, loser: Nation): SimEvent {
   return { year, type: "peace", actors: [winner.id, loser.id], text: `Year ${year}: ${winner.name} plunders ${loser.name} and goes home laden with spoils.` };
 }

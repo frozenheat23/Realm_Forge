@@ -8,7 +8,7 @@ import type { GeneratedWorld } from "../gen";
 import type { SimParams } from "./params";
 
 /** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9), 5 armies (M11). */
-export const SNAPSHOT_VERSION = 6;
+export const SNAPSHOT_VERSION = 7;
 
 /** Why older saves can't be loaded, by version. */
 const TOO_OLD: Record<number, string> = {
@@ -17,6 +17,7 @@ const TOO_OLD: Record<number, string> = {
   3: "land detail (unrest, resources, cities) was added",
   4: "armies were added",
   5: "battles, occupation and war goals were added",
+  6: "rebel armies were added",
 };
 
 export interface Snapshot {
@@ -30,6 +31,7 @@ export interface Snapshot {
   wars: War[];
   armies: Army[];
   nextArmyId: number;
+  nextWarId: number;
   truces: { a: number; b: number; until: number }[];
   events: SimEvent[];
   cultureHomes: [number, number][];
@@ -66,6 +68,7 @@ export function toSnapshot(state: WorldState, params: SimParams): Snapshot {
     wars: state.wars,
     armies: state.armies,
     nextArmyId: state.nextArmyId,
+    nextWarId: state.nextWarId,
     truces: state.truces,
     events: state.events,
     cultureHomes: state.cultureHomes,
@@ -106,6 +109,7 @@ export function fromSnapshot(snapshot: Snapshot, world: GeneratedWorld): WorldSt
     wars: snapshot.wars.map((w) => ({ ...w })),
     armies: snapshot.armies.map((a) => ({ ...a, path: [...a.path], trail: [...a.trail] })),
     nextArmyId: snapshot.nextArmyId,
+    nextWarId: snapshot.nextWarId,
     battles: [],
     truces: snapshot.truces.map((t) => ({ ...t })),
     events: [...snapshot.events],

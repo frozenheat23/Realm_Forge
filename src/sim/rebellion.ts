@@ -1,10 +1,14 @@
 // Step 7 (SPEC §4.6): unstable nations lose far-off provinces to rebels, subject peoples first.
 import type { Rng } from "../core/rng";
 import type { CellId, Nation, RaceId, SimEvent, WorldState } from "../core/types";
-import { rebellionEvent } from "./events";
+import { traits } from "../gen/races";
+import { raiseArmy } from "./armies";
+import { rebellionEvent, warEvent } from "./events";
 import { cellsByNation, hopsFromCapital, livingNations, pairKey, setOwner, weightedPick } from "./helpers";
 import { SIM } from "./params";
 import { addNation, bestCapital } from "./newNation";
+import { startWar, warsOf } from "./war";
+import { claimedCells } from "./warGoals";
 
 /**
  * Grows a region outward from `seed` through `nation`'s cells, up to `max` cells,
@@ -66,6 +70,24 @@ export function rebel(state: WorldState, nation: Nation, cells: CellId[], rng: R
   return rebelNation;
 }
 
+/**
+ * Part of the old nation's soldiers go over to the rebels. The old nation may fight at
+ * once to take the land back, and then the rebels stand up an army of their own.
+ * Returns the war event, if it comes to that.
+ */
+function takeUpArms(state: WorldState, nation: Nation, rebels: Nation, rng: Rng): SimEvent | null {
+  nation.reserve *= 1 - SIM.REBEL_LEVY;
+  if (warsOf(state, nation.id) >= SIM.MAX_WARS_PER_NATION || !rng.chance(SIM.REBEL_WAR_PROB)) return null;
+
+  const region = claimedCells(state, nation, rebels);
+  const war = startWar(state, nation, rebels, "reclaim", region);
+  const { pop, race } = state.state;
+  const levy = region.reduce((sum, c) => sum + pop[c]! * traits(race[c]!).martial, 0) * SIM.REBEL_LEVY;
+  rebels.reserve += levy;
+  raiseArmy(state, rebels, war, nation, levy);
+  return warEvent(state.year, nation, rebels, " to crush the rebellion");
+}
+
 export function rebellions(state: WorldState, rng: Rng): SimEvent[] {
   const events: SimEvent[] = [];
   const groups = cellsByNation(state);
@@ -76,7 +98,10 @@ export function rebellions(state: WorldState, rng: Rng): SimEvent[] {
     // Restless peoples (high average unrest) rise more often.
     if (!nationRng.chance(SIM.REBEL_PROB * nation.unrest)) continue;
     const rebelNation = rebel(state, nation, groups.get(nation.id) ?? [], nationRng);
-    if (rebelNation) events.push(rebellionEvent(state.year, rebelNation, nation));
+    if (!rebelNation) continue;
+    events.push(rebellionEvent(state.year, rebelNation, nation));
+    const war = takeUpArms(state, nation, rebelNation, nationRng.fork("arms"));
+    if (war) events.push(war);
   }
   return events;
 }

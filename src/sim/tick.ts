@@ -2,6 +2,7 @@
 import type { Rng } from "../core/rng";
 import type { SimEvent, WorldState } from "../core/types";
 import { campaign, disbandArmies, musterArmies } from "./armies";
+import { battleEvents } from "./battle";
 import { collapses } from "./collapse";
 import { diplomacy } from "./diplomacy";
 import { emergence } from "./emergence";
@@ -35,6 +36,7 @@ export function tick(state: WorldState, rng: Rng): SimEvent[] {
   events.push(...declareWars(state, year.fork("declare"))); //  5. War declared
   musterArmies(state); //                                 5b. Armies raised and reinforced
   campaign(state, year.fork("campaign")); //              6. Campaign: armies march, fight and besiege
+  events.push(...battleEvents(state));
   events.push(...endWars(state)); //                      6b. Peace
   events.push(...rebellions(state, year.fork("rebellion"))); // 7. Rebellion
   events.push(...collapses(state)); //                    8. Collapse

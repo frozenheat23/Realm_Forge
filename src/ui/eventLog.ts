@@ -15,6 +15,7 @@ const ICONS: Record<SimEvent["type"], string> = {
   alliance: "∞",
   alliance_ended: "≠",
   city_founded: "♜",
+  battle: "⚒",
 };
 
 // Filter checkboxes: label → the event types it shows or hides.
@@ -27,6 +28,7 @@ const FILTERS: [string, SimEvent["type"][]][] = [
   ["Collapses", ["collapse", "annexed"]],
   ["Capitals", ["capital_moved"]],
   ["Cities", ["city_founded"]],
+  ["Battles", ["battle"]],
 ];
 
 export interface EventLog {
@@ -43,13 +45,19 @@ export function createEventLog(
   list: HTMLElement,
   onPick: (nations: NationId[]) => void,
 ): EventLog {
+  // There are so many battles that they're off by default, and only kept while on:
+  // otherwise they would push everything else past EVENT_LOG_MAX.
+  let showBattles = false;
+
   // Hiding a type just adds a class to the list; CSS hides matching lines.
   for (const [label, types] of FILTERS) {
     const box = document.createElement("input");
     box.type = "checkbox";
-    box.checked = true;
+    const battles = types.includes("battle");
+    box.checked = !battles;
     box.addEventListener("change", () => {
       for (const t of types) list.classList.toggle(`hide-${t}`, !box.checked);
+      if (battles) showBattles = box.checked;
     });
     const wrap = document.createElement("label");
     wrap.append(box, ` ${label}`);
@@ -65,6 +73,7 @@ export function createEventLog(
   return {
     add(events, state) {
       for (const event of events) {
+        if (event.type === "battle" && !showBattles) continue;
         const line = document.createElement("div");
         line.className = `event event-${event.type}`;
         line.dataset.actors = event.actors.join(",");

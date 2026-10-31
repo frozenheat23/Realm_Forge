@@ -109,6 +109,20 @@ function warMotive(state: WorldState, attacker: Nation, goal: WarGoal, goalCells
   return city === undefined ? undefined : ` to seize the lands around ${state.cityNames.get(city)}`;
 }
 
+/** Starts a war. Going to war leaves a grudge that takes decades to fade. */
+export function startWar(state: WorldState, attacker: Nation, defender: Nation, goal: WarGoal, goalCells: CellId[], joined?: number): War {
+  const war: War = { id: state.nextWarId++, attacker: attacker.id, defender: defender.id, startYear: state.year, score: 0, battleScore: 0, goal, goalCells };
+  if (joined !== undefined) war.joined = joined;
+  state.wars.push(war);
+  state.relations.set(pairKey(attacker.id, defender.id), Math.max(-1, opinion(state, attacker.id, defender.id) - SIM.WAR_OPINION_HIT));
+  return war;
+}
+
+/** How many wars the nation is in right now. */
+export function warsOf(state: WorldState, id: NationId): number {
+  return state.wars.filter((w) => w.attacker === id || w.defender === id).length;
+}
+
 export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
   const events: SimEvent[] = [];
   const pairs = neighborPairs(state);
@@ -124,23 +138,18 @@ export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
   const busy = (id: NationId) => (warCount.get(id) ?? 0) >= SIM.MAX_WARS_PER_NATION;
   const free = (a: NationId, b: NationId) => !atWar.has(pairKey(a, b)) && !inTruce(state, a, b) && !busy(a);
 
-  // Allies of `friend` that could fight `enemy`: they border it, aren't also its allies, and are free.
+  // Allies of `friend` that could fight `enemy`: they border it or `friend`, aren't also its allies, and are free.
   const helpers = (friend: NationId, enemy: NationId): Nation[] =>
     alliesOf(state, friend)
-      .filter((id) => id !== enemy && touching.has(pairKey(id, enemy)) && !allied(state, id, enemy) && free(id, enemy))
+      .filter((id) => id !== enemy && (touching.has(pairKey(id, enemy)) || touching.has(pairKey(id, friend))) && !allied(state, id, enemy) && free(id, enemy))
       .map((id) => state.nations.get(id)!);
   const help = (allies: Nation[], joinChance: number) => allies.reduce((sum, n) => sum + fightingPower(state, n) * joinChance, 0);
 
-  let created = 0;
   const start = (attacker: Nation, defender: Nation, goal: WarGoal, goalCells: CellId[], joined?: number): War => {
-    const war: War = { id: state.year * 1000 + created++, attacker: attacker.id, defender: defender.id, startYear: state.year, score: 0, battleScore: 0, goal, goalCells };
-    if (joined !== undefined) war.joined = joined;
-    state.wars.push(war);
+    const war = startWar(state, attacker, defender, goal, goalCells, joined);
     atWar.add(pairKey(attacker.id, defender.id));
     warCount.set(attacker.id, (warCount.get(attacker.id) ?? 0) + 1);
     warCount.set(defender.id, (warCount.get(defender.id) ?? 0) + 1);
-    // Going to war leaves a grudge that takes decades to fade.
-    state.relations.set(pairKey(attacker.id, defender.id), Math.max(-1, opinion(state, attacker.id, defender.id) - SIM.WAR_OPINION_HIT));
     return war;
   };
 

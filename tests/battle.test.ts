@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
 import { NO_TARGET, Settlement, type Army } from "../src/core/types";
 import { campaign } from "../src/sim/armies";
-import { fightBattles, groundBonus } from "../src/sim/battle";
+import { battleEvents, fightBattles, groundBonus } from "../src/sim/battle";
 import { pairKey } from "../src/sim/helpers";
 import { SIM } from "../src/sim/params";
 import { besiege, liberate, releaseOccupations, siegeSteps } from "../src/sim/siege";
@@ -170,5 +170,26 @@ describe("a campaign", () => {
     state.armies.push(army(1, 1, 5, 1, 0.5));
     campaign(state, createRng("rest"));
     expect(state.armies[0]!.morale).toBeGreaterThan(0.5);
+  });
+});
+
+describe("battle events", () => {
+  const report = { cell: 5, winner: 1, loser: 2, lost: 0.5, routed: true };
+
+  it("names a nearby city, and counts the fallen", () => {
+    const state = atWar();
+    state.cityNames.set(6, "Arvenna");
+    state.battles = [report];
+    expect(battleEvents(state)[0]!.text).toContain("at the Battle of Arvenna");
+    expect(battleEvents(state)[0]!.text).toContain("routs the host of");
+    expect(battleEvents(state)[0]!.text).toContain("(10,000 fell)");
+  });
+
+  it("with no city nearby, names the land", () => {
+    const state = atWar();
+    state.battles = [{ ...report, routed: false }];
+    const text = battleEvents(state)[0]!.text;
+    expect(text).toContain("in the fields of");
+    expect(text).toContain("beats back");
   });
 });

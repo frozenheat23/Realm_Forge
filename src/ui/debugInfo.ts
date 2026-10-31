@@ -3,19 +3,16 @@ import type { GeneratedWorld } from "../gen";
 import { NO_TARGET, type CellId, type Nation, type NationId, type ResourceKind, type WarGoal, type WorldState } from "../core/types";
 import { BIOME_STATS, RESOURCES } from "../gen/params";
 import { traits } from "../gen/races";
-import { ARMY_MEN_PER_UNIT } from "../render/palette";
+import { menText } from "../sim/events";
 import { armiesIn } from "../sim/armies";
 import { soldiers } from "../sim/manpower";
 import { alliesOf, opinion } from "../sim/diplomacy";
 
 /** Rounds soldier units to men, e.g. 12,000. */
-function men(units: number): string {
-  return (Math.round((units * ARMY_MEN_PER_UNIT) / 100) * 100).toLocaleString("en-US");
-}
 
 /** "soldiers 12,000 of 20,000": the nation's soldiers and its cap, in men. */
 function soldierText(state: WorldState, nation: Nation): string {
-  return `soldiers ${men(soldiers(state, nation))} of ${men(nation.manpowerCap)}`;
+  return `soldiers ${menText(soldiers(state, nation))} of ${menText(nation.manpowerCap)}`;
 }
 
 const GOAL_WORDS: Record<WarGoal, string> = { conquer: "conquest", reclaim: "reclaiming", raid: "raid", support: "helping an ally" };
@@ -27,7 +24,7 @@ function armyText(state: WorldState, cells: CellId[]): string {
     .map((a) => {
       const heading = a.target === NO_TARGET ? "holding" : `heading for cell ${a.target}`;
       const purpose = GOAL_WORDS[state.wars.find((w) => w.id === a.war)?.goal ?? "support"];
-      return ` · army of ${state.nations.get(a.owner)!.name} (${purpose}): ${men(a.size)} men, morale ${Math.round(a.morale * 100)}%, ${heading}`;
+      return ` · army of ${state.nations.get(a.owner)!.name} (${purpose}): ${menText(a.size)} men, morale ${Math.round(a.morale * 100)}%, ${heading}`;
     })
     .join("");
 }
