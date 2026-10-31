@@ -9,7 +9,7 @@ import { rebel, rebellions } from "../src/sim/rebellion";
 import { controlMap } from "../src/sim/control";
 import { adminCap, updateStability } from "../src/sim/stability";
 import { tick } from "../src/sim/tick";
-import { makeNation, makeState, row } from "./tinyWorld";
+import { makeNation, makeState, row, conqueredPeople } from "./tinyWorld";
 
 describe("stability", () => {
   it("recovers slowly for a small nation at peace", () => {
@@ -98,6 +98,7 @@ describe("rebellion", () => {
     const owners = Array(length).fill(1);
     const races = owners.map((_, i) => (i >= length - SIM.MIN_AREA ? Race.Orc : Race.Human));
     const state = makeState(row(length), owners, [makeNation(1, 0)], undefined, races);
+    conqueredPeople(state, Race.Orc);
     expect(rebel(state, state.nations.get(1)!, [...owners.keys()], createRng("r"))?.race).toBe(Race.Orc);
   });
 

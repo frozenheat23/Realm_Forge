@@ -88,6 +88,14 @@ export function makeNation(id: NationId, capital: number, extra: Partial<Nation>
  * A world state from cells, who owns what (0 = nobody), and the nations.
  * `races` gives each cell's race; by default every owned cell holds its owner's race.
  */
+/** Marks the `race` cells of `state` as the people of a fallen realm, so they can rise as their own culture. */
+export function conqueredPeople(state: WorldState, race: RaceId, id = 99): void {
+  state.nations.set(id, makeNation(id, 0, { race, alive: false, fell: 0 }));
+  state.state.race.forEach((r, c) => {
+    if (r === race) state.state.culture[c] = id;
+  });
+}
+
 export function makeState(
   spec: TinyCell[],
   owners: number[],

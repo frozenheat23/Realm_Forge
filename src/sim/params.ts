@@ -41,6 +41,8 @@ export const SIM = {
   UNREST_CONTROL_K: 0.05,
   /** Unrest gained per year when ruled by another race (÷ ruler's tolerance). */
   UNREST_FOREIGN_K: 0.01,
+  /** Unrest gained per year under rulers of your race but another culture (÷ ruler's tolerance). */
+  UNREST_KIN_K: 0.004,
   /** Unrest gained per year × devastation. */
   UNREST_DEVASTATION_K: 0.02,
   /** Unrest gained per year while occupied by an enemy. */

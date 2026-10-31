@@ -6,7 +6,18 @@ import { traits } from "../gen/races";
 import { nextNationId, takenNames } from "./helpers";
 import { emptyAccess } from "./resources";
 
-/** Makes a new nation of `race` with a fresh name and color, adds it to the state, and returns it. */
+/** What a new nation carries over from a people that came before it (SPEC §4.14). */
+export interface Heritage {
+  culture: number;
+  /** Set when an old realm returns. */
+  name?: string;
+  color?: string;
+}
+
+/**
+ * Makes a new nation of `race` and adds it to the state. It's a new people with a
+ * fresh name and color unless `heritage` says otherwise. Returns the nation.
+ */
 export function addNation(
   state: WorldState,
   rng: Rng,
@@ -14,17 +25,18 @@ export function addNation(
   stability: number,
   race: RaceId,
   parent?: NationId,
+  heritage?: Heritage,
 ): Nation {
   const id = nextNationId(state);
   const [x, y] = state.cells[capital]!.site;
   const nation: Nation = {
     id,
-    name: nameNationAt(rng, state.cultureHomes, takenNames(state), x, y, race),
-    color: nationColor(state.colorHue, id),
+    name: heritage?.name ?? nameNationAt(rng, state.cultureHomes, takenNames(state), x, y, race),
+    color: heritage?.color ?? nationColor(state.colorHue, id),
     capital,
     founded: state.year,
     race,
-    culture: id, // a new people, unless the caller says otherwise
+    culture: heritage?.culture ?? id,
     alive: true,
     stability,
     warWeariness: 0,

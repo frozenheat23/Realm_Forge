@@ -3,22 +3,22 @@ import type { Rng } from "../core/rng";
 import type { CellId, Nation, RaceId, SimEvent, WorldState } from "../core/types";
 import { traits } from "../gen/races";
 import { raiseArmy } from "./armies";
-import { rebellionEvent, warEvent } from "./events";
+import { rebellionEvent, rebornEvent, warEvent } from "./events";
 import { cellsByNation, hopsFromCapital, livingNations, pairKey, setOwner, weightedPick } from "./helpers";
 import { SIM } from "./params";
-import { addNation, bestCapital } from "./newNation";
+import { addNation, bestCapital, type Heritage } from "./newNation";
 import { startWar, warsOf } from "./war";
 import { claimedCells } from "./warGoals";
 
 /**
  * Grows a region outward from `seed` through `nation`'s cells, up to `max` cells,
- * never taking the capital. Only enters cells of the seed's race: rebels are one people.
+ * never taking the capital. Only enters cells of the seed's culture: rebels are one people.
  * Fills the seed's own province first and only then spills into neighboring ones,
  * so breakaways follow old regional lines.
  */
 export function floodFill(state: WorldState, nation: Nation, seed: CellId, max: number): CellId[] {
-  const { owner, race } = state.state;
-  const people = race[seed];
+  const { owner, culture } = state.state;
+  const people = culture[seed];
   const home = state.cells[seed]!.province;
   const region: CellId[] = [];
   const seen = new Set<CellId>([seed]);
@@ -31,7 +31,7 @@ export function floodFill(state: WorldState, nation: Nation, seed: CellId, max: 
     const cell = nearHead < near.length ? near[nearHead++]! : far[farHead++]!;
     region.push(cell);
     for (const n of state.cells[cell]!.neighbors) {
-      if (!seen.has(n) && owner[n] === nation.id && race[n] === people && n !== nation.capital) {
+      if (!seen.has(n) && owner[n] === nation.id && culture[n] === people && n !== nation.capital) {
         seen.add(n);
         (state.cells[n]!.province === home ? near : far).push(n);
       }
@@ -49,6 +49,27 @@ function revoltRegion(state: WorldState, nation: Nation, candidates: CellId[], r
 }
 
 /**
+ * What rebels of culture `people` inherit. The ruling people breaking away become a new
+ * culture. A conquered people carry on as themselves, and if no living nation rules
+ * that culture, their old realm returns under its old name and color.
+ */
+function rebelHeritage(state: WorldState, nation: Nation, people: number): Heritage | undefined {
+  if (people === nation.culture) return undefined;
+  const kin = livingNations(state).some((n) => n.culture === people);
+  const founder = state.nations.get(people)!;
+  return kin ? { culture: people } : { culture: people, name: founder.name, color: founder.color };
+}
+
+/** Did this nation bring back a fallen realm? Then how long ago did that realm last fall. */
+function yearsSinceFall(state: WorldState, rebels: Nation): number | null {
+  const founder = state.nations.get(rebels.culture)!;
+  if (founder.id === rebels.id || founder.name !== rebels.name) return null;
+  let fell = 0;
+  for (const n of state.nations.values()) if (n.culture === rebels.culture && n.fell !== undefined) fell = Math.max(fell, n.fell);
+  return state.year - fell;
+}
+
+/**
  * Tries to start one rebellion in `nation`. Returns the new rebel nation, or
  * null if no province is far enough away or the breakaway would be too small.
  */
@@ -57,13 +78,14 @@ export function rebel(state: WorldState, nation: Nation, cells: CellId[], rng: R
   // Rebels start far from the capital, or in land the capital can't even reach.
   const farAway = cells.filter((c) => hops[c]! === -1 || hops[c]! >= SIM.REBEL_MIN_CAPITAL_DIST);
   // Subject peoples rise first. If there are too few of them to form a nation, the ruling people rise instead.
-  const foreign = farAway.filter((c) => state.state.race[c] !== nation.race);
+  const foreign = farAway.filter((c) => state.state.culture[c] !== nation.culture);
   const region = revoltRegion(state, nation, foreign, rng) ?? revoltRegion(state, nation, farAway, rng);
   if (!region) return null;
 
   // The rebels are ruled by their own people. (`as RaceId`: the typed array only knows it's a number.)
   const rebelRace = state.state.race[region[0]!]! as RaceId;
-  const rebelNation = addNation(state, rng.fork("name"), bestCapital(state, region), SIM.REBEL_START_STABILITY, rebelRace, nation.id);
+  const heritage = rebelHeritage(state, nation, state.state.culture[region[0]!]!);
+  const rebelNation = addNation(state, rng.fork("name"), bestCapital(state, region), SIM.REBEL_START_STABILITY, rebelRace, nation.id, heritage);
   for (const c of region) {
     setOwner(state, c, rebelNation.id);
     state.state.culture[c] = rebelNation.culture;
@@ -111,7 +133,8 @@ export function rebellions(state: WorldState, rng: Rng): SimEvent[] {
     for (let revolt = 0; revolt < SIM.REBEL_MAX_SPREAD && nationRng.chance(chance); revolt++) {
       const rebelNation = rebel(state, nation, cells, nationRng.fork(`revolt-${revolt}`));
       if (!rebelNation) break;
-      events.push(rebellionEvent(state.year, rebelNation, nation));
+      const yearsGone = yearsSinceFall(state, rebelNation);
+      events.push(yearsGone === null ? rebellionEvent(state.year, rebelNation, nation) : rebornEvent(state.year, rebelNation, nation, yearsGone));
       const war = takeUpArms(state, nation, rebelNation, nationRng.fork(`arms-${revolt}`));
       if (war) events.push(war);
       cells = cells.filter((c) => state.state.owner[c] === nation.id);

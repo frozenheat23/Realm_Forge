@@ -13,7 +13,7 @@ import { groundBonus } from "../src/sim/battle";
 import { rebel } from "../src/sim/rebellion";
 import { updateStability } from "../src/sim/stability";
 import { updateTotals } from "../src/sim/totals";
-import { makeCells, makeNation, makeState, row } from "./tinyWorld";
+import { makeCells, makeNation, makeState, row, conqueredPeople } from "./tinyWorld";
 
 describe("race traits", () => {
   it("treats nobody (Race.None) as the Human baseline", () => {
@@ -85,7 +85,7 @@ describe("races in the simulation", () => {
     const races = Array.from({ length }, (_, i) => (i >= dist + 2 ? Race.Orc : Race.Human));
     const owners = Array(length).fill(1);
     const state = makeState(row(length), owners, [makeNation(1, 0)], undefined, races);
-
+    conqueredPeople(state, Race.Orc);
     const rebelNation = rebel(state, state.nations.get(1)!, [...owners.keys()], createRng("r"));
     expect(rebelNation).not.toBeNull();
     expect(rebelNation!.race).toBe(Race.Orc);
