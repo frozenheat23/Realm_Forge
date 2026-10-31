@@ -28,7 +28,8 @@ export function rebellionEvent(year: number, rebel: Nation, from: Nation): SimEv
 }
 
 export function rebornEvent(year: number, reborn: Nation, from: Nation, yearsGone: number): SimEvent {
-  const text = `Year ${year}: ${reborn.name} is reborn, ${yearsGone} years after its fall, breaking free of ${from.name}.`;
+  const when = yearsGone === 0 ? "the very year it fell" : `${yearsGone} years after its fall`;
+  const text = `Year ${year}: ${reborn.name} is reborn, ${when}, breaking free of ${from.name}.`;
   return { year, type: "rebellion", actors: [reborn.id, from.id], text };
 }
 

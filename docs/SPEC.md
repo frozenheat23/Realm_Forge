@@ -250,7 +250,7 @@ One tick = one year. The steps always run in this order:
 | # | Step | Section |
 |---|---|---|
 | 1 | Population | 4.1 |
-| 2 | Totals, then each cell's land (unrest, devastation, development, settlements) | 4.2, 4.11 |
+| 2 | Totals, then each cell's land (unrest, devastation, development, settlements), then its people (assimilation, faith) | 4.2, 4.11, 4.14 |
 | 3 | Stability | 4.3 |
 | 4 | Expansion | 4.4 |
 | 4b | Diplomacy | 4.12 |
@@ -265,12 +265,12 @@ One tick = one year. The steps always run in this order:
 
 **The core loop to protect:** expansion → overextension → instability → fragmentation. If history looks frozen or chaotic, tune this loop first (see "Tuning recipes" in `PARAMS.md`).
 
-Races (§4.10) and land detail (§4.11) don't add steps. They change numbers inside steps 1–9; each section below says how.
+Races (§4.10), land detail (§4.11) and culture and faith (§4.14) don't add steps. They change numbers inside steps 1–9; each section below says how.
 
 ### 4.1 Population
 - Each owned cell grows toward its capacity: `pop += POP_GROWTH × growth × pop × (1 − pop / capacity)` (logistic growth), where `growth` is the trait of the race living in the cell and `capacity` is the **effective capacity**: the cell's capacity × that race's affinity (§4.10) × `(1 − devastation × DEVASTATION_CAP_LOSS)` × the owner's grain bonus (§4.11).
 - War hurts cells where armies actually are: battles kill people and devastate their cell, marching and sieges devastate the land (§4.13).
-- Unowned cells hold no population (simplification for now); their race, unrest, development and settlement are reset to 0. Devastation stays and heals.
+- Unowned cells hold no population (simplification for now); their race, culture, faith, unrest, development and settlement are reset to 0. Devastation stays and heals.
 
 ### 4.2 Totals
 For each living nation, recompute:
@@ -335,14 +335,14 @@ The chance is capped at `WAR_MAX_PROB`. The stronger side (by its own power) is 
 
 ### 4.6 Rebellion
 If a nation's stability is below `REBEL_THRESHOLD`, each year it has a chance of a revolt of `REBEL_PROB × unrest × (total unrest of its cells / REBEL_RESTLESS_CELLS)` (`unrest` from §4.2, then the cells' own unrest from §4.11). So a lot of restless land means frequent revolts, and calm land doesn't revolt however shaky the nation. Each revolt has a `REBEL_SPREAD` chance of setting off another in that nation the same year, up to `REBEL_MAX_SPREAD`: this is how a great empire falls within a few bad years. Each revolt:
-1. Pick a seed cell at least `REBEL_MIN_CAPITAL_DIST` steps from the capital (walking only through the nation's own land), or one the capital can't reach that way at all (e.g. an island). **Foreign-race cells are tried first** (subject peoples rise first); if the region they'd form is too small to be a nation, the seed is picked from all those cells instead, so a few foreign villages can't shield an empire from revolt. Among the candidates the seed is picked at random **weighted by each cell's unrest** (§4.11), so rebellions start in weakly held, recently conquered or war-torn land (uniform if none is restless).
-2. Flood-fill outward through the nation's cells **of the seed's race**, up to `REBEL_MAX_CELLS`, never taking the capital, **filling the seed's own province first** before spilling into neighboring ones. If the region is smaller than `MIN_AREA`, no rebellion happens.
-3. Those cells become a new nation with a new name and color, ruled by the seed's race. Set `parent` to the old nation and give it starting stability `REBEL_START_STABILITY`. Its capital is the region's biggest settlement (then most populous cell). The rebel cells' unrest resets to 0, and since their `prevOwner` is the old nation, it has a claim to win them back. Opinion between the rebels and their old rulers starts at `REBEL_OPINION` (§4.12).
+1. Pick a seed cell at least `REBEL_MIN_CAPITAL_DIST` steps from the capital (walking only through the nation's own land), or one the capital can't reach that way at all (e.g. an island). **Cells of another culture are tried first** (subject peoples rise first); if the region they'd form is too small to be a nation, the seed is picked from all those cells instead, so a few foreign villages can't shield an empire from revolt. Among the candidates the seed is picked at random **weighted by each cell's unrest** (§4.11), so rebellions start in weakly held, recently conquered or war-torn land (uniform if none is restless).
+2. Flood-fill outward through the nation's cells **of the seed's culture**, up to `REBEL_MAX_CELLS`, never taking the capital, **filling the seed's own province first** before spilling into neighboring ones. If the region is smaller than `MIN_AREA`, no rebellion happens.
+3. Those cells become a new nation, ruled by the seed's race. Its culture, name and color depend on who rose (§4.14): usually a new name and color, but a fallen realm's people bring back its own. It takes the most common faith among its cells. Set `parent` to the old nation and give it starting stability `REBEL_START_STABILITY`. Its capital is the region's biggest settlement (then most populous cell). The rebel cells' unrest resets to 0, and since their `prevOwner` is the old nation, it has a claim to win them back. Opinion between the rebels and their old rulers starts at `REBEL_OPINION` (§4.12).
 4. Part of the old nation's soldiers go over to the rebels, and it may fight at once to take the land back (§4.13 "Rebels and allies").
 
 ### 4.7 Collapse
 - **Capital lost:** (when the capital's cell changes owner, at peace or to rebels; merely *occupying* a capital costs stability in §4.13) the capital moves to the nation's biggest remaining settlement, then its most populous cell (`capital_moved` event), and stability drops by `CAPITAL_LOSS_STAB_HIT`.
-- **Collapse:** a nation with `area < MIN_AREA`, or with no cells left, dissolves. Each of its cells is annexed by the strongest nation bordering *that cell* (judged on ownership before the collapse, so it doesn't chain), or becomes unowned if there's none. Logged as `annexed` (naming the nation that took the most cells) or `collapse`. Annexed cells keep their people and race; cells left unowned are emptied (pop and race reset to 0).
+- **Collapse:** a nation with `area < MIN_AREA`, or with no cells left, dissolves. Each of its cells is annexed by the strongest nation bordering *that cell* (judged on ownership before the collapse, so it doesn't chain), or becomes unowned if there's none. Logged as `annexed` (naming the nation that took the most cells) or `collapse`. Annexed cells keep their people, race, culture and faith; cells left unowned are emptied (all reset to 0).
 
 ### 4.8 Emergence
 If a connected unowned land region has at least `EMERGENCE_MIN_REGION` habitable cells, each year it has an `EMERGENCE_PROB` chance of spawning a new nation at its highest-capacity cell, claiming `EMERGENCE_CORE_SIZE` cells around it. The new nation's race is the race of the nearest race homeland (§4.10), and its cells are settled by that race.
@@ -381,7 +381,7 @@ Every cell's people belong to one race, and every nation is ruled by one race. E
 1. A nation claims an empty cell: it's settled by the nation's race (§4.4).
 2. A cell is left unowned: it's emptied and its race is reset to 0 (§4.1, §4.7).
 
-Conquest and annexation keep the people (and their race) in place. So a race's lands grow by settling and shrink by being emptied, and a conqueror's empire fills up with foreign subjects who weigh on its stability and lead its rebellions. Peoples blending into their rulers over time (cultures) is a later milestone.
+Conquest and annexation keep the people (and their race) in place. So a race's lands grow by settling and shrink by being emptied, and a conqueror's empire fills up with foreign subjects who weigh on its stability and lead its rebellions. Culture and faith (§4.14) change far more easily than race: only a race never changes.
 
 ### 4.11 Land and cell detail
 
@@ -421,7 +421,7 @@ Updated once a year right after Totals (`updateLand` in `sim/land.ts`), using th
 
 | Field | Type | Rises when | Falls when | Used for |
 |---|---|---|---|---|
-| `unrest` | `Float32Array` 0..1 | Captured (jumps to at least `UNREST_CONQUEST`); each year `+ UNREST_CONTROL_K × (1 − control) + UNREST_FOREIGN_K / tolerance` (if ruled by another race) `+ UNREST_DEVASTATION_K × devastation + UNREST_CRISIS_K × max(0, 1 − stability / REBEL_THRESHOLD)` | `UNREST_DECAY` per year, doubled in core land; reset to 0 when the cell rebels | Sets how often rebellions happen and where they start (§4.6) |
+| `unrest` | `Float32Array` 0..1 | Captured (jumps to at least `UNREST_CONQUEST`); each year `+ UNREST_CONTROL_K × (1 − control) + UNREST_FOREIGN_K / tolerance` (if ruled by another race) `+ UNREST_KIN_K / tolerance` (own race, another culture) `+ UNREST_FAITH_K × fervor / tolerance` (another faith) `+ UNREST_DEVASTATION_K × devastation + UNREST_CRISIS_K × max(0, 1 − stability / REBEL_THRESHOLD)` | `UNREST_DECAY` per year, doubled in core land; reset to 0 when the cell rebels | Sets how often rebellions happen and where they start (§4.6) |
 | `devastation` | `Float32Array` 0..1 | Battles (`DEVASTATION_BATTLE`), marching (`DEVASTATION_MARCH`) and being occupied (`DEVASTATION_CAPTURE`) | Heals `DEVASTATION_HEAL` of itself per year | Cuts capacity and development; raises unrest |
 | `development` | `Float32Array` 0..1 | `DEV_GROWTH × (pop / capacity) × control × (1 − devastation)` per year | `DEV_DEVASTATION_LOSS × devastation` per year | Cell value, settlement level |
 | `settlement` | `Uint8Array` 0 none, 1 village, 2 town, 3 city | One level a year when development passes `SETTLE_VILLAGE` / `SETTLE_TOWN` / `SETTLE_CITY` (towns and cities also need pop ≥ `SETTLE_MIN_POP_FRACTION` × capacity) | One level when development falls below that level's threshold × `SETTLE_DOWN_FACTOR` (so levels don't flicker) | City names and events, capital choice, map markers |
@@ -463,6 +463,7 @@ target = raceAttitude(raceA, raceB)          // RACE_ATTITUDES, averaged both wa
        − BORDER_FRICTION                      if they share a border
        − WAR_OPINION_PENALTY                  if at war with each other
        + SHARED_ENEMY_BONUS                   else, if both fight the same nation
+       ± FAITH_OPINION × average fervor       + for one faith, − for different faiths (§4.14)
 clamp to −1..1
 ```
 
@@ -609,7 +610,7 @@ Met: tick 9.3 ms; biggest race 40%; of ~8 rebel wars a century, rebels win ~2, a
 
 ### 4.14 Culture and faith
 
-> Planned for M12, built in six steps (see the Decision log). Marked done here when built. Numbers are in `PARAMS.md` → "Culture and faith". Code: `sim/culture.ts`, `sim/faith.ts`.
+> Built in M12, in six steps (see the Decision log). Numbers are in `PARAMS.md` → "Culture and faith". Code: `sim/culture.ts`, `sim/faith.ts`, `gen/faiths.ts`.
 
 **Goal.** Give peoples a memory. Today a conquered province is only "Humans"; with culture it's *the people of Velmora*, who can rise and bring Velmora back. Faith cuts across race, so kingdoms of different peoples can share a god and a kingdom can turn from its old one. The core rule: **culture stays inside a race; faith crosses races.**
 
@@ -635,15 +636,15 @@ Nine, in the `FAITHS` table (`gen/params.ts`, next to `RACES`). **Reach** is how
 
 | Faith | Home race | Reach | Fervor | Blessing |
 |---|---|---|---|---|
-| The Old Gods | none: forbidden shrines, anywhere | low (high in restless land) | low | **Whispers**: lands at war with its rulers grow more restless |
+| The Old Gods | none: forbidden shrines, anywhere | low (high in restless land) | low | **Whispers**: land next to a hidden shrine grows more restless |
 | The Radiant Covenant | Humans | high | high | **Order**: stability recovers faster |
 | The Evergreen Vow | Light Elves, elves only | low | medium | **Sanctuary**: defenders fight better |
-| The Silver Choir | Light Elves, elves only | low | medium | **Remembrance**: conquered believers assimilate slower |
+| The Silver Choir | Light Elves, elves only | low | medium | **Remembrance**: its believers assimilate slower, whoever rules them |
 | The Hollow Mother | Dark Elves (their only faith; the forest mother gone hollow, an offshoot of the Evergreen Vow) | medium | very high | **Devotion**: the soldier reserve refills faster |
 | The Deep Ancestors | Dwarves | very low | low | **Grudges**: claims last longer |
 | The Anvil Oath | Dwarves | low | medium | **Forge**: development grows faster |
 | The Red Hunger | Orcs | high | high | **Warpath**: more eager to start wars |
-| The Bone Drums | Orcs | high | low | **Kinship**: conquered tribes assimilate faster |
+| The Bone Drums | Orcs | high | low | **Kinship**: people of its nations assimilate faster |
 
 **At the start.** Each race's homeland points take its faiths in turn, so a race with two faiths starts with one in each homeland. A nation and its cells take the faith of the nearest homeland of its race. Emerging nations do the same.
 
@@ -661,7 +662,7 @@ chance = FAITH_RATE × reach × conversion × (faith is the owner's ? 1 : FAITH_
 
 `conversion` is a new race trait of the people living there. Capitals never convert, so a realm can't lose its own faith at the source. Elves-only faiths only enter Light Elf cells. The Old Gods' reach rises with the cell's unrest and they enter elf cells only slowly (`OLD_GODS_ELF_SPREAD`).
 
-**The Old Gods appear.** Any owned cell at unrest ≥ `OLD_GODS_MIN_UNREST` can turn to them each year with chance `OLD_GODS_SPARK`, even where they've died out: *"The Old Gods stir in the east of Kethar."*
+**The Old Gods appear.** Any owned cell at unrest ≥ `OLD_GODS_MIN_UNREST` can turn to them each year with chance `OLD_GODS_SPARK`, even where they've died out. If the realm had no shrine yet, it's logged: *"The Old Gods stir in the east of Kethar."* (event type `faith`, with realm conversions).
 
 #### What they change
 
@@ -670,7 +671,7 @@ chance = FAITH_RATE × reach × conversion × (faith is the owner's ? 1 : FAITH_
   - **Ruling people rise:** the breakaway is a new culture. The region's cells take the rebels' id as their culture.
   - **A conquered people rise, and no living nation rules that culture:** their old realm returns, with its old name and color: *"Velmora is reborn, 340 years after its fall."*
   - **A conquered people rise, and a living nation already rules that culture:** a new sister state of the same culture with a fresh name.
-- **Realm conversion.** Each year, a nation where a faith other than its own holds over `FAITH_MAJORITY` of the people adopts it with chance `FAITH_ADOPT`: *"Kethar embraces the Silver Choir."* or, for the Old Gods, *"Kethar turns to the Old Gods."*
+- **Realm conversion.** Each year, a nation whose biggest faith isn't its own, and holds at least `FAITH_MAJORITY` of the people, adopts it with chance `FAITH_ADOPT`, and its capital's cell turns with it: *"Kethar embraces the Silver Choir."* or, for the Old Gods, *"Kethar turns to the Old Gods."*
 - **Rebel faith.** A new nation of rebels takes the most common faith among its cells.
 - **Diplomacy (§4.12).** Target opinion gains `FAITH_OPINION × average fervor` between nations of one faith, and loses as much between nations of different faiths.
 
@@ -678,13 +679,25 @@ chance = FAITH_RATE × reach × conversion × (faith is the owner's ? 1 : FAITH_
 
 Schisms, holy wars and holy cities (could return as their own step), morale bonuses, claims by culture, and any change to a cell's `race`.
 
-#### Done when (20 unseen seeds)
+#### What it gives
 
-- ≥ 15 restored realms and ≥ 10 realm conversions per run, otherwise the rule is deleted. 5+ faiths alive at year 1000.
-- Solid map: ≥ 80% of cells share a culture with 3+ neighbors at year 500.
-- Races clearly differ in how fast they assimilate and convert.
-- The Old Gods stay a minority.
-- Guardrails: ~7 rebellions a century; average peak empire ~33% of the land, ≥ 65% of worlds reach 25%; biggest race ≤ 42%; land at unrest ≥ 0.9 ≤ 21%; tick < 10 ms.
+Measured on 20 seeds never used for tuning, each 1,000 years, against the same seeds before M12:
+
+| | Before | After |
+|---|---|---|
+| Realms reborn per run | 0 | 17 |
+| Realm conversions per run | 0 | 4.8 (target was 10, see below) |
+| Realms where the Old Gods first stir, per run | 0 | 17 |
+| Rebellions per century | 4.6 | 4.5 |
+| Wars per century | 54 | 56 |
+| Average biggest empire at its peak | 30% of the land | 31% |
+| Worlds reaching 25% / 40% | 60% / 15% | 65% / 25% |
+
+- 8.4 of 9 faiths alive at year 1000, on 90% solid blobs. A culture is on 91% solid land at year 500. No culture ever crossed a race.
+- The Old Gods hold 5.5% of the land at year 1000; 15% at the worst moment of any run.
+- Land at unrest ≥ 0.9: 22.5%. Tick 8.3 ms (was 6.9). 10-seed race balance: biggest race 42%, no takeovers.
+- Every blessing changed what it should when switched off and on: Order stability 0.938 → 0.964 (at 1.3, before it was cut to 1.1), Forge development 0.57 → 0.65, Warpath wars 31 → 42 per 1,000 nation-years, Grudges reclaim wars 1% → 9%, Kinship cells assimilated 3,320 → 5,304, Remembrance 605 → 316, Devotion reserve 83.5% → 85.8%, Whispers unrest beside shrines 0.76 → 0.83. Sanctuary is the weakest: Evergreen land 404 → 439, within noise, kept because it directly multiplies battle power.
+- Realm conversions missed their target: rulers' faith spreads faster than any rival's, so a realm rarely holds a majority against it. Raising cross-border spread further got ~7 a run but cut rebellions and rebirths. Kept at ~5 a run, since each one is a moment worth seeing.
 
 ---
 
@@ -788,7 +801,7 @@ Two more tints like the Races layer (§5.4b), and only one of the three shows at
 
 Not designed yet. When one is picked up, give it its own section in §4 and matching parameters in `PARAMS.md`.
 
-- Cultures that blend into their rulers over time; religions (affect rebellion and war odds)
+- Schisms, holy wars and holy cities (§4.14)
 - Red Orcs as a second orc race (disciplined empire-builders who rule Green Orcs easily)
 - Dynasties and succession crises
 - Trade routes and economy

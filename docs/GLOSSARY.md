@@ -122,3 +122,6 @@ New concepts as we meet them, with where they show up in our code.
 | **Overfitting** | Tuning until the numbers look good on the examples you tuned on, then finding they don't hold on new ones. Our "4 of 10 worlds" was 1 in 20 on fresh seeds. | giants tuning |
 | **Holdout set** | Examples kept aside and never tuned on, used only for the final check, so the result is honest. | seeds named `holdout-N` in the tuning runs |
 | **Noise** | Differences that come from chance, not from your change. In a chaotic simulation any tiny change reshuffles history, so you need many seeds to see a real effect. | comparing settings |
+| **Cellular automaton (neighbor rule)** | Many small cells each follow one simple rule about their neighbors, and big shapes appear by themselves. Here: copy a random neighbor now and then, and solid blobs of culture grow. | `assimilate()` in `src/sim/culture.ts`, `spreadFaith()` in `src/sim/faith.ts` |
+| **Feedback loop** | An effect that feeds its own cause. Cults make land restless, and restless land spreads cults faster. Worth measuring: loops can run away. | Whispers in `src/sim/land.ts` |
+| **Leave-one-out test** | Switch off one thing at a time and see what changes, to find which one is responsible. | How we found that Order was cutting rebellions |

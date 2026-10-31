@@ -140,7 +140,7 @@ export const RACE_HOME_FOCUS = 3;
 /** The nine faiths (SPEC §4.14). Table and meanings in docs/PARAMS.md "Culture and faith". */
 export const FAITHS: Record<FaithKind, FaithInfo> = {
   [Faith.OldGods]: { name: "the Old Gods", reach: 0.4, fervor: 0.5, blessing: 0.01 },
-  [Faith.RadiantCovenant]: { name: "the Radiant Covenant", reach: 1.5, fervor: 1.3, blessing: 1.3 },
+  [Faith.RadiantCovenant]: { name: "the Radiant Covenant", reach: 1.5, fervor: 1.3, blessing: 1.1 },
   [Faith.EvergreenVow]: { name: "the Evergreen Vow", reach: 0.5, fervor: 1.0, blessing: 1.15, races: [Race.LightElf] },
   [Faith.SilverChoir]: { name: "the Silver Choir", reach: 0.5, fervor: 1.0, blessing: 0.5, races: [Race.LightElf] },
   [Faith.HollowMother]: { name: "the Hollow Mother", reach: 1.0, fervor: 1.6, blessing: 1.3 },

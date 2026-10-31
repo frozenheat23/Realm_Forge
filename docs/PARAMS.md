@@ -242,6 +242,8 @@ The race table is `RACES` in `src/gen/params.ts` (not editable in the Settings p
 
 | Trait | Up ↑ | Down ↓ |
 |---|---|---|
+| `assimilation` | Takes on rulers of its race fast (table in Culture and faith) | Keeps its old ways |
+| `conversion` | Changes faith easily (table in Culture and faith) | Holds to its faith |
 | `growth` | Fills land and recovers from war fast | Slow to recover; losses hurt for longer |
 | `martial` | Wins more battles | Loses more battles |
 | `defense` | Its land is hard to fight in | Easy to overrun |
@@ -459,37 +461,37 @@ Measured after step 5, the finished milestone (same 5 seeds, vs step 4): ~113 wa
 
 ## Culture and faith
 
-SPEC §4.14. Planned for M12; values below are starting guesses until each step is built and tuned. `FAITHS` and the race traits are in `gen/params.ts`; the rest are in `SIM`, in the Settings panel ("Culture and faith").
+SPEC §4.14. `FAITHS` and the race traits are in `gen/params.ts`; the rest are in `SIM`, in the Settings panel (under "Culture and faith", except `UNREST_KIN_K` and `UNREST_FAITH_K` under Land and `FAITH_OPINION` under Diplomacy).
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
 | `CULTURE_RATE` | 0.05 | 0–0.2 | Yearly chance a cell copies the ruler's culture from a neighbor (× assimilation × control) | Empires absorb their kin in a few generations; fewer realms return | Old peoples last forever |
 | `ASSIMILATE_MAX_UNREST` | 0.3 | 0–1 | Cells more restless than this keep their culture | Even angry land assimilates | Only calm land does |
 | `FAITH_RATE` | 0.03 | 0–0.2 | Yearly chance a cell copies a neighbor's faith (× reach × conversion) | Faiths sweep the map | Faith maps barely move |
-| `FAITH_FOREIGN_SPREAD` | 0.3 | 0–1 | × that chance when the faith isn't the owner's | Faiths ignore borders | Faith borders match nation borders |
+| `FAITH_FOREIGN_SPREAD` | 0.6 | 0–1 | × that chance when the faith isn't the owner's | Faiths ignore borders | Faith borders match nation borders |
 | `OLD_GODS_MIN_UNREST` | 0.8 | 0.3–1 | Unrest at which land can turn to the Old Gods | Only the worst land | Cults everywhere |
 | `OLD_GODS_SPARK` | 0.0005 | 0–0.01 | Yearly chance of that, per cell | Cults everywhere | Rarely seen |
 | `OLD_GODS_UNREST_REACH` | 3 | 0–10 | Old Gods reach × (1 + this × the cell's unrest) | Spread fast through troubled land | Same speed everywhere |
 | `OLD_GODS_ELF_SPREAD` | 0.2 | 0–1 | × Old Gods spread into elf cells | Elves worship them too | Elves never do |
 | `UNREST_KIN_K` | 0.004 | 0–0.02 | Unrest gained per year by the ruler's race of another culture (÷ tolerance) | Conquered kin stay restless | Kin settle at once |
 | `UNREST_FAITH_K` | 0.004 | 0–0.02 | Unrest gained per year × fervor by people of another faith (÷ tolerance) | Religious borders burn | Faith doesn't anger anyone |
-| `FAITH_MAJORITY` | 0.5 | 0.3–0.9 | Share of the people a rival faith needs before a realm may adopt it | Realms keep their faith | Realms convert easily |
-| `FAITH_ADOPT` | 0.02 | 0–0.2 | Yearly chance of adopting it | Realms convert at once | Rulers hold out for centuries |
+| `FAITH_MAJORITY` | 0.35 | 0.2–0.9 | Share of the people a realm's biggest rival faith needs before it may be adopted | Realms keep their faith | Realms convert easily |
+| `FAITH_ADOPT` | 0.05 | 0–0.2 | Yearly chance of adopting it | Realms convert at once | Rulers hold out for centuries |
 | `FAITH_OPINION` | 0.1 | 0–0.3 | Opinion ± between nations of one or different faiths (× average fervor) | Faith blocs | Faith ignored in diplomacy |
 
 ### Faith table
 
 | Faith | Reach | Fervor | Blessing | Effect |
 |---|---|---|---|---|
-| The Old Gods | 0.4 | 0.5 | Whispers | Set in step 6 |
-| The Radiant Covenant | 1.5 | 1.3 | Order | Set in step 6 |
-| The Evergreen Vow | 0.5 | 1.0 | Sanctuary | Set in step 6 |
-| The Silver Choir | 0.5 | 1.0 | Remembrance | Set in step 6 |
-| The Hollow Mother | 1.0 | 1.6 | Devotion | Set in step 6 |
-| The Deep Ancestors | 0.3 | 0.5 | Grudges | Set in step 6 |
-| The Anvil Oath | 0.6 | 1.0 | Forge | Set in step 6 |
-| The Red Hunger | 1.4 | 1.3 | Warpath | Set in step 6 |
-| The Bone Drums | 1.3 | 0.5 | Kinship | Set in step 6 |
+| The Old Gods | 0.4 | 0.5 | Whispers | 0.01: unrest a year on each cell next to a shrine in a realm of another faith |
+| The Radiant Covenant | 1.5 | 1.3 | Order | 1.1 × `STAB_RECOVERY`. Strong: at 1.3 rebellions fell by a quarter, so keep it low |
+| The Evergreen Vow | 0.5 | 1.0 | Sanctuary | 1.15 × power of armies on their own land |
+| The Silver Choir | 0.5 | 1.0 | Remembrance | 0.5 × assimilation of its believers |
+| The Hollow Mother | 1.0 | 1.6 | Devotion | 1.3 × `LEVY_REFILL` |
+| The Deep Ancestors | 0.3 | 0.5 | Grudges | 2 × `CLAIM_YEARS` |
+| The Anvil Oath | 0.6 | 1.0 | Forge | 1.4 × `DEV_GROWTH` |
+| The Red Hunger | 1.4 | 1.3 | Warpath | 1.3 × war chance |
+| The Bone Drums | 1.3 | 0.5 | Kinship | 2 × assimilation in its nations |
 
 ### Race traits
 
