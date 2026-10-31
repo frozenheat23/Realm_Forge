@@ -1,5 +1,5 @@
 // Step 1 (SPEC §4.1): people multiply toward what the land can hold.
-import { Race, type WorldState } from "../core/types";
+import { Faith, Race, type WorldState } from "../core/types";
 import { traits } from "../gen/races";
 import { SIM } from "./params";
 import { effectiveCapacity, grainBonuses } from "./resources";
@@ -7,16 +7,17 @@ import { effectiveCapacity, grainBonuses } from "./resources";
 /**
  * Logistic growth: fast when a cell is nearly empty, slowing to zero as it
  * fills up to what its race can get out of the land. Each race grows at its own pace.
- * Unowned cells hold nobody (and no race, culture, unrest, development or settlement).
+ * Unowned cells hold nobody (and no race, culture, faith, unrest, development or settlement).
  */
 export function growPopulation(state: WorldState): void {
-  const { pop, owner, race, culture, unrest, development, settlement } = state.state;
+  const { pop, owner, race, culture, faith, unrest, development, settlement } = state.state;
   const grain = grainBonuses(state);
   for (let i = 0; i < pop.length; i++) {
     // Abandoned land is emptied of people, unrest and what they built; war damage stays and heals.
     if (owner[i] === 0) {
       race[i] = Race.None;
       culture[i] = 0;
+      faith[i] = Faith.None;
       unrest[i] = 0;
       development[i] = 0;
       settlement[i] = 0;

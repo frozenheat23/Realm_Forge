@@ -4,7 +4,7 @@ import type { GeneratedWorld } from "../gen";
 import type { NationId, WorldState } from "../core/types";
 import { hexToRgb, scaleRgb, type Rgb } from "./color";
 import { pairKey } from "../sim/war";
-import { BORDER_ALPHA, BORDER_DARKEN, HIGHLIGHT_DIM, OVERLAY_ALPHA, RACE_COLORS, WAR_FRONT_COLOR } from "./palette";
+import { BORDER_ALPHA, BORDER_DARKEN, FAITH_COLORS, HIGHLIGHT_DIM, OVERLAY_ALPHA, RACE_COLORS, WAR_FRONT_COLOR } from "./palette";
 
 /** Packs a color and alpha into one 32-bit number, the way ImageData stores a pixel. */
 function packPixel(rgb: Rgb, alpha: number): number {
@@ -13,7 +13,7 @@ function packPixel(rgb: Rgb, alpha: number): number {
 }
 
 /** What land is tinted by: who rules it, or who lives there (SPEC §5.4b, §5.4i). */
-export type OverlayTint = "nation" | "race" | "culture";
+export type OverlayTint = "nation" | "race" | "culture" | "faith";
 
 /**
  * If `highlight` has nations in it, every other nation is drawn faded.
@@ -48,7 +48,8 @@ export function renderNationOverlay(
 
   // Each race's fill color, packed once (index = race id).
   const raceFill = Uint32Array.from(RACE_COLORS, (hex, r) => (r === 0 ? 0 : packPixel(hexToRgb(hex), fillAlpha)));
-  const { race, culture } = state.state;
+  const { race, culture, faith } = state.state;
+  const faithFill = Uint32Array.from(FAITH_COLORS, (hex, f) => (f === 0 ? 0 : packPixel(hexToRgb(hex), fillAlpha)));
 
   // Borders between nations at war are drawn in red.
   const warFront = packPixel(hexToRgb(WAR_FRONT_COLOR), 255);
@@ -92,7 +93,8 @@ export function renderNationOverlay(
       if (!onBorder) {
         const cell = displayCells[i]!;
         // A culture wears the color of the realm it began as, living or dead.
-        const inside = tint === "race" ? raceFill[race[cell]!]! : tint === "culture" ? fill[culture[cell]!]! : fill[me]!;
+        const inside =
+          tint === "race" ? raceFill[race[cell]!]! : tint === "culture" ? fill[culture[cell]!]! : tint === "faith" ? faithFill[faith[cell]!]! : fill[me]!;
         px[i] = nearEnemy2 ? warFront : inside;
       } else if (
         atWar.size > 0 &&

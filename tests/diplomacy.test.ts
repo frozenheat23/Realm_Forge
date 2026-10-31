@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
-import { Race, type RaceId, type WorldState } from "../src/core/types";
+import { Faith, Race, type RaceId, type WorldState } from "../src/core/types";
 import { generateWorld } from "../src/gen";
+import { FAITHS } from "../src/gen/params";
 import { alliesOf, opinion, raceAttitude, updateAlliances, updateOpinions } from "../src/sim/diplomacy";
 import { neighborPairs, pairKey } from "../src/sim/helpers";
 import { SIM, SIM_DEFAULTS } from "../src/sim/params";
@@ -14,6 +15,9 @@ import { makeNation, makeState, row } from "./tinyWorld";
 afterEach(() => {
   Object.assign(SIM, SIM_DEFAULTS);
 });
+
+/** Test nations share a faith, which warms their opinion by this much. */
+const oneFaith = SIM.FAITH_OPINION * FAITHS[Faith.RadiantCovenant].fervor;
 
 // Two nations side by side: [1][1][1] | [2][2][2]
 function twoNations(race2: RaceId = Race.Human) {
@@ -51,14 +55,14 @@ describe("opinion", () => {
   it("starts at race attitude minus border friction when neighbors meet", () => {
     const state = twoNations(Race.Orc);
     updateOpinions(state, neighborPairs(state));
-    expect(opinion(state, 1, 2)).toBeCloseTo(raceAttitude(Race.Human, Race.Orc) - SIM.BORDER_FRICTION);
+    expect(opinion(state, 1, 2)).toBeCloseTo(raceAttitude(Race.Human, Race.Orc) - SIM.BORDER_FRICTION + oneFaith);
   });
 
   it("drifts toward its target and sinks while at war", () => {
     const peace = twoNations();
     peace.relations.set(pairKey(1, 2), 1);
     updateOpinions(peace, neighborPairs(peace));
-    expect(opinion(peace, 1, 2)).toBeCloseTo(1 + (0.1 - 1) * SIM.OPINION_DRIFT); // humans + border: target 0.1
+    expect(opinion(peace, 1, 2)).toBeCloseTo(1 + (0.1 + oneFaith - 1) * SIM.OPINION_DRIFT); // humans + border: target 0.1, plus their shared faith
 
     const war = twoNations();
     war.relations.set(pairKey(1, 2), 1);

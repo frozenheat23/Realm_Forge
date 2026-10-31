@@ -2,6 +2,7 @@
 import type { Rng } from "../core/rng";
 import { Settlement, type CellId, type SimEvent, type WorldState } from "../core/types";
 import { clamp } from "../core/math";
+import { faithInfo } from "../gen/faiths";
 import { nameNationAt } from "../gen/nations";
 import { traits } from "../gen/races";
 import { cityFoundedEvent } from "./events";
@@ -51,7 +52,7 @@ export function cityAreas(state: WorldState): Uint8Array {
  * year's `city_founded` events.
  *
  * - Unrest grows where the capital's grip is weak, under rulers of another race
- *   or culture and in war-torn land, and fades by itself (twice as fast in core land).
+ *   culture or faith and in war-torn land, and fades by itself (twice as fast in core land).
  * - Devastation heals a share of itself every year, owned or not.
  * - Development grows in full, well-held, undamaged land and is worn away by devastation.
  * - Settlements grow a level when development passes the next threshold (towns
@@ -59,7 +60,7 @@ export function cityAreas(state: WorldState): Uint8Array {
  */
 export function updateLand(state: WorldState, control: Float32Array, rng: Rng): SimEvent[] {
   const events: SimEvent[] = [];
-  const { owner, pop, race, culture, unrest, devastation, development, settlement, occupier } = state.state;
+  const { owner, pop, race, culture, faith, unrest, devastation, development, settlement, occupier } = state.state;
   const grain = grainBonuses(state);
   const nearCity = cityAreas(state);
   for (let c = 0; c < owner.length; c++) {
@@ -70,12 +71,15 @@ export function updateLand(state: WorldState, control: Float32Array, rng: Rng): 
     const ruler = traits(nation.race);
     const foreign = race[c] !== nation.race ? SIM.UNREST_FOREIGN_K / ruler.tolerance : 0;
     const kin = race[c] === nation.race && culture[c] !== nation.culture ? SIM.UNREST_KIN_K / ruler.tolerance : 0;
+    // Believers of another faith resent their rulers, the fiercer the faith the more.
+    const believers = faith[c] !== 0 && faith[c] !== nation.faith;
+    const heresy = believers ? (SIM.UNREST_FAITH_K * faithInfo(faith[c]!).fervor) / ruler.tolerance : 0;
     const occupied = occupier[c] !== 0 ? SIM.UNREST_OCCUPIED : 0;
     // A realm in crisis loses its hold everywhere, even on calm home provinces.
     const crisis = Math.max(0, 1 - nation.stability / SIM.REBEL_THRESHOLD) * SIM.UNREST_CRISIS_K;
     const decay = SIM.UNREST_DECAY * (isCore(state, c) ? 2 : 1);
     unrest[c] = clamp(
-      unrest[c]! + SIM.UNREST_CONTROL_K * (1 - control[c]!) + foreign + kin + occupied + crisis + SIM.UNREST_DEVASTATION_K * devastation[c]! - decay,
+      unrest[c]! + SIM.UNREST_CONTROL_K * (1 - control[c]!) + foreign + kin + heresy + occupied + crisis + SIM.UNREST_DEVASTATION_K * devastation[c]! - decay,
       0,
       1,
     );

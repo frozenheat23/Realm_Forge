@@ -2,6 +2,7 @@
 import type { GeneratedWorld } from "../gen";
 import { NO_TARGET, type CellId, type Nation, type NationId, type ResourceKind, type WarGoal, type WorldState } from "../core/types";
 import { BIOME_STATS, RESOURCES } from "../gen/params";
+import { faithInfo } from "../gen/faiths";
 import { traits } from "../gen/races";
 import { menText } from "../sim/events";
 import { armiesIn } from "../sim/armies";
@@ -85,9 +86,9 @@ export function showCellOnHover(
     const people = traits(state.state.race[cell.id]!).plural;
     const ruler = nation ? traits(nation.race).plural : "";
     const culture = state.nations.get(state.state.culture[cell.id]!);
-    const peopleOf = culture ? ` of ${culture.name}` : "";
+    const peopleOf = culture ? ` of ${culture.name}, followers of ${faithInfo(state.state.faith[cell.id]!).name}` : "";
     const ownerText = nation
-      ? `${nation.name} (${ruler}) · ${people}${peopleOf}, pop ${state.state.pop[cell.id]!.toFixed(2)} · ${soldierText(state, nation)}${diplomacyText(state, nation.id)}`
+      ? `${nation.name} (${ruler}, ${faithInfo(nation.faith).name}) · ${people}${peopleOf}, pop ${state.state.pop[cell.id]!.toFixed(2)} · ${soldierText(state, nation)}${diplomacyText(state, nation.id)}`
       : "unowned";
     const s = state.state;
     const deposit = cell.resource ? ` · ${RESOURCES[cell.resource as ResourceKind].name} (richness ${cell.richness.toFixed(2)})` : "";

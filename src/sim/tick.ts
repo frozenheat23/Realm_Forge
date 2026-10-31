@@ -8,6 +8,7 @@ import { assimilate } from "./culture";
 import { diplomacy } from "./diplomacy";
 import { emergence } from "./emergence";
 import { expand } from "./expansion";
+import { convertRealms, spreadFaith } from "./faith";
 import { updateLand } from "./land";
 import { growPopulation } from "./population";
 import { rebellions } from "./rebellion";
@@ -32,6 +33,8 @@ export function tick(state: WorldState, rng: Rng): SimEvent[] {
   const control = updateTotals(state); //                 2. Totals
   events.push(...updateLand(state, control, year.fork("land"))); // … and each cell's land
   assimilate(state, control, year.fork("culture")); //    … and each cell's people
+  events.push(...spreadFaith(state, year.fork("faith")));
+  events.push(...convertRealms(state, year.fork("conversion")));
   updateStability(state); //                              3. Stability
   expand(state, year.fork("expansion")); //               4. Expansion
   events.push(...diplomacy(state, year.fork("diplomacy"))); // 4b. Diplomacy

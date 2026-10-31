@@ -43,6 +43,8 @@ export const SIM = {
   UNREST_FOREIGN_K: 0.01,
   /** Unrest gained per year under rulers of your race but another culture (÷ ruler's tolerance). */
   UNREST_KIN_K: 0.004,
+  /** Unrest gained per year × fervor among people of a faith not the ruler's (÷ ruler's tolerance). */
+  UNREST_FAITH_K: 0.004,
   /** Unrest gained per year × devastation. */
   UNREST_DEVASTATION_K: 0.02,
   /** Unrest gained per year while occupied by an enemy. */
@@ -83,6 +85,24 @@ export const SIM = {
   CULTURE_RATE: 0.05,
   /** Cells this restless or worse keep their culture. */
   ASSIMILATE_MAX_UNREST: 0.3,
+  /** Yearly chance a cell copies a neighbor's faith (× reach × conversion). */
+  FAITH_RATE: 0.03,
+  /** × that chance when the faith isn't the cell owner's. */
+  FAITH_FOREIGN_SPREAD: 0.6,
+  /** Unrest at which land can turn to the Old Gods by itself. */
+  OLD_GODS_MIN_UNREST: 0.8,
+  /** Yearly chance of that, per cell. */
+  OLD_GODS_SPARK: 0.0005,
+  /** Old Gods reach × (1 + this × the cell's unrest). */
+  OLD_GODS_UNREST_REACH: 3,
+  /** × Old Gods spread into elf cells. */
+  OLD_GODS_ELF_SPREAD: 0.2,
+  /** A rival faith must be the realm's biggest and hold this share of its people before the realm may adopt it. */
+  FAITH_MAJORITY: 0.35,
+  /** Yearly chance of adopting it. */
+  FAITH_ADOPT: 0.05,
+  /** Opinion ± between nations of one or different faiths (× their average fervor). */
+  FAITH_OPINION: 0.1,
 
   // --- Expansion ---
   EXPANSION_RATE: 0.1,

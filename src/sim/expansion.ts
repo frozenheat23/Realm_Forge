@@ -16,7 +16,7 @@ import { resourceBonus } from "./resources";
  */
 export function expand(state: WorldState, rng: Rng): void {
   const { cells } = state;
-  const { owner, pop, race, culture } = state.state;
+  const { owner, pop, race, culture, faith } = state.state;
   // `owner` is only read here, to take the snapshot; changes go through setOwner.
   const before = owner.slice(); // snapshot of who owned what at the start of the year
 
@@ -42,6 +42,7 @@ export function expand(state: WorldState, rng: Rng): void {
     setOwner(state, cell.id, winner.id);
     race[cell.id] = winner.race;
     culture[cell.id] = winner.culture;
+    faith[cell.id] = winner.faith;
     pop[cell.id] = raceCapacity(cell, winner.race) * SIM.NEW_CELL_POP_FRACTION;
   }
 }

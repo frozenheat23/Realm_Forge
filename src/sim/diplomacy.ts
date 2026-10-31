@@ -1,6 +1,7 @@
 // Step 4b (SPEC §4.12): nations form opinions of each other, and friends become allies.
 import type { Rng } from "../core/rng";
 import type { Nation, NationId, RaceId, SimEvent, WorldState } from "../core/types";
+import { faithInfo } from "../gen/faiths";
 import { RACE_ATTITUDES } from "../gen/params";
 import { allianceEndedEvent, allianceEvent } from "./events";
 import { neighborPairs, pairKey } from "./helpers";
@@ -55,6 +56,8 @@ export function enemiesOf(state: WorldState): Map<NationId, Set<NationId>> {
 export function opinionTarget(a: Nation, b: Nation, neighbors: boolean, enemies: Map<NationId, Set<NationId>>): number {
   let target = raceAttitude(a.race, b.race);
   if (neighbors) target -= SIM.BORDER_FRICTION;
+  const fervor = (faithInfo(a.faith).fervor + faithInfo(b.faith).fervor) / 2;
+  target += (a.faith === b.faith ? 1 : -1) * SIM.FAITH_OPINION * fervor;
   const ea = enemies.get(a.id);
   const eb = enemies.get(b.id);
   if (ea?.has(b.id)) target -= SIM.WAR_OPINION_PENALTY;

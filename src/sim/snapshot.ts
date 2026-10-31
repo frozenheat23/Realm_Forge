@@ -7,7 +7,7 @@ import type { Alliance, Army, CellState, Nation, RaceHome, SimEvent, War, WorldS
 import type { GeneratedWorld } from "../gen";
 import type { SimParams } from "./params";
 
-/** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9), 5 armies (M11), 8 culture (M12). */
+/** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9), 5 armies (M11), 8 culture and faith (M12). */
 export const SNAPSHOT_VERSION = 8;
 
 /** Why older saves can't be loaded, by version. */
@@ -18,7 +18,7 @@ const TOO_OLD: Record<number, string> = {
   4: "armies were added",
   5: "battles, occupation and war goals were added",
   6: "rebel armies were added",
-  7: "cultures were added",
+  7: "cultures and faiths were added",
 };
 
 export interface Snapshot {
@@ -57,6 +57,7 @@ export function toSnapshot(state: WorldState, params: SimParams): Snapshot {
       owner: Array.from(s.owner),
       race: Array.from(s.race),
       culture: Array.from(s.culture),
+      faith: Array.from(s.faith),
       unrest: Array.from(s.unrest),
       devastation: Array.from(s.devastation),
       ownedSince: Array.from(s.ownedSince),
@@ -99,6 +100,7 @@ export function fromSnapshot(snapshot: Snapshot, world: GeneratedWorld): WorldSt
       owner: Int32Array.from(c.owner),
       race: Uint8Array.from(c.race),
       culture: Uint16Array.from(c.culture),
+      faith: Uint8Array.from(c.faith),
       unrest: Float32Array.from(c.unrest),
       devastation: Float32Array.from(c.devastation),
       ownedSince: Int32Array.from(c.ownedSince),

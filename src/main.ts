@@ -1,6 +1,6 @@
 // Entry point: generates a world from a seed, draws it, and plays its history.
 // Page address options: ?seed=anything picks the world, ?style=painted switches the look.
-// Keys: Space play/pause, → step, C cell outlines, N nations, R races, K cultures, A alliances, M resources, T towns, H heatmaps, E effects, W armies. Hover the map to inspect a cell.
+// Keys: Space play/pause, → step, C cell outlines, N nations, R races, K cultures, F faiths, A alliances, M resources, T towns, H heatmaps, E effects, W armies. Hover the map to inspect a cell.
 import { createRng } from "./core/rng";
 import type { NationId, WorldState } from "./core/types";
 import { generateWorld } from "./gen";
@@ -91,9 +91,10 @@ terrainCtx.putImageData(terrainImage, 0, 0);
 drawRivers(terrainCtx, world);
 
 // --- Drawing ---
-const layers: Layers = { nations: true, races: false, cultures: false, alliances: true, resources: false, settlements: true, labels: true, effects: true, armies: true, cells: query.get("debug") === "cells" };
-/** The Races and Cultures layers replace nation colors; the last one switched on wins. */
+const layers: Layers = { nations: true, races: false, cultures: false, faiths: false, alliances: true, resources: false, settlements: true, labels: true, effects: true, armies: true, cells: query.get("debug") === "cells" };
+/** The Races, Cultures and Faiths layers replace nation colors. Only one shows at a time. */
 function overlayTint(): OverlayTint {
+  if (layers.faiths) return "faith";
   if (layers.cultures) return "culture";
   return layers.races ? "race" : "nation";
 }
@@ -241,21 +242,20 @@ bar.append(
 
 // --- Settings, keys, hover ---
 createSettings(settingsPanel, layers, () => {
-  redrawNations(); // the Races and Cultures toggles change the overlay itself
+  redrawNations(); // the Races, Cultures and Faiths toggles change the overlay itself
   draw();
 });
-onKey("r", () => {
-  layers.races = !layers.races;
-  layers.cultures = false;
+/** Switches a land-tint layer on or off, and any other tint off. */
+function toggleTint(layer: "races" | "cultures" | "faiths"): void {
+  const on = !layers[layer];
+  layers.races = layers.cultures = layers.faiths = false;
+  layers[layer] = on;
   redrawNations();
   draw();
-});
-onKey("k", () => {
-  layers.cultures = !layers.cultures;
-  layers.races = false;
-  redrawNations();
-  draw();
-});
+}
+onKey("r", () => toggleTint("races"));
+onKey("k", () => toggleTint("cultures"));
+onKey("f", () => toggleTint("faiths"));
 // H: no heatmap → each heatmap in turn → none again.
 onKey("h", () => {
   const next = heat === null ? 0 : HEAT_KINDS.indexOf(heat) + 1;

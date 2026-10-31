@@ -1,5 +1,8 @@
 // Tunable numbers for world generation. See docs/PARAMS.md for what each one does.
 import {
+  Faith,
+  type FaithInfo,
+  type FaithKind,
   Biome,
   Race,
   Resource,
@@ -134,10 +137,23 @@ export const RACE_HOMES_PER_RACE = 2;
 export const RACE_HOME_FOCUS = 3;
 
 /** Every race's traits (SPEC §4.10). All multipliers; Humans = 1.0. Table in docs/PARAMS.md "Races". */
+/** The nine faiths (SPEC §4.14). Table and meanings in docs/PARAMS.md "Culture and faith". */
+export const FAITHS: Record<FaithKind, FaithInfo> = {
+  [Faith.OldGods]: { name: "the Old Gods", reach: 0.4, fervor: 0.5 },
+  [Faith.RadiantCovenant]: { name: "the Radiant Covenant", reach: 1.5, fervor: 1.3 },
+  [Faith.EvergreenVow]: { name: "the Evergreen Vow", reach: 0.5, fervor: 1.0, races: [Race.LightElf] },
+  [Faith.SilverChoir]: { name: "the Silver Choir", reach: 0.5, fervor: 1.0, races: [Race.LightElf] },
+  [Faith.HollowMother]: { name: "the Hollow Mother", reach: 1.0, fervor: 1.6 },
+  [Faith.DeepAncestors]: { name: "the Deep Ancestors", reach: 0.3, fervor: 0.5 },
+  [Faith.AnvilOath]: { name: "the Anvil Oath", reach: 0.6, fervor: 1.0 },
+  [Faith.RedHunger]: { name: "the Red Hunger", reach: 1.4, fervor: 1.3 },
+  [Faith.BoneDrums]: { name: "the Bone Drums", reach: 1.3, fervor: 0.5 },
+};
+
 export const RACES: Record<PlayableRace, RaceTraits> = {
   [Race.Human]: {
     name: "Human", plural: "Humans", family: "human",
-    growth: 1.0, martial: 1.0, defense: 1.0, aggression: 1.0, endurance: 1.0, cohesion: 1.0, unrest: 1.0, tolerance: 1.0, startSize: 1.0, assimilation: 1.0,
+    growth: 1.0, martial: 1.0, defense: 1.0, aggression: 1.0, endurance: 1.0, cohesion: 1.0, unrest: 1.0, tolerance: 1.0, startSize: 1.0, assimilation: 1.0, conversion: 1.0, faiths: [Faith.RadiantCovenant],
     affinity: {}, // the baseline: no land is better or worse for Humans than its biome says
     mountainAffinity: 1.0,
     terrainCost: {},
@@ -146,7 +162,7 @@ export const RACES: Record<PlayableRace, RaceTraits> = {
   },
   [Race.LightElf]: {
     name: "Light Elf", plural: "Light Elves", family: "elf",
-    growth: 0.6, martial: 1.1, defense: 1.4, aggression: 0.5, endurance: 0.8, cohesion: 0.9, unrest: 0.6, tolerance: 0.6, startSize: 1.75, assimilation: 0.35,
+    growth: 0.6, martial: 1.1, defense: 1.4, aggression: 0.5, endurance: 0.8, cohesion: 0.9, unrest: 0.6, tolerance: 0.6, startSize: 1.75, assimilation: 0.35, conversion: 0.4, faiths: [Faith.EvergreenVow, Faith.SilverChoir],
     affinity: { [Biome.TemperateForest]: 1.5, [Biome.TropicalForest]: 1.4, [Biome.Grassland]: 0.8, [Biome.Desert]: 0.5 },
     mountainAffinity: 1.0,
     terrainCost: { [Biome.TemperateForest]: 0.5, [Biome.TropicalForest]: 0.5 },
@@ -155,7 +171,7 @@ export const RACES: Record<PlayableRace, RaceTraits> = {
   },
   [Race.DarkElf]: {
     name: "Dark Elf", plural: "Dark Elves", family: "elf",
-    growth: 0.7, martial: 1.3, defense: 1.1, aggression: 1.4, endurance: 0.9, cohesion: 0.7, unrest: 1.2, tolerance: 0.5, startSize: 1.25, assimilation: 0.6,
+    growth: 0.7, martial: 1.3, defense: 1.1, aggression: 1.4, endurance: 0.9, cohesion: 0.7, unrest: 1.2, tolerance: 0.5, startSize: 1.25, assimilation: 0.6, conversion: 0.8, faiths: [Faith.HollowMother],
     affinity: { [Biome.Taiga]: 1.6, [Biome.Wetland]: 1.4, [Biome.Grassland]: 0.8 },
     mountainAffinity: 1.5,
     terrainCost: { [Biome.Taiga]: 0.6, [Biome.Wetland]: 0.6 },
@@ -164,7 +180,7 @@ export const RACES: Record<PlayableRace, RaceTraits> = {
   },
   [Race.Dwarf]: {
     name: "Dwarf", plural: "Dwarves", family: "dwarf",
-    growth: 0.7, martial: 1.2, defense: 1.5, aggression: 0.7, endurance: 1.3, cohesion: 0.9, unrest: 0.6, tolerance: 0.7, startSize: 1.0, assimilation: 0.45,
+    growth: 0.7, martial: 1.2, defense: 1.5, aggression: 0.7, endurance: 1.3, cohesion: 0.9, unrest: 0.6, tolerance: 0.7, startSize: 1.0, assimilation: 0.45, conversion: 0.2, faiths: [Faith.DeepAncestors, Faith.AnvilOath],
     affinity: { [Biome.Taiga]: 1.3, [Biome.Grassland]: 0.8, [Biome.TropicalForest]: 0.5 },
     mountainAffinity: 2.5,
     terrainCost: { [Biome.Taiga]: 0.7, [Biome.TemperateForest]: 1.3, [Biome.TropicalForest]: 1.3 },
@@ -173,7 +189,7 @@ export const RACES: Record<PlayableRace, RaceTraits> = {
   },
   [Race.Orc]: {
     name: "Orc", plural: "Orcs", family: "orc",
-    growth: 1.5, martial: 1.1, defense: 0.8, aggression: 1.6, endurance: 1.1, cohesion: 0.6, unrest: 1.5, tolerance: 1.1, startSize: 0.75, assimilation: 1.5,
+    growth: 1.5, martial: 1.1, defense: 0.8, aggression: 1.6, endurance: 1.1, cohesion: 0.6, unrest: 1.5, tolerance: 1.1, startSize: 0.75, assimilation: 1.5, conversion: 1.3, faiths: [Faith.RedHunger, Faith.BoneDrums],
     affinity: { [Biome.Desert]: 2.5, [Biome.Shrubland]: 1.5, [Biome.Savanna]: 1.3, [Biome.TemperateForest]: 0.8 },
     mountainAffinity: 1.0,
     terrainCost: { [Biome.Desert]: 0.5, [Biome.Shrubland]: 0.7, [Biome.Savanna]: 0.7 },

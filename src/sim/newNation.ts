@@ -1,6 +1,7 @@
 // Creating a nation in the middle of history (rebels and newly emerged states).
 import type { Rng } from "../core/rng";
 import type { CellId, Nation, NationId, RaceId, WorldState } from "../core/types";
+import { faithAt } from "../gen/faiths";
 import { nameNationAt, nationColor } from "../gen/nations";
 import { traits } from "../gen/races";
 import { nextNationId, takenNames } from "./helpers";
@@ -37,6 +38,7 @@ export function addNation(
     founded: state.year,
     race,
     culture: heritage?.culture ?? id,
+    faith: faithAt(state.raceHomes, race, x, y),
     alive: true,
     stability,
     warWeariness: 0,

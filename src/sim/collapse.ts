@@ -1,5 +1,5 @@
 // Step 8 (SPEC §4.7): nations that lose their capital move it; tiny nations dissolve.
-import { Race, type Nation, type NationId, type SimEvent, type WorldState } from "../core/types";
+import { Faith, Race, type Nation, type NationId, type SimEvent, type WorldState } from "../core/types";
 import { annexedEvent, capitalMovedEvent, collapseEvent } from "./events";
 import { cellsByNation, livingNations, setOwner } from "./helpers";
 import { SIM } from "./params";
@@ -10,7 +10,7 @@ import { bestCapital } from "./newNation";
  * leaves it empty if there's none. Returns the nation that took the most cells.
  */
 function dissolve(state: WorldState, nation: Nation, cells: number[]): Nation | null {
-  const { owner, pop, race, culture } = state.state;
+  const { owner, pop, race, culture, faith } = state.state;
   const taken = new Map<NationId, number>();
   // Decide using ownership from before the handover, so cells given away a
   // moment ago don't count as "neighbors" (otherwise one absorber chains through everything).
@@ -31,6 +31,7 @@ function dissolve(state: WorldState, nation: Nation, cells: number[]): Nation | 
       pop[c] = 0;
       race[c] = Race.None;
       culture[c] = 0;
+      faith[c] = Faith.None;
     } else taken.set(best.id, (taken.get(best.id) ?? 0) + 1);
   }
 

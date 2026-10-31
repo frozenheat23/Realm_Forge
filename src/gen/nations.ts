@@ -1,6 +1,7 @@
 // Places the starting nations (SPEC §3.8): capitals, small home territories, names and colors.
 import type { Rng } from "../core/rng";
 import type { Cell, CellId, Nation, NationId, RaceHome, RaceId, SimEvent } from "../core/types";
+import { faithAt } from "./faiths";
 import { buildChain, generateName } from "./names";
 import { FAMILY_NAMES, NAME_CULTURES } from "./nameCorpus";
 import { PLAYABLE_RACES, raceAt, raceCapacity, traits } from "./races";
@@ -195,6 +196,7 @@ export interface StartingNations {
   pop: Float32Array;
   race: Uint8Array;
   culture: Uint16Array;
+  faith: Uint8Array;
   events: SimEvent[];
   cultureHomes: [number, number][];
   colorHue: number;
@@ -211,6 +213,7 @@ export function createStartingNations(
   const pop = new Float32Array(cells.length);
   const cellRace = new Uint8Array(cells.length);
   const cellCulture = new Uint16Array(cells.length);
+  const cellFaith = new Uint8Array(cells.length);
   const nations = new Map<NationId, Nation>();
   const events: SimEvent[] = [];
 
@@ -232,12 +235,14 @@ export function createStartingNations(
     homes.add(capital);
     const [x, y] = cells[capital]!.site;
 
+    const faith = faithAt(raceHomes, race, x, y);
     const size = Math.round(START_CORE_SIZE * traits(race).startSize);
     const territory = claimCore(capital, id, size, race, cells, owner);
     let totalPop = 0;
     for (const cell of territory) {
       cellRace[cell] = race;
       cellCulture[cell] = id;
+      cellFaith[cell] = faith;
       pop[cell] = raceCapacity(cells[cell]!, race) * START_POP_FRACTION;
       totalPop += pop[cell]!;
     }
@@ -251,6 +256,7 @@ export function createStartingNations(
       founded: 0,
       race,
       culture: id,
+      faith,
       alive: true,
       stability: START_STABILITY,
       warWeariness: 0,
@@ -272,5 +278,5 @@ export function createStartingNations(
     });
   });
 
-  return { nations, owner, pop, race: cellRace, culture: cellCulture, events, cultureHomes, colorHue };
+  return { nations, owner, pop, race: cellRace, culture: cellCulture, faith: cellFaith, events, cultureHomes, colorHue };
 }

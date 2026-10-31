@@ -37,6 +37,35 @@ export type RaceId = (typeof Race)[keyof typeof Race];
 /** Any race except None: the ones that have traits. */
 export type PlayableRace = Exclude<RaceId, typeof Race.None>;
 
+/** Faiths as named numbers, like Biome (SPEC §4.14). 0 = nobody lives there. */
+export const Faith = {
+  None: 0,
+  OldGods: 1,
+  RadiantCovenant: 2,
+  EvergreenVow: 3,
+  SilverChoir: 4,
+  HollowMother: 5,
+  DeepAncestors: 6,
+  AnvilOath: 7,
+  RedHunger: 8,
+  BoneDrums: 9,
+} as const;
+
+/** One of the numbers in `Faith`. */
+export type FaithId = (typeof Faith)[keyof typeof Faith];
+export type FaithKind = Exclude<FaithId, typeof Faith.None>;
+
+/** One row of the FAITHS table. */
+export interface FaithInfo {
+  name: string;
+  /** × FAITH_RATE: how fast it spreads. */
+  reach: number;
+  /** × UNREST_FAITH_K: how hard its believers resent rulers of another faith. */
+  fervor: number;
+  /** If set, only these races can take it up. */
+  races?: RaceId[];
+}
+
 /** Resource deposits as named numbers, like Biome (SPEC §4.11). 0 = no deposit. */
 export const Resource = {
   None: 0,
@@ -84,6 +113,10 @@ export interface RaceTraits {
   startSize: number;
   /** × CULTURE_RATE: how readily these people take on the ways of rulers of their own race. */
   assimilation: number;
+  /** × FAITH_RATE: how readily these people change faith. */
+  conversion: number;
+  /** The faiths its homelands start with, in turn. */
+  faiths: FaithKind[];
   /** Capacity multiplier per biome (missing = 1). */
   affinity: Partial<Record<BiomeId, number>>;
   mountainAffinity: number;
@@ -180,6 +213,8 @@ export interface Nation {
   race: RaceId;
   /** Culture of its rulers: the id of the realm they descend from (SPEC §4.14). */
   culture: number;
+  /** Faith of its rulers. Can change (SPEC §4.14). */
+  faith: FaithId;
   alive: boolean;
   /** Year it died. */
   fell?: number;
@@ -233,7 +268,7 @@ export interface Alliance {
 
 export interface SimEvent {
   year: number;
-  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved" | "alliance" | "alliance_ended" | "city_founded" | "battle";
+  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved" | "alliance" | "alliance_ended" | "city_founded" | "battle" | "faith";
   actors: NationId[];
   text: string;
 }
@@ -264,6 +299,8 @@ export interface CellState {
   siege: Float32Array;
   /** Which realm's people live here (SPEC §4.14): the nation that first settled it or broke away. 0 = nobody. */
   culture: Uint16Array;
+  /** FaithId of the people here (SPEC §4.14). 0 = nobody. */
+  faith: Uint8Array;
 }
 
 /** Settlement levels, from development (SPEC §4.11). */

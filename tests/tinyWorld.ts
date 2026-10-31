@@ -1,6 +1,7 @@
 // Builds tiny hand-made worlds for simulation tests.
 import {
   Biome,
+  Faith,
   Race,
   Resource,
   type BiomeId,
@@ -68,6 +69,7 @@ export function makeNation(id: NationId, capital: number, extra: Partial<Nation>
     founded: 0,
     race: Race.Human,
     culture: id,
+    faith: Faith.RadiantCovenant,
     alive: true,
     stability: 0.8,
     warWeariness: 0,
@@ -121,6 +123,7 @@ export function makeState(
       siege: new Float32Array(cells.length),
       development: new Float32Array(cells.length),
       culture: Uint16Array.from(owners),
+      faith: Uint8Array.from(owners.map((o) => (o ? byId.get(o)!.faith : Faith.None))),
       settlement: new Uint8Array(cells.length),
     },
     nations: byId,

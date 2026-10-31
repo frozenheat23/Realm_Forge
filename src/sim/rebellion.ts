@@ -1,8 +1,9 @@
 // Step 7 (SPEC §4.6): unstable nations lose far-off provinces to rebels, subject peoples first.
 import type { Rng } from "../core/rng";
-import type { CellId, Nation, RaceId, SimEvent, WorldState } from "../core/types";
+import type { CellId, FaithId, Nation, RaceId, SimEvent, WorldState } from "../core/types";
 import { traits } from "../gen/races";
 import { raiseArmy } from "./armies";
+import { commonFaith } from "./faith";
 import { rebellionEvent, rebornEvent, warEvent } from "./events";
 import { cellsByNation, hopsFromCapital, livingNations, pairKey, setOwner, weightedPick } from "./helpers";
 import { SIM } from "./params";
@@ -86,6 +87,7 @@ export function rebel(state: WorldState, nation: Nation, cells: CellId[], rng: R
   const rebelRace = state.state.race[region[0]!]! as RaceId;
   const heritage = rebelHeritage(state, nation, state.state.culture[region[0]!]!);
   const rebelNation = addNation(state, rng.fork("name"), bestCapital(state, region), SIM.REBEL_START_STABILITY, rebelRace, nation.id, heritage);
+  rebelNation.faith = commonFaith(state, region) as FaithId;
   for (const c of region) {
     setOwner(state, c, rebelNation.id);
     state.state.culture[c] = rebelNation.culture;

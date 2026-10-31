@@ -1,5 +1,6 @@
 // Readable sentences for the event log (SPEC §4.9).
-import type { Nation, SimEvent } from "../core/types";
+import { Faith, type Nation, type SimEvent } from "../core/types";
+import { faithInfo } from "../gen/faiths";
 import { traits } from "../gen/races";
 import { ARMY_MEN_PER_UNIT } from "./params";
 
@@ -29,6 +30,20 @@ export function rebellionEvent(year: number, rebel: Nation, from: Nation): SimEv
 export function rebornEvent(year: number, reborn: Nation, from: Nation, yearsGone: number): SimEvent {
   const text = `Year ${year}: ${reborn.name} is reborn, ${yearsGone} years after its fall, breaking free of ${from.name}.`;
   return { year, type: "rebellion", actors: [reborn.id, from.id], text };
+}
+
+/** The Old Gods take root in `at`, somewhere in `nation`. `capital` tells which part of the realm that is. */
+export function oldGodsEvent(year: number, nation: Nation, capital: [number, number], at: [number, number]): SimEvent {
+  const dx = at[0] - capital[0];
+  const dy = at[1] - capital[1];
+  const side = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "east" : "west") : dy > 0 ? "south" : "north";
+  return { year, type: "faith", actors: [nation.id], text: `Year ${year}: the Old Gods stir in the ${side} of ${nation.name}.` };
+}
+
+export function conversionEvent(year: number, nation: Nation): SimEvent {
+  const faith = faithInfo(nation.faith).name;
+  const text = nation.faith === Faith.OldGods ? `Year ${year}: ${nation.name} turns to ${faith}.` : `Year ${year}: ${nation.name} embraces ${faith}.`;
+  return { year, type: "faith", actors: [nation.id], text };
 }
 
 export function collapseEvent(year: number, nation: Nation): SimEvent {
