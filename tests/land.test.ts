@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
 import { Race, Settlement } from "../src/core/types";
 import { setOwner } from "../src/sim/helpers";
-import { cityNearby, updateLand } from "../src/sim/land";
+import { cityAreas, updateLand } from "../src/sim/land";
 import { bestCapital } from "../src/sim/newNation";
 import { SIM } from "../src/sim/params";
 import { growPopulation } from "../src/sim/population";
@@ -101,6 +101,18 @@ describe("unrest", () => {
   });
 });
 
+describe("crisis", () => {
+  it("a realm in crisis grows restless everywhere, even where its grip is firm", () => {
+    const unrestAt = (stability: number) => {
+      const state = makeState(row(2), [1, 1], [makeNation(1, 0, { stability })]);
+      updateLand(state, Float32Array.from([1, 1]), createRng("land"));
+      return state.state.unrest[1]!;
+    };
+    expect(unrestAt(SIM.REBEL_THRESHOLD)).toBe(0);
+    expect(unrestAt(0)).toBeCloseTo(SIM.UNREST_CRISIS_K - SIM.UNREST_DECAY);
+  });
+});
+
 describe("development and settlements", () => {
   // One nation on a row of `n` cells, every cell full of people.
   const full = (n = 3) => makeState(row(n), Array(n).fill(1), [makeNation(1, 0)], Array(n).fill(1));
@@ -144,8 +156,8 @@ describe("development and settlements", () => {
     expect(events[0]!.type).toBe("city_founded");
     expect(events[0]!.text).toContain(state.cityNames.get(0)!);
 
-    expect(cityNearby(state, SIM.CITY_MIN_SPACING - 1)).toBe(true);
-    expect(cityNearby(state, SIM.CITY_MIN_SPACING)).toBe(false);
+    expect(cityAreas(state)[SIM.CITY_MIN_SPACING - 1]).toBe(1);
+    expect(cityAreas(state)[SIM.CITY_MIN_SPACING]).toBe(0);
   });
 
   it("is lost when the land is abandoned", () => {

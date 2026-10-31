@@ -50,6 +50,34 @@ describe("choosing a goal", () => {
   });
 });
 
+describe("how much a conquest aims for", () => {
+  // Nation 2 holds three provinces of five cells each, nearest first from nation 1.
+  function provinces(reserve: number) {
+    const spec = row(20).map((c, i) => ({ ...c, province: Math.floor(i / 5) }));
+    const owners = Array.from({ length: 20 }, (_, i) => (i < 5 ? 1 : 2));
+    const state = makeState(spec, owners, [makeNation(1, 0, { reserve }), makeNation(2, 19, { reserve: 1 })]);
+    return { state, conquest: () => chooseGoal(state, state.nations.get(1)!, state.nations.get(2)!, false, 5, createRng("no-raid-1")) };
+  }
+
+  it("an even fight aims for one province, a far stronger attacker for several", () => {
+    const raid = SIM.RAID_CHANCE;
+    SIM.RAID_CHANCE = 0;
+    expect(provinces(1).conquest().goalCells).toEqual([5, 6, 7, 8, 9]);
+    expect(provinces(3).conquest().goalCells).toEqual([5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
+    SIM.RAID_CHANCE = raid;
+  });
+
+  it("never aims past CONQUEST_MAX_PROVINCES", () => {
+    const raid = SIM.RAID_CHANCE;
+    const most = SIM.CONQUEST_MAX_PROVINCES;
+    SIM.RAID_CHANCE = 0;
+    SIM.CONQUEST_MAX_PROVINCES = 2;
+    expect(provinces(100).conquest().goalCells).toHaveLength(10);
+    SIM.RAID_CHANCE = raid;
+    SIM.CONQUEST_MAX_PROVINCES = most;
+  });
+});
+
 describe("marching on the goal", () => {
   it("the attacker's army heads for the nearest goal cell, not the richest land", () => {
     const state = neighbors();
@@ -87,6 +115,28 @@ describe("reaching the goal", () => {
     expect(state.wars).toHaveLength(0);
     expect(state.state.owner[10]).toBe(1);
     expect(events[0]!.text).toContain("defeats");
+  });
+});
+
+describe("who won", () => {
+  // A war that has run out of time, with the attacker holding `held` of the defender's cells.
+  function ended(held: number) {
+    const state = neighbors();
+    state.year = SIM.MAX_WAR_YEARS;
+    state.wars.push(war("raid", [], { goal: "conquer", goalCells: [], battleScore: 0 }));
+    for (let c = 10; c < 10 + held; c++) state.state.occupier[c] = 1;
+    return { state, events: endWars(state) };
+  }
+
+  it("a war below WIN_SCORE is a white peace and everything goes back", () => {
+    const held = Math.floor((SIM.WIN_SCORE - 1) / SIM.SCORE_PER_OCCUPIED);
+    expect(ended(held).state.state.owner[10]).toBe(2);
+  });
+
+  it("a war past WIN_SCORE has a winner, even far from PEACE_SCORE", () => {
+    const held = Math.ceil(SIM.WIN_SCORE / SIM.SCORE_PER_OCCUPIED);
+    expect(held * SIM.SCORE_PER_OCCUPIED).toBeLessThan(SIM.PEACE_SCORE);
+    expect(ended(held).state.state.owner[10]).toBe(1);
   });
 });
 

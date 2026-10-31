@@ -17,24 +17,32 @@ function threshold(level: number): number {
   return 0;
 }
 
-/** Is there a city within CITY_MIN_SPACING − 1 steps of `cell` (over land or water)? */
-export function cityNearby(state: WorldState, cell: CellId): boolean {
-  const settlement = state.state.settlement;
-  const seen = new Set<CellId>([cell]);
-  let ring = [cell];
+/** Marks every cell closer to `city` than CITY_MIN_SPACING (over land or water). */
+function markCityArea(state: WorldState, city: CellId, nearCity: Uint8Array): void {
+  const seen = new Set<CellId>([city]);
+  let ring = [city];
   for (let step = 1; step < SIM.CITY_MIN_SPACING; step++) {
     const next: CellId[] = [];
     for (const c of ring) {
       for (const n of state.cells[c]!.neighbors) {
         if (seen.has(n)) continue;
-        if (settlement[n] === Settlement.City) return true;
         seen.add(n);
+        nearCity[n] = 1;
         next.push(n);
       }
     }
     ring = next;
   }
-  return false;
+}
+
+/** The land too close to a city for another to grow, worked out once a year rather than cell by cell. */
+export function cityAreas(state: WorldState): Uint8Array {
+  const { settlement } = state.state;
+  const nearCity = new Uint8Array(settlement.length);
+  for (let c = 0; c < settlement.length; c++) {
+    if (settlement[c] === Settlement.City) markCityArea(state, c, nearCity);
+  }
+  return nearCity;
 }
 
 /**
@@ -53,6 +61,7 @@ export function updateLand(state: WorldState, control: Float32Array, rng: Rng): 
   const events: SimEvent[] = [];
   const { owner, pop, race, unrest, devastation, development, settlement, occupier } = state.state;
   const grain = grainBonuses(state);
+  const nearCity = cityAreas(state);
   for (let c = 0; c < owner.length; c++) {
     devastation[c] = devastation[c]! * (1 - SIM.DEVASTATION_HEAL);
 
@@ -61,9 +70,11 @@ export function updateLand(state: WorldState, control: Float32Array, rng: Rng): 
     const ruler = traits(nation.race);
     const foreign = race[c] !== nation.race ? SIM.UNREST_FOREIGN_K / ruler.tolerance : 0;
     const occupied = occupier[c] !== 0 ? SIM.UNREST_OCCUPIED : 0;
+    // A realm in crisis loses its hold everywhere, even on calm home provinces.
+    const crisis = Math.max(0, 1 - nation.stability / SIM.REBEL_THRESHOLD) * SIM.UNREST_CRISIS_K;
     const decay = SIM.UNREST_DECAY * (isCore(state, c) ? 2 : 1);
     unrest[c] = clamp(
-      unrest[c]! + SIM.UNREST_CONTROL_K * (1 - control[c]!) + foreign + occupied + SIM.UNREST_DEVASTATION_K * devastation[c]! - decay,
+      unrest[c]! + SIM.UNREST_CONTROL_K * (1 - control[c]!) + foreign + occupied + crisis + SIM.UNREST_DEVASTATION_K * devastation[c]! - decay,
       0,
       1,
     );
@@ -82,8 +93,9 @@ export function updateLand(state: WorldState, control: Float32Array, rng: Rng): 
     } else if (level < Settlement.City && development[c]! >= threshold(level + 1)) {
       const needsPeople = level + 1 >= Settlement.Town;
       if (needsPeople && full < SIM.SETTLE_MIN_POP_FRACTION) continue;
-      if (level + 1 === Settlement.City && cityNearby(state, c)) continue;
+      if (level + 1 === Settlement.City && nearCity[c] === 1) continue;
       settlement[c] = level + 1;
+      if (settlement[c] === Settlement.City) markCityArea(state, c, nearCity);
       if (settlement[c] === Settlement.City && !state.cityNames.has(c)) {
         const [x, y] = state.cells[c]!.site;
         const taken = new Set([...takenNames(state), ...state.cityNames.values()]);

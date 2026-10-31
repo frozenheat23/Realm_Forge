@@ -289,12 +289,13 @@ stability += STAB_RECOVERY × goldBonus
            − foreignPenalty
 clamp to 0..1
 
-overextension  = max(0, area − ADMIN_CAP_BASE × cohesion) × OVEREXT_K
+overextension  = max(0, area − adminCap) × OVEREXT_K
+adminCap       = ADMIN_CAP_BASE × cohesion × (1 + VIGOR_BONUS × e^(−age / VIGOR_YEARS))
 controlPenalty = max(0, CONTROL_FREE − nation.control) × CONTROL_STAB_K
 foreignPenalty = max(0, foreignShare − FOREIGN_FREE) × FOREIGN_K / tolerance
 ```
 
-`cohesion` and `tolerance` are traits of the nation's ruling race.
+`cohesion` and `tolerance` are traits of the nation's ruling race. `age` is years since the nation was founded: young realms can rule far more land, and that vigor fades, so empires built fast crack a few generations later while younger states rise.
 
 **War weariness:** rises by `WEARINESS_GAIN / endurance` per year at war (ruling race's trait), falls by `WEARINESS_DECAY` per year at peace, clamped to 0..1.
 
@@ -325,11 +326,11 @@ The chance is capped at `WAR_MAX_PROB`. The stronger side (by its own power) is 
 - either side's war weariness ≥ `WEARINESS_PEACE`
 - the war has lasted `MAX_WAR_YEARS`
 
-`score` is brought up to date first (`endWars`, §4.13 "War score and peace"). The peace event names a winner if the goal was reached or `|score|` ≥ `PEACE_SCORE` / 3, and that winner takes land by the terms in §4.13, through `setOwner`, with unrest raised to at least `UNREST_CONQUEST`; otherwise it's a white peace. Either way all other occupations end. The two sides then can't fight again for `TRUCE_YEARS`. If the winner took a deposit, the text names it (*"…, taking 6 provinces and its iron."*). Wars with a side that has died end silently. A joined war can end on its own terms the same way, and otherwise ends silently (with a truce) in the year its main war ends.
+`score` is brought up to date first (`endWars`, §4.13 "War score and peace"). The peace event names a winner if the goal was reached or `|score|` ≥ `WIN_SCORE`, and that winner takes land by the terms in §4.13, through `setOwner`, with unrest raised to at least `UNREST_CONQUEST`; otherwise it's a white peace. Either way all other occupations end. The two sides then can't fight again for `TRUCE_YEARS`. If the winner took a deposit, the text names it (*"…, taking 6 provinces and its iron."*). Wars with a side that has died end silently. A joined war can end on its own terms the same way, and otherwise ends silently (with a truce) in the year its main war ends.
 
 ### 4.6 Rebellion
-If a nation's stability is below `REBEL_THRESHOLD`, each year it has a `REBEL_PROB × unrest` chance of a rebellion (`unrest` from §4.2):
-1. Pick a seed cell at least `REBEL_MIN_CAPITAL_DIST` steps from the capital (walking only through the nation's own land), or one the capital can't reach that way at all (e.g. an island). **If any such cell is of a foreign race, the seed is picked only from foreign-race cells** (subject peoples rise first). Among the candidates the seed is picked at random **weighted by each cell's unrest** (§4.11), so rebellions start in weakly held, recently conquered or war-torn land (uniform if none is restless).
+If a nation's stability is below `REBEL_THRESHOLD`, each year it has a chance of a revolt of `REBEL_PROB × unrest × (total unrest of its cells / REBEL_RESTLESS_CELLS)` (`unrest` from §4.2, then the cells' own unrest from §4.11). So a lot of restless land means frequent revolts, and calm land doesn't revolt however shaky the nation. Each revolt has a `REBEL_SPREAD` chance of setting off another in that nation the same year, up to `REBEL_MAX_SPREAD`: this is how a great empire falls within a few bad years. Each revolt:
+1. Pick a seed cell at least `REBEL_MIN_CAPITAL_DIST` steps from the capital (walking only through the nation's own land), or one the capital can't reach that way at all (e.g. an island). **Foreign-race cells are tried first** (subject peoples rise first); if the region they'd form is too small to be a nation, the seed is picked from all those cells instead, so a few foreign villages can't shield an empire from revolt. Among the candidates the seed is picked at random **weighted by each cell's unrest** (§4.11), so rebellions start in weakly held, recently conquered or war-torn land (uniform if none is restless).
 2. Flood-fill outward through the nation's cells **of the seed's race**, up to `REBEL_MAX_CELLS`, never taking the capital, **filling the seed's own province first** before spilling into neighboring ones. If the region is smaller than `MIN_AREA`, no rebellion happens.
 3. Those cells become a new nation with a new name and color, ruled by the seed's race. Set `parent` to the old nation and give it starting stability `REBEL_START_STABILITY`. Its capital is the region's biggest settlement (then most populous cell). The rebel cells' unrest resets to 0, and since their `prevOwner` is the old nation, it has a claim to win them back. Opinion between the rebels and their old rulers starts at `REBEL_OPINION` (§4.12).
 4. Part of the old nation's soldiers go over to the rebels, and it may fight at once to take the land back (§4.13 "Rebels and allies").
@@ -415,7 +416,7 @@ Updated once a year right after Totals (`updateLand` in `sim/land.ts`), using th
 
 | Field | Type | Rises when | Falls when | Used for |
 |---|---|---|---|---|
-| `unrest` | `Float32Array` 0..1 | Captured (jumps to at least `UNREST_CONQUEST`); each year `+ UNREST_CONTROL_K × (1 − control) + UNREST_FOREIGN_K / tolerance` (if ruled by another race) `+ UNREST_DEVASTATION_K × devastation` | `UNREST_DECAY` per year, doubled in core land; reset to 0 when the cell rebels | Picks where rebellions start (§4.6) |
+| `unrest` | `Float32Array` 0..1 | Captured (jumps to at least `UNREST_CONQUEST`); each year `+ UNREST_CONTROL_K × (1 − control) + UNREST_FOREIGN_K / tolerance` (if ruled by another race) `+ UNREST_DEVASTATION_K × devastation + UNREST_CRISIS_K × max(0, 1 − stability / REBEL_THRESHOLD)` | `UNREST_DECAY` per year, doubled in core land; reset to 0 when the cell rebels | Sets how often rebellions happen and where they start (§4.6) |
 | `devastation` | `Float32Array` 0..1 | Battles (`DEVASTATION_BATTLE`), marching (`DEVASTATION_MARCH`) and being occupied (`DEVASTATION_CAPTURE`) | Heals `DEVASTATION_HEAL` of itself per year | Cuts capacity and development; raises unrest |
 | `development` | `Float32Array` 0..1 | `DEV_GROWTH × (pop / capacity) × control × (1 − devastation)` per year | `DEV_DEVASTATION_LOSS × devastation` per year | Cell value, settlement level |
 | `settlement` | `Uint8Array` 0 none, 1 village, 2 town, 3 city | One level a year when development passes `SETTLE_VILLAGE` / `SETTLE_TOWN` / `SETTLE_CITY` (towns and cities also need pop ≥ `SETTLE_MIN_POP_FRACTION` × capacity) | One level when development falls below that level's threshold × `SETTLE_DOWN_FACTOR` (so levels don't flicker) | City names and events, capital choice, map markers |
@@ -563,7 +564,7 @@ steps to take it = SIEGE_STEPS × (1 + SIEGE_SETTLEMENT_K × settlement level) �
 |---|---|---|---|
 | **Reclaim** | The attacker has a claim (§4.5) | Its claimed cells the defender holds | *"…to reclaim its lost lands"* |
 | **Raid** | Otherwise, with chance `RAID_CHANCE × aggression` (ruling race) | None: armies go for rich cells and the enemy army | *"…to raid its lands"* |
-| **Conquer** | Otherwise | The defender's cells in the province holding its most valuable border cell (§4.11 value, as the attacker's race sees it) | *"…to seize the lands around Arvenna"* (nearest city) or *"…, coveting its iron"* |
+| **Conquer** | Otherwise | The defender's cells in the province holding its most valuable border cell (§4.11 value, as the attacker's race sees it), and in nearby provinces: one province per whole time the attacker's fighting power beats the defender's, up to `CONQUEST_MAX_PROVINCES` | *"…to seize the lands around Arvenna"* (nearest city) or *"…, coveting its iron"* |
 
 Goal cells that break away to rebels stop counting. Joined allies fight in support (goal `support`): no goal cells; their armies hunt enemy armies and free occupied allied land.
 
@@ -579,7 +580,7 @@ Occupations can't outlive their war: at the end of each tick any occupier that's
 - either side's war weariness ≥ `WEARINESS_PEACE`
 - the war has lasted `MAX_WAR_YEARS`
 
-**Terms.** A winner (goal achieved, or `|score|` ≥ `PEACE_SCORE` / 3) takes:
+**Terms.** A winner (goal achieved, or `|score|` ≥ `WIN_SCORE`) takes:
 - the goal cells it occupies (only the attacker has goals);
 - up to `PEACE_EXTRA_CELLS` other occupied cells that touch its own land, most valuable first; each cell taken can make the next one touch;
 - for a raid the **attacker** won, no land. Instead the loser loses `RAID_TRIBUTE` stability, the winner gains it, and the event reads *"…plunders Kethar and goes home laden with spoils."* A defender who beats a raid still takes what it occupies.

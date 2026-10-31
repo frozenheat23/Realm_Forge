@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
+import { Race } from "../src/core/types";
 import { generateWorld } from "../src/gen";
 import { collapses } from "../src/sim/collapse";
 import { emergence, emptyRegions } from "../src/sim/emergence";
 import { SIM } from "../src/sim/params";
 import { rebel, rebellions } from "../src/sim/rebellion";
 import { controlMap } from "../src/sim/control";
-import { updateStability } from "../src/sim/stability";
+import { adminCap, updateStability } from "../src/sim/stability";
 import { tick } from "../src/sim/tick";
 import { makeNation, makeState, row } from "./tinyWorld";
 
@@ -18,9 +19,20 @@ describe("stability", () => {
   });
 
   it("drops for a nation far past its admin cap", () => {
-    const state = makeState(row(3), [1, 1, 1], [makeNation(1, 0, { stability: 0.5, area: SIM.ADMIN_CAP_BASE + 100 })]);
+    const state = makeState(row(3), [1, 1, 1], [makeNation(1, 0, { stability: 0.5, area: 10000 })]);
+    state.year = 10000; // old enough that its vigor has gone
     updateStability(state);
     expect(state.nations.get(1)!.stability).toBeLessThan(0.5);
+  });
+
+  it("a young nation can rule far more land than an old one", () => {
+    const state = makeState(row(1), [1], [makeNation(1, 0)]);
+    const nation = state.nations.get(1)!;
+    const young = adminCap(state, nation);
+    state.year = SIM.VIGOR_YEARS * 10;
+    expect(young).toBeCloseTo(SIM.ADMIN_CAP_BASE * (1 + SIM.VIGOR_BONUS));
+    expect(adminCap(state, nation)).toBeLessThan(young / 2);
+    expect(adminCap(state, nation)).toBeGreaterThanOrEqual(SIM.ADMIN_CAP_BASE);
   });
 
   it("drops when the nation's grip on its land is weak", () => {
@@ -70,6 +82,57 @@ describe("rebellion", () => {
   it("can't happen in a nation with no far provinces", () => {
     const state = makeState(row(3), [1, 1, 1], [makeNation(1, 0)]);
     expect(rebel(state, state.nations.get(1)!, [0, 1, 2], createRng("r"))).toBeNull();
+  });
+
+  it("a handful of subject people too few to form a nation can't shield an empire", () => {
+    const length = SIM.REBEL_MIN_CAPITAL_DIST + SIM.MIN_AREA + 3;
+    const owners = Array(length).fill(1);
+    const races = owners.map((_, i) => (i === length - 1 ? Race.Orc : Race.Human));
+    const state = makeState(row(length), owners, [makeNation(1, 0)], undefined, races);
+    const rebelNation = rebel(state, state.nations.get(1)!, [...owners.keys()], createRng("r"));
+    expect(rebelNation?.race).toBe(Race.Human); // the ruling people rise instead
+  });
+
+  it("subject people who can form a nation still rise first", () => {
+    const length = SIM.REBEL_MIN_CAPITAL_DIST + SIM.MIN_AREA + 3;
+    const owners = Array(length).fill(1);
+    const races = owners.map((_, i) => (i >= length - SIM.MIN_AREA ? Race.Orc : Race.Human));
+    const state = makeState(row(length), owners, [makeNation(1, 0)], undefined, races);
+    expect(rebel(state, state.nations.get(1)!, [...owners.keys()], createRng("r"))?.race).toBe(Race.Orc);
+  });
+
+  describe("how often", () => {
+    const LENGTH = 60;
+    // A shaky nation holding a long row of land, as restless as `unrest`.
+    function shaky(unrest: number) {
+      const owners = Array(LENGTH).fill(1);
+      const state = makeState(row(LENGTH), owners, [makeNation(1, 0, { stability: 0, reserve: 10, manpowerCap: 10 })]);
+      state.state.unrest.fill(unrest);
+      return state;
+    }
+    const revolts = (unrest: number, seed: string) =>
+      rebellions(shaky(unrest), createRng(seed)).filter((e) => e.type === "rebellion").length;
+    const total = (unrest: number) => Array.from({ length: 300 }, (_, i) => revolts(unrest, `s${i}`)).reduce((a, b) => a + b, 0);
+
+    it("calm land doesn't revolt, however shaky the nation", () => {
+      expect(total(0)).toBe(0);
+    });
+
+    it("the more restless the land, the more often it revolts", () => {
+      expect(total(1)).toBeGreaterThan(total(0.1) * 2);
+    });
+
+    it("one revolt can set off more in the same year", () => {
+      const spread = SIM.REBEL_SPREAD;
+      SIM.REBEL_SPREAD = 1;
+      const most = Math.max(...Array.from({ length: 300 }, (_, i) => revolts(1, `s${i}`)));
+      SIM.REBEL_SPREAD = 0;
+      const one = Math.max(...Array.from({ length: 300 }, (_, i) => revolts(1, `s${i}`)));
+      SIM.REBEL_SPREAD = spread;
+      expect(most).toBeGreaterThan(1);
+      expect(most).toBeLessThanOrEqual(SIM.REBEL_MAX_SPREAD);
+      expect(one).toBe(1);
+    });
   });
 });
 

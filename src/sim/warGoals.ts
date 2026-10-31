@@ -4,6 +4,7 @@ import type { CellId, Nation, War, WarGoal, WorldState } from "../core/types";
 import { traits } from "../gen/races";
 import { clamp } from "../core/math";
 import { setOwner } from "./helpers";
+import { fightingPower } from "./manpower";
 import { SIM } from "./params";
 import { cellValue, effectiveCapacity, grainBonuses } from "./resources";
 
@@ -17,10 +18,33 @@ export function claimedCells(state: WorldState, attacker: Nation, defender: Nati
   return cells;
 }
 
-/** The defender's land in the province around `prize`. */
-function provinceCells(state: WorldState, defender: Nation, prize: CellId): CellId[] {
-  const province = state.cells[prize]!.province;
-  return state.cells.filter((c) => c.province === province && state.state.owner[c.id] === defender.id).map((c) => c.id);
+/**
+ * The defender's land in the province around `prize`, and in as many nearby provinces
+ * as the attacker's strength lets it aim for: a much stronger nation wants far more.
+ */
+function conquestCells(state: WorldState, attacker: Nation, defender: Nation, prize: CellId): CellId[] {
+  const { cells } = state;
+  const owner = state.state.owner;
+  const ratio = fightingPower(state, attacker) / Math.max(fightingPower(state, defender), 1e-6);
+  const wanted = clamp(Math.floor(ratio), 1, SIM.CONQUEST_MAX_PROVINCES);
+
+  // Walk outward through the defender's land, adding each new province we meet.
+  const provinces = new Set([cells[prize]!.province]);
+  const seen = new Set([prize]);
+  let ring = [prize];
+  while (ring.length > 0 && provinces.size < wanted) {
+    const next: CellId[] = [];
+    for (const c of ring) {
+      for (const n of cells[c]!.neighbors) {
+        if (seen.has(n) || owner[n] !== defender.id) continue;
+        seen.add(n);
+        next.push(n);
+        if (provinces.size < wanted) provinces.add(cells[n]!.province);
+      }
+    }
+    ring = next;
+  }
+  return cells.filter((c) => provinces.has(c.province) && owner[c.id] === defender.id).map((c) => c.id);
 }
 
 /** Picks a war's goal. `prize` is the defender's most valuable border cell, as the attacker sees it. */
@@ -34,7 +58,7 @@ export function chooseGoal(
 ): { goal: WarGoal; goalCells: CellId[] } {
   if (claim) return { goal: "reclaim", goalCells: claimedCells(state, attacker, defender) };
   if (prize === undefined || rng.chance(SIM.RAID_CHANCE * traits(attacker.race).aggression)) return { goal: "raid", goalCells: [] };
-  return { goal: "conquer", goalCells: provinceCells(state, defender, prize) };
+  return { goal: "conquer", goalCells: conquestCells(state, attacker, defender, prize) };
 }
 
 /** Goal cells the defender still owns. A cell that broke away to rebels no longer counts. */

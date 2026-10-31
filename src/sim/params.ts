@@ -13,10 +13,14 @@ export const SIM = {
   // --- Stability ---
   STAB_RECOVERY: 0.01,
   ADMIN_CAP_BASE: 120,
-  OVEREXT_K: 0.002,
+  OVEREXT_K: 0.0001,
+  /** Extra land a brand-new nation can rule, as a multiple of its normal cap. */
+  VIGOR_BONUS: 5,
+  /** Years for that extra to fade to ~37%. */
+  VIGOR_YEARS: 200,
   WEARINESS_STAB_K: 0.02,
   /** Travel cost from the capital at which control falls to ~37%. */
-  CONTROL_RANGE: 12,
+  CONTROL_RANGE: 18,
   /** Control of cells the capital can't reach over its own land. */
   CONTROL_ISLAND: 0.2,
   /** Average control below which stability suffers. */
@@ -41,6 +45,8 @@ export const SIM = {
   UNREST_DEVASTATION_K: 0.02,
   /** Unrest gained per year while occupied by an enemy. */
   UNREST_OCCUPIED: 0.05,
+  /** Unrest gained per year in a nation at zero stability (fades to 0 at REBEL_THRESHOLD). */
+  UNREST_CRISIS_K: 0.04,
   /** Unrest lost per year (doubled in core land). */
   UNREST_DECAY: 0.02,
   /** Years of ownership before a cell counts as core land. */
@@ -74,13 +80,15 @@ export const SIM = {
   EXPANSION_RATE: 0.1,
 
   // --- War ---
-  WAR_BASE_PROB: 0.0014,
+  WAR_BASE_PROB: 0.0016,
   WAR_STRENGTH_EXP: 0.7,
   /** Ceiling on the yearly chance a pair goes to war, however lopsided they are. */
   WAR_MAX_PROB: 0.1,
   MAX_WARS_PER_NATION: 2,
   DEFENDER_BONUS: 1.2,
-  PEACE_SCORE: 90,
+  PEACE_SCORE: 200,
+  /** Score a war must reach to have a winner when it ends. Below this it is a white peace. */
+  WIN_SCORE: 30,
   WEARINESS_PEACE: 0.9,
   MAX_WAR_YEARS: 25,
   TRUCE_YEARS: 10,
@@ -95,7 +103,7 @@ export const SIM = {
   /** Most soldiers a nation can keep, as a share of its militaryPop. */
   LEVY_SHARE: 0.08,
   /** Share of the gap to the cap refilled per year (× 0.5 + stability). */
-  LEVY_REFILL: 0.15,
+  LEVY_REFILL: 0.25,
   /** War weariness gained per share of the cap lost in battle. */
   WEARINESS_LOSS_K: 0.25,
   /** Share of the reserve raised into a new army (split between wars still without one). */
@@ -149,8 +157,10 @@ export const SIM = {
   GOAL_SCORE_MULT: 2,
   /** Chance a war without a claim is a raid (× ruling race aggression). */
   RAID_CHANCE: 0.15,
+  /** Most provinces one conquest aims for. A war aims for one per whole time the attacker outmatches the defender. */
+  CONQUEST_MAX_PROVINCES: 8,
   /** Occupied non-goal cells a winner may also keep. */
-  PEACE_EXTRA_CELLS: 10,
+  PEACE_EXTRA_CELLS: 40,
   /** Stability the loser of a raid loses and the winner gains. */
   RAID_TRIBUTE: 0.1,
   /** Rebel army size as a share of the rebel region's people × martial. The old nation loses this share of its reserve. */
@@ -193,6 +203,12 @@ export const SIM = {
   // --- Rebellion ---
   REBEL_THRESHOLD: 0.25,
   REBEL_PROB: 0.03,
+  /** Total unrest of a nation's land at which the yearly revolt chance equals REBEL_PROB. */
+  REBEL_RESTLESS_CELLS: 40,
+  /** Chance each revolt sets off another in the same nation that year. */
+  REBEL_SPREAD: 0.3,
+  /** Most revolts one nation can have in a year. */
+  REBEL_MAX_SPREAD: 5,
   REBEL_MIN_CAPITAL_DIST: 5,
   REBEL_MAX_CELLS: 40,
   REBEL_START_STABILITY: 0.6,

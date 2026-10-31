@@ -194,9 +194,9 @@ function peaceReason(state: WorldState, war: War, attacker: Nation, defender: Na
   return null;
 }
 
-/** The clear winner of a war, if the score is at least a third of the way to SIM.PEACE_SCORE. */
+/** The clear winner of a war, if the score is at least SIM.WIN_SCORE. */
 function clearWinner(war: War, attacker: Nation, defender: Nation): Nation | null {
-  if (Math.abs(war.score) < SIM.PEACE_SCORE / 3) return null;
+  if (Math.abs(war.score) < SIM.WIN_SCORE) return null;
   return war.score > 0 ? attacker : defender;
 }
 
