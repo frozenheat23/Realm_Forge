@@ -4,6 +4,7 @@ import type { SimEvent, WorldState } from "../core/types";
 import { campaign, disbandArmies, musterArmies } from "./armies";
 import { battleEvents } from "./battle";
 import { collapses } from "./collapse";
+import { assimilate } from "./culture";
 import { diplomacy } from "./diplomacy";
 import { emergence } from "./emergence";
 import { expand } from "./expansion";
@@ -30,6 +31,7 @@ export function tick(state: WorldState, rng: Rng): SimEvent[] {
   growPopulation(state); //                               1. Population
   const control = updateTotals(state); //                 2. Totals
   events.push(...updateLand(state, control, year.fork("land"))); // … and each cell's land
+  assimilate(state, control, year.fork("culture")); //    … and each cell's people
   updateStability(state); //                              3. Stability
   expand(state, year.fork("expansion")); //               4. Expansion
   events.push(...diplomacy(state, year.fork("diplomacy"))); // 4b. Diplomacy

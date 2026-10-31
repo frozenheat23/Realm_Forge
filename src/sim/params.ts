@@ -76,6 +76,12 @@ export const SIM = {
   /** How much more a race values a deposit of a resource it favors. */
   FAVORED_RESOURCE_VALUE: 2,
 
+  // --- Culture and faith (SPEC §4.14) ---
+  /** Yearly chance a cell copies its ruler's culture from a neighbor (× assimilation × control). */
+  CULTURE_RATE: 0.05,
+  /** Cells this restless or worse keep their culture. */
+  ASSIMILATE_MAX_UNREST: 0.3,
+
   // --- Expansion ---
   EXPANSION_RATE: 0.1,
 

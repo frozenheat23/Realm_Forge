@@ -82,6 +82,8 @@ export interface RaceTraits {
   tolerance: number;
   /** × START_CORE_SIZE: how much land its nations hold at year 0. */
   startSize: number;
+  /** × CULTURE_RATE: how readily these people take on the ways of rulers of their own race. */
+  assimilation: number;
   /** Capacity multiplier per biome (missing = 1). */
   affinity: Partial<Record<BiomeId, number>>;
   mountainAffinity: number;
