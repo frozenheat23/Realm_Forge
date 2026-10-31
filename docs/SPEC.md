@@ -227,7 +227,7 @@ Look up each land cell's biome from temperature × moisture (Whittaker-style cha
 Each cell also gets `defensibility`, maybe a resource deposit (stream `resources`), and a province (stream `provinces`). How they're made is in §4.11.
 
 ### 3.8 Starting nations
-Place `START_NATIONS` capitals on the highest-capacity land cells, at least `START_MIN_SPACING` cell-steps apart. Each claims a small core of `START_CORE_SIZE` cells around its capital (nearest first). Starting population is `START_POP_FRACTION` × capacity, stability `START_STABILITY`. Colors step round the color wheel by the golden angle (~137.5°) so no two are alike. Each nation logs a `founded` event at year 0.
+Place `START_NATIONS` capitals on the highest-capacity land cells, at least `START_MIN_SPACING` cell-steps apart. Once a capital has its race (below) it may shift up to `START_HOME_RANGE` steps to the free land that race likes best. Each claims a core of `START_CORE_SIZE × startSize` cells (race trait), cheapest terrain for its race first, so elves spread along their forests. Starting population is `START_POP_FRACTION` × capacity, stability `START_STABILITY`. Colors step round the color wheel by the golden angle (~137.5°) so no two are alike. Each nation logs a `founded` event at year 0.
 
 Each starting nation's race is the race of the nearest race homeland (§4.10); its core cells are settled by that race. If a race ends up with no starting nation, the capital nearest to that race's homeland switches to it, so every race is on the map at year 0.
 

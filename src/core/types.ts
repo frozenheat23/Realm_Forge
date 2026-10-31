@@ -80,6 +80,8 @@ export interface RaceTraits {
   cohesion: number;
   unrest: number;
   tolerance: number;
+  /** × START_CORE_SIZE: how much land its nations hold at year 0. */
+  startSize: number;
   /** Capacity multiplier per biome (missing = 1). */
   affinity: Partial<Record<BiomeId, number>>;
   mountainAffinity: number;

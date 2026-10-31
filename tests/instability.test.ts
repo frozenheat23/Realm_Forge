@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
 import { Race } from "../src/core/types";
 import { generateWorld } from "../src/gen";
@@ -103,6 +103,11 @@ describe("rebellion", () => {
 
   describe("how often", () => {
     const LENGTH = 60;
+    // Revolts are rare by default: make them common enough to count in a few hundred tries.
+    const restless = SIM.REBEL_RESTLESS_CELLS;
+    beforeAll(() => { SIM.REBEL_RESTLESS_CELLS = LENGTH / 2; });
+    afterAll(() => { SIM.REBEL_RESTLESS_CELLS = restless; });
+
     // A shaky nation holding a long row of land, as restless as `unrest`.
     function shaky(unrest: number) {
       const owners = Array(LENGTH).fill(1);

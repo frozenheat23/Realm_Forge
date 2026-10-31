@@ -5,10 +5,12 @@ import { buildChain, generateName } from "./names";
 import { FAMILY_NAMES, NAME_CULTURES } from "./nameCorpus";
 import { PLAYABLE_RACES, raceAt, raceCapacity, traits } from "./races";
 import { RESOURCE_KINDS } from "./resources";
+import { MinHeap } from "./rivers";
 import {
   NATION_LIGHTNESS,
   NATION_SATURATION,
   START_CORE_SIZE,
+  START_HOME_RANGE,
   START_MIN_SPACING,
   START_NATIONS,
   START_POP_FRACTION,
@@ -55,21 +57,55 @@ export function placeCapitals(rng: Rng, cells: Cell[], count: number, spacing: n
   return capitals;
 }
 
-/** Claims up to `size` unowned land cells around the capital, nearest first. Returns them. */
-export function claimCore(capital: CellId, nationId: NationId, size: number, cells: Cell[], owner: Int32Array): CellId[] {
-  const claimed: CellId[] = [];
+/**
+ * The best home for a race within START_HOME_RANGE steps of `capital`: its most
+ * hospitable free land, so elves settle in forest and dwarves in the hills.
+ */
+export function homeCell(capital: CellId, race: RaceId, cells: Cell[], owner: Int32Array, taken: Set<CellId>): CellId {
+  let best = capital;
   const seen = new Set<CellId>([capital]);
-  const queue = [capital];
-  for (let head = 0; head < queue.length && claimed.length < size; head++) {
-    const cell = queue[head]!;
-    if (owner[cell] !== 0) continue;
+  let ring = [capital];
+  for (let step = 0; step < START_HOME_RANGE; step++) {
+    const next: CellId[] = [];
+    for (const c of ring) {
+      for (const n of cells[c]!.neighbors) {
+        if (seen.has(n) || !cells[n]!.isLand || owner[n] !== 0) continue;
+        seen.add(n);
+        next.push(n);
+        if (!taken.has(n) && raceCapacity(cells[n]!, race) > raceCapacity(cells[best]!, race)) best = n;
+      }
+    }
+    ring = next;
+  }
+  return best;
+}
+
+/** What a step onto `cell` costs a race when claiming its first land: cheap terrain is claimed first. */
+function claimCost(cell: Cell, race: RaceId): number {
+  const t = traits(race);
+  return (t.terrainCost[cell.biome] ?? 1) * (cell.mountain ? t.mountainCost : 1);
+}
+
+/**
+ * Claims up to `size` unowned land cells around the capital, cheapest to reach for
+ * its race first, so elves spread along their forests. Returns them.
+ */
+export function claimCore(capital: CellId, nationId: NationId, size: number, race: RaceId, cells: Cell[], owner: Int32Array): CellId[] {
+  const claimed: CellId[] = [];
+  const cost = new Map<CellId, number>([[capital, 0]]);
+  const heap = new MinHeap();
+  heap.push(capital, 0);
+  while (heap.size > 0 && claimed.length < size) {
+    const cell = heap.pop();
+    if (owner[cell] !== 0) continue; // another nation's land: go no further this way
     owner[cell] = nationId;
     claimed.push(cell);
     for (const n of cells[cell]!.neighbors) {
-      if (!seen.has(n) && cells[n]!.isLand) {
-        seen.add(n);
-        queue.push(n);
-      }
+      if (!cells[n]!.isLand) continue;
+      const next = cost.get(cell)! + claimCost(cells[n]!, race);
+      if (next >= (cost.get(n) ?? Infinity)) continue;
+      cost.set(n, next);
+      heap.push(n, next);
     }
   }
   return claimed;
@@ -185,12 +221,17 @@ export function createStartingNations(
 
   const capitals = placeCapitals(rng.fork("capitals"), cells, START_NATIONS, START_MIN_SPACING);
   const capitalRaces = assignCapitalRaces(capitals, cells, raceHomes);
-  capitals.forEach((capital, index) => {
+  const homes = new Set(capitals);
+  capitals.forEach((placed, index) => {
     const id: NationId = index + 1; // 0 means "unowned"
     const race = capitalRaces[index]!;
+    const capital = homeCell(placed, race, cells, owner, homes);
+    homes.delete(placed);
+    homes.add(capital);
     const [x, y] = cells[capital]!.site;
 
-    const territory = claimCore(capital, id, START_CORE_SIZE, cells, owner);
+    const size = Math.round(START_CORE_SIZE * traits(race).startSize);
+    const territory = claimCore(capital, id, size, race, cells, owner);
     let totalPop = 0;
     for (const cell of territory) {
       cellRace[cell] = race;

@@ -111,7 +111,8 @@ Base capacity is relative (1.0 = grassland). Move cost affects expansion and con
 |---|---|---|---|---|---|
 | `START_NATIONS` | 24 | 8–50 | Nations at year 0 | Crowded, early wars | Open land, long expansion phase |
 | `START_MIN_SPACING` | 12 | 6–25 | Min cell-steps between capitals | Evenly spread | Clustered rivals |
-| `START_CORE_SIZE` | 12 | 1–30 | Cells each nation starts with | Faster start | Slower start |
+| `START_CORE_SIZE` | 12 | 1–30 | Cells a nation starts with (× its race's `startSize`) | Faster start | Slower start |
+| `START_HOME_RANGE` | 4 | 0–8 | Steps a capital can shift at year 0 toward land its race likes | Races sit deep in their homelands | Capitals stay where they were placed (0) |
 | `START_POP_FRACTION` | 0.3 | 0.1–0.8 | Starting pop as share of capacity | Strong from day one | Slow early growth |
 | `START_STABILITY` | 0.8 | 0.3–1.0 | Stability every starting nation begins with | Long early calm | Early rebellions |
 | `NATION_SATURATION` | 0.7 | 0.3–0.9 | How vivid nation colors are | Bold, game-like colors | Muted, pastel colors |
@@ -149,8 +150,8 @@ Example names per culture live in `src/gen/nameCorpus.ts` (all invented). Edit t
 |---|---|---|---|---|---|
 | `STAB_RECOVERY` | 0.01 | 0.002–0.03 | Stability regained per year | Empires recover; fewer breakups | Instability lingers |
 | `ADMIN_CAP_BASE` | 120 | 60–300 | Cells before overextension starts | Bigger stable empires | Many mid-sized nations |
-| `OVEREXT_K` | 0.00005 | 0.00005–0.001 | Stability lost per year per cell over the cap. A nation settles about `STAB_RECOVERY / OVEREXT_K` cells above its cap (at the old 0.002 any big nation hit stability 0 at once) | Big empires crack fast | Empires sprawl longer |
-| `VIGOR_BONUS` | 80 | 0–120 | Extra land a brand-new nation can rule, as a multiple of its normal cap | Young conquerors hold huge realms | Age doesn't matter (0) |
+| `OVEREXT_K` | 0.00003 | 0.00001–0.001 | Stability lost per year per cell over the cap. A nation settles about `STAB_RECOVERY / OVEREXT_K` cells above its cap (at the old 0.002 any big nation hit stability 0 at once) | Big empires crack fast | Empires sprawl longer |
+| `VIGOR_BONUS` | 120 | 0–200 | Extra land a brand-new nation can rule, as a multiple of its normal cap | Young conquerors hold huge realms | Age doesn't matter (0) |
 | `VIGOR_YEARS` | 250 | 80–400 | Years for that extra to fade to ~37% | Empires last longer | Empires crack sooner |
 | `WEARINESS_STAB_K` | 0.01 | 0–0.05 | Stability lost from war weariness | Long wars trigger rebellions | Wars don't destabilize |
 | `CONTROL_RANGE` | 50 | 6–80 | Travel cost from the capital at which control falls to ~37% (× ruler's cohesion) | Bigger empires hold together (try for "no great empires form") | Empires fray close to home |
@@ -176,8 +177,8 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `WAR_BASE_PROB` | 0.0012 | 0.001–0.02 | Base yearly chance a neighbor pair goes to war (0.004 before M9's war motives, 0.003 before M11 manpower) | Constant warfare | Peaceful eras |
-| `WAR_STRENGTH_EXP` | 1.75 | 0.5–2.5 | How much a power gap encourages war (1.0 before M11: soldier counts differ more between nations than the old `strength` did) | Strong prey on weak | Wars between equals too |
+| `WAR_BASE_PROB` | 0.001 | 0.001–0.02 | Base yearly chance a neighbor pair goes to war (0.004 before M9's war motives, 0.003 before M11 manpower) | Constant warfare | Peaceful eras |
+| `WAR_STRENGTH_EXP` | 2.25 | 0.5–3 | How much a power gap encourages war (1.0 before M11: soldier counts differ more between nations than the old `strength` did) | Strong prey on weak | Wars between equals too |
 | `WAR_MAX_PROB` | 0.3 | 0.02–0.3 | Ceiling on a pair's yearly war chance, however lopsided | Bullies attack almost at once | Even giants hesitate |
 | `MAX_WARS_PER_NATION` | 2 | 1–4 | Concurrent wars per nation | Multi-front collapses | Focused wars |
 | `DEFENDER_BONUS` | 1.2 | 1.0–1.6 | Defender strength multiplier | Hard to conquer; stable borders | Snowballing conquests |
@@ -196,7 +197,7 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 |---|---|---|---|---|---|
 | `REBEL_THRESHOLD` | 0.15 | 0.10–0.40 | Stability below which rebellions can start | Frequent breakups, more small nations | Empires last longer |
 | `REBEL_PROB` | 0.03 | 0.01–0.10 | Yearly revolt chance of an unstable nation whose land adds up to `REBEL_RESTLESS_CELLS` of unrest | Fast fragmentation | Unstable empires limp on |
-| `REBEL_RESTLESS_CELLS` | 200 | 40–400 | Total unrest at which the revolt chance equals `REBEL_PROB` | Revolts need more restless land | Even small unrest sets off revolts |
+| `REBEL_RESTLESS_CELLS` | 300 | 40–500 | Total unrest at which the revolt chance equals `REBEL_PROB` | Revolts need more restless land | Even small unrest sets off revolts |
 | `REBEL_SPREAD` | 0.3 | 0–0.7 | Chance each revolt sets off another in that nation the same year | Empires fall in one blow | Empires crumble slowly |
 | `REBEL_MAX_SPREAD` | 5 | 1–10 | Most revolts one nation can have in a year | Bigger collapses | Gentler collapses |
 | `REBEL_MIN_CAPITAL_DIST` | 5 | 3–15 | Min steps from capital for a rebel seed | Only far provinces rebel | Rebellions near the core |
@@ -249,6 +250,7 @@ The race table is `RACES` in `src/gen/params.ts` (not editable in the Settings p
 | `cohesion` | Holds bigger empires | Overextends early |
 | `unrest` | Rebels more often | Loyal even when unstable |
 | `tolerance` | Rules other races easily | Foreign subjects destabilize it |
+| `startSize` | Starts with more land (× `START_CORE_SIZE`): Humans 1, Light Elves 1.75, Dark Elves 1.25, Dwarves 1, Orcs 0.75 | Starts smaller; must stay above `MIN_AREA` |
 
 ### Homeland, capacity and movement
 

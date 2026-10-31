@@ -50,7 +50,7 @@ export function emergence(state: WorldState, rng: Rng): SimEvent[] {
     // The people who rise here are the race whose homeland is nearest.
     const race = raceAt(state.raceHomes, ...state.cells[capital]!.site);
     const nation = addNation(state, regionRng, capital, START_STABILITY, race);
-    for (const c of claimCore(capital, nation.id, SIM.EMERGENCE_CORE_SIZE, state.cells, state.state.owner)) {
+    for (const c of claimCore(capital, nation.id, SIM.EMERGENCE_CORE_SIZE, race, state.cells, state.state.owner)) {
       // claimCore (shared with generation) sets the owner directly, so record the change here.
       state.state.prevOwner[c] = 0;
       state.state.ownedSince[c] = state.year;

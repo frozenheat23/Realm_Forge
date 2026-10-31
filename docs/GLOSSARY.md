@@ -119,3 +119,6 @@ New concepts as we meet them, with where they show up in our code.
 | **Measure, don't guess** | Finding a cause by tracking numbers instead of trying settings. Counting one empire's revolts (5 in 1,000 years, with unrest at maximum) exposed a bug no parameter could fix. | tuning pass |
 | **Exponential decay** | Something fading by the same share each period: fast at first, then slower, never quite zero. `Math.exp(-age / VIGOR_YEARS)` is how a young nation's vigor fades. | `adminCap` in `src/sim/stability.ts` |
 | **Precomputing** | Working something out once and reusing it, instead of repeating the work. One yearly map of land near cities replaced a search per cell. | `cityAreas` in `src/sim/land.ts` |
+| **Overfitting** | Tuning until the numbers look good on the examples you tuned on, then finding they don't hold on new ones. Our "4 of 10 worlds" was 1 in 20 on fresh seeds. | giants tuning |
+| **Holdout set** | Examples kept aside and never tuned on, used only for the final check, so the result is honest. | seeds named `holdout-N` in the tuning runs |
+| **Noise** | Differences that come from chance, not from your change. In a chaotic simulation any tiny change reshuffles history, so you need many seeds to see a real effect. | comparing settings |

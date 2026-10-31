@@ -13,9 +13,9 @@ export const SIM = {
   // --- Stability ---
   STAB_RECOVERY: 0.01,
   ADMIN_CAP_BASE: 120,
-  OVEREXT_K: 0.00005,
+  OVEREXT_K: 0.00003,
   /** Extra land a brand-new nation can rule, as a multiple of its normal cap. */
-  VIGOR_BONUS: 80,
+  VIGOR_BONUS: 120,
   /** Years for that extra to fade to ~37%. */
   VIGOR_YEARS: 250,
   WEARINESS_STAB_K: 0.01,
@@ -80,8 +80,8 @@ export const SIM = {
   EXPANSION_RATE: 0.1,
 
   // --- War ---
-  WAR_BASE_PROB: 0.0012,
-  WAR_STRENGTH_EXP: 1.75,
+  WAR_BASE_PROB: 0.001,
+  WAR_STRENGTH_EXP: 2.25,
   /** Ceiling on the yearly chance a pair goes to war, however lopsided they are. */
   WAR_MAX_PROB: 0.3,
   MAX_WARS_PER_NATION: 2,
@@ -206,7 +206,7 @@ export const SIM = {
   REBEL_THRESHOLD: 0.15,
   REBEL_PROB: 0.03,
   /** Total unrest of a nation's land at which the yearly revolt chance equals REBEL_PROB. */
-  REBEL_RESTLESS_CELLS: 200,
+  REBEL_RESTLESS_CELLS: 300,
   /** Chance each revolt sets off another in the same nation that year. */
   REBEL_SPREAD: 0.3,
   /** Most revolts one nation can have in a year. */

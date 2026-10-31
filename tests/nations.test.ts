@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
-import { Biome, Resource, type Cell } from "../src/core/types";
+import { Biome, Race, Resource, type Cell, type PlayableRace } from "../src/core/types";
 import { generateWorld } from "../src/gen";
 import { buildChain, generateName } from "../src/gen/names";
-import { claimCore, hslToHex, placeCapitals } from "../src/gen/nations";
-import { START_CORE_SIZE, START_NATIONS } from "../src/gen/params";
+import { claimCore, homeCell, hslToHex, placeCapitals } from "../src/gen/nations";
+import { RACES, START_CORE_SIZE, START_NATIONS } from "../src/gen/params";
+import { PLAYABLE_RACES, traits } from "../src/gen/races";
+import { SIM } from "../src/sim/params";
 
 // A tiny hand-made map: 8 land cells in a line, capacity rising to the right.
 //   [0]-[1]-[2]-[3]-[4]-[5]-[6]-[7]
@@ -48,9 +50,28 @@ describe("claimCore", () => {
     const cells = lineMap();
     const owner = new Int32Array(8);
     owner[5] = 9; // someone else already owns cell 5
-    const claimed = claimCore(3, 1, 3, cells, owner);
+    const claimed = claimCore(3, 1, 3, Race.Human, cells, owner);
     expect(claimed.sort()).toEqual([2, 3, 4]);
     expect(owner[5]).toBe(9);
+  });
+
+  it("follows the terrain its race moves through easily", () => {
+    // Cell 2 sits in the middle: forest one way, grassland the other.
+    const cells = lineMap();
+    cells[0]!.biome = cells[1]!.biome = Biome.TemperateForest;
+    expect(claimCore(2, 1, 2, Race.LightElf, cells, new Int32Array(8)).sort()).toEqual([1, 2]);
+  });
+});
+
+describe("homeCell", () => {
+  it("shifts a capital toward land its race likes, but never onto another capital", () => {
+    const cells = lineMap();
+    cells[4]!.biome = Biome.TemperateForest;
+    cells[5]!.biome = Biome.TemperateForest;
+    const owner = new Int32Array(8);
+    const free = homeCell(3, Race.LightElf, cells, owner, new Set());
+    expect(cells[free]!.biome).toBe(Biome.TemperateForest);
+    expect(homeCell(3, Race.LightElf, cells, owner, new Set([free]))).not.toBe(free);
   });
 });
 
@@ -92,8 +113,15 @@ describe("starting nations in a generated world", () => {
     expect(state.nations.size).toBeLessThanOrEqual(START_NATIONS);
     for (const nation of state.nations.values()) {
       expect(state.state.owner[nation.capital]).toBe(nation.id);
-      expect(nation.area).toBeLessThanOrEqual(START_CORE_SIZE);
+      expect(nation.area).toBeLessThanOrEqual(Math.round(START_CORE_SIZE * traits(nation.race).startSize));
     }
+  });
+
+  it("start sizes differ by race, and every race starts big enough to survive", () => {
+    const size = (race: PlayableRace) => Math.round(START_CORE_SIZE * RACES[race].startSize);
+    expect(size(Race.LightElf)).toBeGreaterThan(size(Race.Human));
+    expect(size(Race.Orc)).toBeLessThan(size(Race.Human));
+    for (const race of PLAYABLE_RACES) expect(size(race)).toBeGreaterThan(SIM.MIN_AREA);
   });
 
   it("logs a 'founded' event for each nation", () => {
