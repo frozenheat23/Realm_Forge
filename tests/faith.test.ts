@@ -201,6 +201,6 @@ describe("blessings", () => {
     const state = makeState(row(3), [1, 1, 1], [makeNation(1, 0)]);
     state.state.faith[1] = Faith.OldGods;
     updateLand(state, new Float32Array([1, 1, 1]), createRng("l"));
-    expect(state.state.unrest[2]).toBeGreaterThan(0);
+    expect(state.state.unrest[0]).toBeGreaterThan(0); // cell 0 has had its own year already, so nothing hides it
   });
 });
