@@ -86,6 +86,8 @@ interface CellState {
   prevOwner: Int32Array;  // who had it before (0 = nobody)
   occupier: Int32Array;   // nation holding it in a war (0 = nobody, §4.13); the owner stays the owner
   siege: Float32Array;    // progress of the siege here, 0..1 (§4.13)
+  culture: Uint16Array;   // the realm whose people these are (§4.14, 0 = nobody)
+  faith: Uint8Array;      // FaithId of the people there (§4.14, 0 = nobody)
 }
 
 type RaceId = number;     // index into RACES; 0 = none
@@ -98,7 +100,10 @@ interface Nation {
   founded: number;        // year
   parent?: NationId;      // set if born from a rebellion
   race: RaceId;           // ruling race, fixed for the nation's whole life
+  culture: number;        // culture of its rulers (§4.14)
+  faith: FaithId;         // faith of its rulers (§4.14); can change
   alive: boolean;
+  fell?: number;          // year it died
   stability: number;      // 0..1
   warWeariness: number;   // 0..1
   reserve: number;        // trained soldiers not yet in an army, in pop units (§4.13)
@@ -602,6 +607,85 @@ Taken cells go through `setOwner` (unrest jumps to `UNREST_CONQUEST`). All other
 
 Met: tick 9.3 ms; biggest race 40%; of ~8 rebel wars a century, rebels win ~2, are crushed ~3.5, and in ~2 the old nation dies.
 
+### 4.14 Culture and faith
+
+> Planned for M12, built in six steps (see the Decision log). Marked done here when built. Numbers are in `PARAMS.md` → "Culture and faith". Code: `sim/culture.ts`, `sim/faith.ts`.
+
+**Goal.** Give peoples a memory. Today a conquered province is only "Humans"; with culture it's *the people of Velmora*, who can rise and bring Velmora back. Faith cuts across race, so kingdoms of different peoples can share a god and a kingdom can turn from its old one. The core rule: **culture stays inside a race; faith crosses races.**
+
+Like races and land detail, this adds no tick step: new values change numbers inside existing steps, and the spreading runs straight after `updateLand` in step 2.
+
+#### What's stored
+
+| Where | Field | Meaning |
+|---|---|---|
+| Cell | `culture: Uint16Array` | Id of the realm whose people these are: the nation that first settled the cell, or that broke away (0 = nobody). Dead nations stay in `state.nations`, so a culture's name and color are its founder's |
+| Cell | `faith: Uint8Array` | `FaithId` of the people there (0 = nobody) |
+| Nation | `culture` | The culture of its rulers, set at founding. Not read from the capital, because a moved capital can land on other people |
+| Nation | `faith` | The faith of its rulers. Can change (see Realm conversion) |
+| Nation | `fell?` | Year it died |
+
+Both tags are set wherever `race` is set: generation, expansion, emergence, and cleared when a cell is left empty (§4.1, §4.7). Conquest leaves them alone.
+
+A cell only ever assimilates to a ruler of its own race, so **a culture always belongs to one race**.
+
+#### Faiths
+
+Nine, in the `FAITHS` table (`gen/params.ts`, next to `RACES`). **Reach** is how fast it spreads. **Fervor** is how hard its believers resent other rulers. **Blessing** is one small multiplier on an existing rule, active in nations of that faith.
+
+| Faith | Home race | Reach | Fervor | Blessing |
+|---|---|---|---|---|
+| The Old Gods | none: forbidden shrines, anywhere | low (high in restless land) | low | **Whispers**: lands at war with its rulers grow more restless |
+| The Radiant Covenant | Humans | high | high | **Order**: stability recovers faster |
+| The Evergreen Vow | Light Elves, elves only | low | medium | **Sanctuary**: defenders fight better |
+| The Silver Choir | Light Elves, elves only | low | medium | **Remembrance**: conquered believers assimilate slower |
+| The Hollow Mother | Dark Elves (their only faith; the forest mother gone hollow, an offshoot of the Evergreen Vow) | medium | very high | **Devotion**: the soldier reserve refills faster |
+| The Deep Ancestors | Dwarves | very low | low | **Grudges**: claims last longer |
+| The Anvil Oath | Dwarves | low | medium | **Forge**: development grows faster |
+| The Red Hunger | Orcs | high | high | **Warpath**: more eager to start wars |
+| The Bone Drums | Orcs | high | low | **Kinship**: conquered tribes assimilate faster |
+
+**At the start.** Each race's homeland points take its faiths in turn, so a race with two faiths starts with one in each homeland. A nation and its cells take the faith of the nearest homeland of its race. Emerging nations do the same.
+
+#### Spreading (`sim/culture.ts`, `sim/faith.ts`)
+
+Both use the **neighbor rule**, which grows solid blobs rather than speckle. Each year, each populated cell that could change looks at one random neighbor and copies its tag with a small chance.
+
+**Culture (assimilation).** A cell can only be assimilated if it has the ruler's race but not the ruler's culture, is core land (§4.11), has unrest below `ASSIMILATE_MAX_UNREST` and isn't occupied. It copies a neighbor of the ruler's culture with chance `CULTURE_RATE × assimilation × control`, where `assimilation` is a new race trait of the people living there.
+
+**Faith (conversion).** A cell copies a neighbor's different faith with chance:
+
+```
+chance = FAITH_RATE × reach × conversion × (faith is the owner's ? 1 : FAITH_FOREIGN_SPREAD)
+```
+
+`conversion` is a new race trait of the people living there. Capitals never convert, so a realm can't lose its own faith at the source. Elves-only faiths only enter Light Elf cells. The Old Gods' reach rises with the cell's unrest and they enter elf cells only slowly (`OLD_GODS_ELF_SPREAD`).
+
+**The Old Gods appear.** Any owned cell at unrest ≥ `OLD_GODS_MIN_UNREST` can turn to them each year with chance `OLD_GODS_SPARK`, even where they've died out: *"The Old Gods stir in the east of Kethar."*
+
+#### What they change
+
+- **Unrest (§4.11).** New yearly gains: `UNREST_KIN_K / tolerance` for people of the ruler's race but another culture, and `UNREST_FAITH_K × fervor / tolerance` for people of a faith other than the ruler's (their fervor, the ruler's tolerance). `UNREST_FOREIGN_K` and the stability penalty for foreign peoples don't change.
+- **Rebellion (§4.6).** Rebels are now one culture, not just one race. The flood-fill and the "subject peoples first" filter go by culture, with the same fallback to the ruling people. Then:
+  - **Ruling people rise:** the breakaway is a new culture. The region's cells take the rebels' id as their culture.
+  - **A conquered people rise, and no living nation rules that culture:** their old realm returns, with its old name and color: *"Velmora is reborn, 340 years after its fall."*
+  - **A conquered people rise, and a living nation already rules that culture:** a new sister state of the same culture with a fresh name.
+- **Realm conversion.** Each year, a nation where a faith other than its own holds over `FAITH_MAJORITY` of the people adopts it with chance `FAITH_ADOPT`: *"Kethar embraces the Silver Choir."* or, for the Old Gods, *"Kethar turns to the Old Gods."*
+- **Rebel faith.** A new nation of rebels takes the most common faith among its cells.
+- **Diplomacy (§4.12).** Target opinion gains `FAITH_OPINION × average fervor` between nations of one faith, and loses as much between nations of different faiths.
+
+#### What stays out
+
+Schisms, holy wars and holy cities (could return as their own step), morale bonuses, claims by culture, and any change to a cell's `race`.
+
+#### Done when (20 unseen seeds)
+
+- ≥ 15 restored realms and ≥ 10 realm conversions per run, otherwise the rule is deleted. 5+ faiths alive at year 1000.
+- Solid map: ≥ 80% of cells share a culture with 3+ neighbors at year 500.
+- Races clearly differ in how fast they assimilate and convert.
+- The Old Gods stay a minority.
+- Guardrails: ~7 rebellions a century; average peak empire ~33% of the land, ≥ 65% of worlds reach 25%; biggest race ≤ 42%; land at unrest ≥ 0.9 ≤ 21%; tick < 10 ms.
+
 ---
 
 ## 5. Rendering (`render/`)
@@ -667,6 +751,10 @@ A layer toggle (**Armies**, key W, on by default) for banners and marches. Like 
 | **March** | During playback the banner slides along this year's `trail`, so armies visibly walk instead of jumping once a year. A thin dashed line points to its target. |
 
 Hovering over an army (or next to it, since banners are wider than a cell) shows its nation, size, morale and target. Hovering over land also says who occupies it and how far a siege has come. Occupied land and sieges are in the Effects layer (§5.4g).
+
+### 5.4i Cultures and faiths
+
+Two more tints like the Races layer (§5.4b), and only one of the three shows at a time. **Cultures** (key K) tints land by the color of the culture's founding realm, so a dead realm's people still show in its color. **Faiths** (key F) tints land by `FAITH_COLORS`. The hover info names both.
 
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 5 ms, smooth at 20 years per second.
