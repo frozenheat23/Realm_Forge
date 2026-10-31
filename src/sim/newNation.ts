@@ -24,6 +24,7 @@ export function addNation(
     capital,
     founded: state.year,
     race,
+    culture: id, // a new people, unless the caller says otherwise
     alive: true,
     stability,
     warWeariness: 0,

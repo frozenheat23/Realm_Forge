@@ -11,12 +11,12 @@ import { resourceBonus } from "./resources";
  * SIM.EXPANSION_RATE / moveCost (easy on plains, hard in mountains and deserts;
  * each race finds some land easier than others).
  * If several neighbors claim the same cell in one year, one wins at random.
- * The winner's race settles it. Decisions use ownership from the start of the
+ * The winner's people settle it. Decisions use ownership from the start of the
  * year, so a nation can only grow one ring of cells per year.
  */
 export function expand(state: WorldState, rng: Rng): void {
   const { cells } = state;
-  const { owner, pop, race } = state.state;
+  const { owner, pop, race, culture } = state.state;
   // `owner` is only read here, to take the snapshot; changes go through setOwner.
   const before = owner.slice(); // snapshot of who owned what at the start of the year
 
@@ -41,6 +41,7 @@ export function expand(state: WorldState, rng: Rng): void {
     const winner = state.nations.get(rng.pick(claimants))!;
     setOwner(state, cell.id, winner.id);
     race[cell.id] = winner.race;
+    culture[cell.id] = winner.culture;
     pop[cell.id] = raceCapacity(cell, winner.race) * SIM.NEW_CELL_POP_FRACTION;
   }
 }

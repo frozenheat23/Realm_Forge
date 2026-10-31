@@ -1,6 +1,6 @@
 // Entry point: generates a world from a seed, draws it, and plays its history.
 // Page address options: ?seed=anything picks the world, ?style=painted switches the look.
-// Keys: Space play/pause, → step, C cell outlines, N nations, R races, A alliances, M resources, T towns, H heatmaps, E effects, W armies. Hover the map to inspect a cell.
+// Keys: Space play/pause, → step, C cell outlines, N nations, R races, K cultures, A alliances, M resources, T towns, H heatmaps, E effects, W armies. Hover the map to inspect a cell.
 import { createRng } from "./core/rng";
 import type { NationId, WorldState } from "./core/types";
 import { generateWorld } from "./gen";
@@ -12,7 +12,7 @@ import { createEffects } from "./render/effects";
 import { HEAT_KINDS, renderHeatmap, type HeatKind } from "./render/heatmap";
 import { drawHeatmapName, drawYear } from "./render/hud";
 import { drawLabels } from "./render/labels";
-import { renderNationOverlay } from "./render/overlay";
+import { renderNationOverlay, type OverlayTint } from "./render/overlay";
 import { drawResources } from "./render/resources";
 import { drawSettlements } from "./render/settlements";
 import { drawRivers } from "./render/rivers";
@@ -91,7 +91,12 @@ terrainCtx.putImageData(terrainImage, 0, 0);
 drawRivers(terrainCtx, world);
 
 // --- Drawing ---
-const layers: Layers = { nations: true, races: false, alliances: true, resources: false, settlements: true, labels: true, effects: true, armies: true, cells: query.get("debug") === "cells" };
+const layers: Layers = { nations: true, races: false, cultures: false, alliances: true, resources: false, settlements: true, labels: true, effects: true, armies: true, cells: query.get("debug") === "cells" };
+/** The Races and Cultures layers replace nation colors; the last one switched on wins. */
+function overlayTint(): OverlayTint {
+  if (layers.cultures) return "culture";
+  return layers.races ? "race" : "nation";
+}
 let highlight = new Set<NationId>();
 let highlightTimer = 0;
 /** Which heatmap is showing (H cycles through them), or null for none. */
@@ -103,7 +108,7 @@ const [heatLayer, heatCtx] = offscreen();
 // Animated war and unrest effects (SPEC §5.4g) remember last year themselves.
 const effects = createEffects(world, displayCells);
 function redrawNations(): void {
-  nationCtx.putImageData(renderNationOverlay(world, displayCells, state, highlight, layers.races), 0, 0);
+  nationCtx.putImageData(renderNationOverlay(world, displayCells, state, highlight, overlayTint()), 0, 0);
   if (heat) heatCtx.putImageData(renderHeatmap(world, displayCells, state, heat), 0, 0);
   if (layers.effects) effects.refresh(state);
 }
@@ -236,11 +241,18 @@ bar.append(
 
 // --- Settings, keys, hover ---
 createSettings(settingsPanel, layers, () => {
-  redrawNations(); // the Races toggle changes the overlay itself
+  redrawNations(); // the Races and Cultures toggles change the overlay itself
   draw();
 });
 onKey("r", () => {
   layers.races = !layers.races;
+  layers.cultures = false;
+  redrawNations();
+  draw();
+});
+onKey("k", () => {
+  layers.cultures = !layers.cultures;
+  layers.races = false;
   redrawNations();
   draw();
 });

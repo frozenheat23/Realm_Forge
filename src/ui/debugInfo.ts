@@ -84,8 +84,10 @@ export function showCellOnHover(
     const nation = state.nations.get(state.state.owner[cell.id]!);
     const people = traits(state.state.race[cell.id]!).plural;
     const ruler = nation ? traits(nation.race).plural : "";
+    const culture = state.nations.get(state.state.culture[cell.id]!);
+    const peopleOf = culture ? ` of ${culture.name}` : "";
     const ownerText = nation
-      ? `${nation.name} (${ruler}) · ${people}, pop ${state.state.pop[cell.id]!.toFixed(2)} · ${soldierText(state, nation)}${diplomacyText(state, nation.id)}`
+      ? `${nation.name} (${ruler}) · ${people}${peopleOf}, pop ${state.state.pop[cell.id]!.toFixed(2)} · ${soldierText(state, nation)}${diplomacyText(state, nation.id)}`
       : "unowned";
     const s = state.state;
     const deposit = cell.resource ? ` · ${RESOURCES[cell.resource as ResourceKind].name} (richness ${cell.richness.toFixed(2)})` : "";

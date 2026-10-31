@@ -66,6 +66,7 @@ export function rebel(state: WorldState, nation: Nation, cells: CellId[], rng: R
   const rebelNation = addNation(state, rng.fork("name"), bestCapital(state, region), SIM.REBEL_START_STABILITY, rebelRace, nation.id);
   for (const c of region) {
     setOwner(state, c, rebelNation.id);
+    state.state.culture[c] = rebelNation.culture;
     state.state.unrest[c] = 0; // free at last
   }
   // Rebels and their old rulers start out bitter (SPEC §4.12).

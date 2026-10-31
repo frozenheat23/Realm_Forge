@@ -7,15 +7,16 @@ import { effectiveCapacity, grainBonuses } from "./resources";
 /**
  * Logistic growth: fast when a cell is nearly empty, slowing to zero as it
  * fills up to what its race can get out of the land. Each race grows at its own pace.
- * Unowned cells hold nobody (and no race, unrest, development or settlement).
+ * Unowned cells hold nobody (and no race, culture, unrest, development or settlement).
  */
 export function growPopulation(state: WorldState): void {
-  const { pop, owner, race, unrest, development, settlement } = state.state;
+  const { pop, owner, race, culture, unrest, development, settlement } = state.state;
   const grain = grainBonuses(state);
   for (let i = 0; i < pop.length; i++) {
     // Abandoned land is emptied of people, unrest and what they built; war damage stays and heals.
     if (owner[i] === 0) {
       race[i] = Race.None;
+      culture[i] = 0;
       unrest[i] = 0;
       development[i] = 0;
       settlement[i] = 0;

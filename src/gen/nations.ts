@@ -194,6 +194,7 @@ export interface StartingNations {
   owner: Int32Array;
   pop: Float32Array;
   race: Uint8Array;
+  culture: Uint16Array;
   events: SimEvent[];
   cultureHomes: [number, number][];
   colorHue: number;
@@ -209,6 +210,7 @@ export function createStartingNations(
   const owner = new Int32Array(cells.length);
   const pop = new Float32Array(cells.length);
   const cellRace = new Uint8Array(cells.length);
+  const cellCulture = new Uint16Array(cells.length);
   const nations = new Map<NationId, Nation>();
   const events: SimEvent[] = [];
 
@@ -235,6 +237,7 @@ export function createStartingNations(
     let totalPop = 0;
     for (const cell of territory) {
       cellRace[cell] = race;
+      cellCulture[cell] = id;
       pop[cell] = raceCapacity(cells[cell]!, race) * START_POP_FRACTION;
       totalPop += pop[cell]!;
     }
@@ -247,6 +250,7 @@ export function createStartingNations(
       capital,
       founded: 0,
       race,
+      culture: id,
       alive: true,
       stability: START_STABILITY,
       warWeariness: 0,
@@ -268,5 +272,5 @@ export function createStartingNations(
     });
   });
 
-  return { nations, owner, pop, race: cellRace, events, cultureHomes, colorHue };
+  return { nations, owner, pop, race: cellRace, culture: cellCulture, events, cultureHomes, colorHue };
 }

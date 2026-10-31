@@ -55,6 +55,7 @@ export function emergence(state: WorldState, rng: Rng): SimEvent[] {
       state.state.prevOwner[c] = 0;
       state.state.ownedSince[c] = state.year;
       state.state.race[c] = race;
+      state.state.culture[c] = nation.culture;
       state.state.pop[c] = raceCapacity(state.cells[c]!, race) * START_POP_FRACTION;
     }
     events.push(foundedEvent(state.year, nation, "in the wilderness"));

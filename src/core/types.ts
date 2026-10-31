@@ -176,7 +176,11 @@ export interface Nation {
   parent?: NationId;
   /** The ruling race. Fixed for the nation's whole life. */
   race: RaceId;
+  /** Culture of its rulers: the id of the realm they descend from (SPEC §4.14). */
+  culture: number;
   alive: boolean;
+  /** Year it died. */
+  fell?: number;
   /** 0..1 */
   stability: number;
   /** 0..1 */
@@ -256,6 +260,8 @@ export interface CellState {
   occupier: Int32Array;
   /** How far a siege of this cell has got, 0..1. */
   siege: Float32Array;
+  /** Which realm's people live here (SPEC §4.14): the nation that first settled it or broke away. 0 = nobody. */
+  culture: Uint16Array;
 }
 
 /** Settlement levels, from development (SPEC §4.11). */

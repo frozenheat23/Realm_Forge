@@ -12,17 +12,19 @@ function packPixel(rgb: Rgb, alpha: number): number {
   return ((alpha << 24) | (Math.round(rgb[2]) << 16) | (Math.round(rgb[1]) << 8) | Math.round(rgb[0])) >>> 0;
 }
 
+/** What land is tinted by: who rules it, or who lives there (SPEC §5.4b, §5.4i). */
+export type OverlayTint = "nation" | "race" | "culture";
+
 /**
  * If `highlight` has nations in it, every other nation is drawn faded.
- * With `byRace`, land is tinted by the race living there instead of by nation
- * (the Races layer, SPEC §5.4b); borders are drawn the same either way.
+ * `tint` picks the land color; borders are drawn the same either way.
  */
 export function renderNationOverlay(
   world: GeneratedWorld,
   displayCells: Int32Array,
   state: WorldState,
   highlight: Set<NationId> = new Set(),
-  byRace = false,
+  tint: OverlayTint = "nation",
 ): ImageData {
   const { width, height, cells } = world;
   const owner = state.state.owner;
@@ -46,7 +48,7 @@ export function renderNationOverlay(
 
   // Each race's fill color, packed once (index = race id).
   const raceFill = Uint32Array.from(RACE_COLORS, (hex, r) => (r === 0 ? 0 : packPixel(hexToRgb(hex), fillAlpha)));
-  const race = state.state.race;
+  const { race, culture } = state.state;
 
   // Borders between nations at war are drawn in red.
   const warFront = packPixel(hexToRgb(WAR_FRONT_COLOR), 255);
@@ -88,7 +90,9 @@ export function renderNationOverlay(
           (y < height - 2 && isEnemy(me, pixelOwner[i + 2 * width]!)));
 
       if (!onBorder) {
-        const inside = byRace ? raceFill[race[displayCells[i]!]!]! : fill[me]!;
+        const cell = displayCells[i]!;
+        // A culture wears the color of the realm it began as, living or dead.
+        const inside = tint === "race" ? raceFill[race[cell]!]! : tint === "culture" ? fill[culture[cell]!]! : fill[me]!;
         px[i] = nearEnemy2 ? warFront : inside;
       } else if (
         atWar.size > 0 &&

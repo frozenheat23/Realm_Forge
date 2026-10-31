@@ -30,6 +30,8 @@ export interface Layers {
   nations: boolean;
   /** Tint land by race instead of by nation (SPEC §5.4b). */
   races: boolean;
+  /** Tint land by culture instead of by nation (SPEC §5.4i). */
+  cultures: boolean;
   /** Lines between allied capitals (SPEC §5.4c). */
   alliances: boolean;
   /** Resource deposit markers (SPEC §5.4e). */
@@ -56,6 +58,7 @@ export function createSettings(container: HTMLElement, layers: Layers, onLayersC
   const layerNames: [keyof Layers, string][] = [
     ["nations", "Nations"],
     ["races", "Races"],
+    ["cultures", "Cultures"],
     ["alliances", "Alliances"],
     ["resources", "Resources"],
     ["settlements", "Towns & cities"],

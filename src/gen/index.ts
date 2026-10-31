@@ -117,6 +117,7 @@ export function generateWorld(seed: string, width = MAP_WIDTH, height = MAP_HEIG
       pop: start.pop,
       owner: start.owner,
       race: start.race,
+      culture: start.culture,
       unrest: new Float32Array(cells.length),
       devastation: new Float32Array(cells.length),
       ownedSince: new Int32Array(cells.length),

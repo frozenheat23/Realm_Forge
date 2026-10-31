@@ -96,6 +96,7 @@ function takeWholeNation(state: WorldState, winner: Nation, loser: Nation): Cell
   for (let c = 0; c < owner.length; c++) if (owner[c] === loser.id) taken.push(c);
   for (const c of taken) takeCell(state, c, winner);
   loser.alive = false;
+  loser.fell = state.year;
   return taken;
 }
 

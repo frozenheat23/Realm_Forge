@@ -10,7 +10,7 @@ import { bestCapital } from "./newNation";
  * leaves it empty if there's none. Returns the nation that took the most cells.
  */
 function dissolve(state: WorldState, nation: Nation, cells: number[]): Nation | null {
-  const { owner, pop, race } = state.state;
+  const { owner, pop, race, culture } = state.state;
   const taken = new Map<NationId, number>();
   // Decide using ownership from before the handover, so cells given away a
   // moment ago don't count as "neighbors" (otherwise one absorber chains through everything).
@@ -30,6 +30,7 @@ function dissolve(state: WorldState, nation: Nation, cells: number[]): Nation | 
     if (!best) {
       pop[c] = 0;
       race[c] = Race.None;
+      culture[c] = 0;
     } else taken.set(best.id, (taken.get(best.id) ?? 0) + 1);
   }
 
@@ -55,6 +56,7 @@ export function collapses(state: WorldState): SimEvent[] {
 
     if (stillOurs.length === 0) {
       nation.alive = false;
+      nation.fell = state.year;
       events.push(collapseEvent(state.year, nation));
       continue;
     }
@@ -68,6 +70,7 @@ export function collapses(state: WorldState): SimEvent[] {
     if (stillOurs.length < SIM.MIN_AREA) {
       const winner = dissolve(state, nation, stillOurs);
       nation.alive = false;
+      nation.fell = state.year;
       events.push(winner ? annexedEvent(state.year, nation, winner) : collapseEvent(state.year, nation));
     }
   }
