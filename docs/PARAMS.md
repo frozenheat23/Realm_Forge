@@ -149,15 +149,15 @@ Example names per culture live in `src/gen/nameCorpus.ts` (all invented). Edit t
 |---|---|---|---|---|---|
 | `STAB_RECOVERY` | 0.01 | 0.002–0.03 | Stability regained per year | Empires recover; fewer breakups | Instability lingers |
 | `ADMIN_CAP_BASE` | 120 | 60–300 | Cells before overextension starts | Bigger stable empires | Many mid-sized nations |
-| `OVEREXT_K` | 0.0001 | 0.00005–0.001 | Stability lost per year per cell over the cap. A nation settles about `STAB_RECOVERY / OVEREXT_K` cells above its cap (at the old 0.002 any big nation hit stability 0 at once) | Big empires crack fast | Empires sprawl longer |
-| `VIGOR_BONUS` | 5 | 0–10 | Extra land a brand-new nation can rule, as a multiple of its normal cap | Young conquerors hold huge realms | Age doesn't matter (0) |
-| `VIGOR_YEARS` | 200 | 80–400 | Years for that extra to fade to ~37% | Empires last longer | Empires crack sooner |
-| `WEARINESS_STAB_K` | 0.02 | 0–0.05 | Stability lost from war weariness | Long wars trigger rebellions | Wars don't destabilize |
-| `CONTROL_RANGE` | 18 | 6–30 | Travel cost from the capital at which control falls to ~37% (× ruler's cohesion) | Bigger empires hold together (try for "no great empires form") | Empires fray close to home |
+| `OVEREXT_K` | 0.00005 | 0.00005–0.001 | Stability lost per year per cell over the cap. A nation settles about `STAB_RECOVERY / OVEREXT_K` cells above its cap (at the old 0.002 any big nation hit stability 0 at once) | Big empires crack fast | Empires sprawl longer |
+| `VIGOR_BONUS` | 80 | 0–120 | Extra land a brand-new nation can rule, as a multiple of its normal cap | Young conquerors hold huge realms | Age doesn't matter (0) |
+| `VIGOR_YEARS` | 250 | 80–400 | Years for that extra to fade to ~37% | Empires last longer | Empires crack sooner |
+| `WEARINESS_STAB_K` | 0.01 | 0–0.05 | Stability lost from war weariness | Long wars trigger rebellions | Wars don't destabilize |
+| `CONTROL_RANGE` | 50 | 6–80 | Travel cost from the capital at which control falls to ~37% (× ruler's cohesion) | Bigger empires hold together (try for "no great empires form") | Empires fray close to home |
 | `CONTROL_ISLAND` | 0.2 | 0–0.5 | Control of cells the capital can't reach over its own land | Overseas holdings are easy | Islands and cut-off land barely held |
 | `CONTROL_FREE` | 0.5 | 0.2–0.8 | Average control below which stability suffers | Only compact nations stay stable | Sprawl is fine |
 | `CONTROL_STAB_K` | 0.02 | 0.005–0.05 | Stability lost per year per point of control below `CONTROL_FREE` | Sprawling empires crack | Shape and terrain don't matter |
-| `WEARINESS_GAIN` | 0.03 | 0.01–0.08 | Weariness gained per war year | Wars end sooner | Long grinding wars |
+| `WEARINESS_GAIN` | 0.02 | 0.01–0.08 | Weariness gained per war year | Wars end sooner | Long grinding wars |
 | `WEARINESS_DECAY` | 0.05 | 0.02–0.1 | Weariness lost per peace year | Quick return to war | Long peaceful periods |
 | `FOREIGN_FREE` | 0.2 | 0–0.5 | Share of foreign-race population a nation can hold before it hurts stability | Multi-race empires hold together | Even small minorities cause trouble |
 | `FOREIGN_K` | 0.02 | 0–0.05 | Stability lost per year at 100% foreign population (÷ ruler's `tolerance`) | Conquerors of other races break apart | Race barely matters to stability |
@@ -176,12 +176,12 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `WAR_BASE_PROB` | 0.0016 | 0.001–0.02 | Base yearly chance a neighbor pair goes to war (0.004 before M9's war motives, 0.003 before M11 manpower) | Constant warfare | Peaceful eras |
-| `WAR_STRENGTH_EXP` | 0.7 | 0.5–2.0 | How much a power gap encourages war (1.0 before M11: soldier counts differ more between nations than the old `strength` did) | Strong prey on weak | Wars between equals too |
-| `WAR_MAX_PROB` | 0.1 | 0.02–0.3 | Ceiling on a pair's yearly war chance, however lopsided | Bullies attack almost at once | Even giants hesitate |
+| `WAR_BASE_PROB` | 0.0012 | 0.001–0.02 | Base yearly chance a neighbor pair goes to war (0.004 before M9's war motives, 0.003 before M11 manpower) | Constant warfare | Peaceful eras |
+| `WAR_STRENGTH_EXP` | 1.75 | 0.5–2.5 | How much a power gap encourages war (1.0 before M11: soldier counts differ more between nations than the old `strength` did) | Strong prey on weak | Wars between equals too |
+| `WAR_MAX_PROB` | 0.3 | 0.02–0.3 | Ceiling on a pair's yearly war chance, however lopsided | Bullies attack almost at once | Even giants hesitate |
 | `MAX_WARS_PER_NATION` | 2 | 1–4 | Concurrent wars per nation | Multi-front collapses | Focused wars |
 | `DEFENDER_BONUS` | 1.2 | 1.0–1.6 | Defender strength multiplier | Hard to conquer; stable borders | Snowballing conquests |
-| `PEACE_SCORE` | 200 | 50–400 | Score needed to force peace | Bigger land grabs per war | Short border wars |
+| `PEACE_SCORE` | 400 | 50–800 | Score needed to force peace | Bigger land grabs per war | Short border wars |
 | `WIN_SCORE` | 30 | 10–100 | Score a war needs to have a winner when it ends some other way; below this it's a white peace | More white peace | Small wins still take land |
 | `WEARINESS_PEACE` | 0.9 | 0.6–1.0 | Weariness that forces peace | Wars fought to exhaustion | Quick white peace |
 | `MAX_WAR_YEARS` | 25 | 10–50 | Hard cap on war length | Generational wars | Short conflicts |
@@ -194,9 +194,9 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `REBEL_THRESHOLD` | 0.25 | 0.10–0.40 | Stability below which rebellions can start | Frequent breakups, more small nations | Empires last longer |
+| `REBEL_THRESHOLD` | 0.15 | 0.10–0.40 | Stability below which rebellions can start | Frequent breakups, more small nations | Empires last longer |
 | `REBEL_PROB` | 0.03 | 0.01–0.10 | Yearly revolt chance of an unstable nation whose land adds up to `REBEL_RESTLESS_CELLS` of unrest | Fast fragmentation | Unstable empires limp on |
-| `REBEL_RESTLESS_CELLS` | 40 | 20–100 | Total unrest at which the revolt chance equals `REBEL_PROB` | Revolts need more restless land | Even small unrest sets off revolts |
+| `REBEL_RESTLESS_CELLS` | 200 | 40–400 | Total unrest at which the revolt chance equals `REBEL_PROB` | Revolts need more restless land | Even small unrest sets off revolts |
 | `REBEL_SPREAD` | 0.3 | 0–0.7 | Chance each revolt sets off another in that nation the same year | Empires fall in one blow | Empires crumble slowly |
 | `REBEL_MAX_SPREAD` | 5 | 1–10 | Most revolts one nation can have in a year | Bigger collapses | Gentler collapses |
 | `REBEL_MIN_CAPITAL_DIST` | 5 | 3–15 | Min steps from capital for a rebel seed | Only far provinces rebel | Rebellions near the core |
@@ -309,7 +309,7 @@ The biome `defense` column is in the Biomes table above.
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `UNREST_CONQUEST` | 0.6 | 0.2–1 | Unrest a cell jumps to (at least) when captured | Conquests rebel soon | Conquered land settles quietly |
+| `UNREST_CONQUEST` | 0.2 | 0.2–1 | Unrest a cell jumps to (at least) when captured | Conquests rebel soon | Conquered land settles quietly |
 | `UNREST_CONTROL_K` | 0.05 | 0.02–0.1 | Unrest gained per year × (1 − control). Must beat `UNREST_DECAY` or weak control alone never builds unrest (at 0.05: builds where control < 0.6, or < 0.2 in core land) | Far provinces seethe | Only conquest and foreign rule cause unrest |
 | `UNREST_FOREIGN_K` | 0.01 | 0–0.03 | Unrest gained per year under rulers of another race (÷ tolerance) | Subject peoples always restless | Race of the ruler doesn't matter |
 | `UNREST_DEVASTATION_K` | 0.02 | 0–0.05 | Unrest gained per year × devastation | War-torn land rises | War damage doesn't anger people |
@@ -421,7 +421,7 @@ Measured after step 5, the finished milestone (same 5 seeds, vs step 4): ~113 wa
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `SIEGE_STEPS` | 0.5 | 0.25–4 | Steps to occupy an empty cell (× defensibility) | Slow conquest | Armies sweep through |
+| `SIEGE_STEPS` | 0.3 | 0.25–4 | Steps to occupy an empty cell (× defensibility) | Slow conquest | Armies sweep through |
 | `SIEGE_SETTLEMENT_K` | 1.5 | 0–4 | Extra siege time per settlement level (city = 5.5 × base) | Cities hold out for years | Cities fall like villages |
 | `CAPITAL_SIEGE_MULT` | 2 | 1–4 | Capitals take this much longer | Capitals almost never fall | Capitals fall quickly |
 | `UNREST_OCCUPIED` | 0.05 | 0–0.2 | Unrest gained per year while occupied | Occupied land turns on its owner | Occupation stays calm |
@@ -436,6 +436,7 @@ Measured after step 5, the finished milestone (same 5 seeds, vs step 4): ~113 wa
 | `GOAL_SCORE_MULT` | 2 | 1–4 | Goal cells count this much more | Wars focus on their goal | Any occupation will do |
 | `CAPITAL_SCORE` | 20 | 0–60 | Score for holding the enemy capital | Taking the capital wins the war | Capitals don't matter |
 | `CONQUEST_MAX_PROVINCES` | 8 | 1–12 | Most provinces one conquest aims for. A war aims for one per whole time the attacker outmatches the defender | Strong nations swallow neighbors whole | Every war is over one province (1) |
+| `SUBJUGATE_RATIO` | 1 | 1–3 | How many times stronger an attacker must be to also march on the enemy capital. Holding it at peace wins the whole nation | Only crushing wars end nations | Every war goes for the throne (1) |
 | `PEACE_EXTRA_CELLS` | 40 | 0–80 | Occupied non-goal cells a winner may also keep, if they touch its land | Wars grab more land | Wars only take the goal (0) |
 | `RAID_TRIBUTE` | 0.1 | 0–0.3 | Stability moved from loser to winner after a raid | Raids break nations | Raids only burn land |
 
@@ -571,7 +572,7 @@ Common problems and which knobs to try first.
 | Symptom | Try |
 |---|---|
 | History looks frozen; one giant empire forever | ↓ `VIGOR_YEARS`, ↑ `UNREST_CRISIS_K`, ↑ `REBEL_SPREAD`, ↑ `OVEREXT_K` |
-| No great empires form | ↑ `CONTROL_RANGE`, ↑ `VIGOR_BONUS`, ↑ `CONQUEST_MAX_PROVINCES`, ↑ `PEACE_EXTRA_CELLS`, ↓ `WIN_SCORE` |
+| No great empires form | ↑ `CONTROL_RANGE`, ↑ `VIGOR_BONUS`, ↓ `SUBJUGATE_RATIO`, ↑ `WAR_STRENGTH_EXP`, ↑ `CONQUEST_MAX_PROVINCES`, ↑ `PEACE_EXTRA_CELLS`, ↓ `WIN_SCORE` |
 | Winners take almost nothing | Check white peace share; ↓ `WIN_SCORE`, ↑ `PEACE_EXTRA_CELLS` |
 | Total chaos; nothing lasts | ↑ `STAB_RECOVERY`, ↓ `REBEL_THRESHOLD`, ↑ `DEFENDER_BONUS` |
 | Map fills too fast, wars start too early | ↓ `EXPANSION_RATE`, ↓ `START_NATIONS` |

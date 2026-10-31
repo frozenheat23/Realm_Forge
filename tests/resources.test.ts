@@ -89,6 +89,7 @@ describe("value and war", () => {
     state.armies.push({ id: 1, owner: 1, war: 1, cell: 0, size: 5, morale: 1, target: -1, path: [], trail: [0] });
     campaign(state, createRng("v"));
     expect(state.state.occupier[2]).toBe(1);
+    state.state.occupier[1] = 0; // keep the capital out of it: that would win the whole nation
     expect(endWars(state)[0]!.text).toContain("iron");
   });
 

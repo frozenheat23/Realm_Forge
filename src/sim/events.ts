@@ -39,6 +39,15 @@ export function annexedEvent(year: number, nation: Nation, by: Nation): SimEvent
   };
 }
 
+export function conquestEvent(year: number, winner: Nation, loser: Nation, cells: number): SimEvent {
+  return {
+    year,
+    type: "annexed",
+    actors: [loser.id, winner.id],
+    text: `Year ${year}: ${winner.name} takes the capital of ${loser.name} and conquers the whole realm, ${cells} provinces in all.`,
+  };
+}
+
 export function capitalMovedEvent(year: number, nation: Nation): SimEvent {
   return {
     year,

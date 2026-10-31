@@ -44,7 +44,10 @@ function conquestCells(state: WorldState, attacker: Nation, defender: Nation, pr
     }
     ring = next;
   }
-  return cells.filter((c) => provinces.has(c.province) && owner[c.id] === defender.id).map((c) => c.id);
+  const goal = cells.filter((c) => provinces.has(c.province) && owner[c.id] === defender.id).map((c) => c.id);
+  // Far stronger? Then it goes for the throne: holding the capital at peace wins the whole nation.
+  if (ratio >= SIM.SUBJUGATE_RATIO && !goal.includes(defender.capital)) goal.push(defender.capital);
+  return goal;
 }
 
 /** Picks a war's goal. `prize` is the defender's most valuable border cell, as the attacker sees it. */
@@ -86,9 +89,24 @@ function takeCell(state: WorldState, cell: CellId, winner: Nation): void {
   state.state.unrest[cell] = Math.max(state.state.unrest[cell]!, SIM.UNREST_CONQUEST); // conquered people resent their new rulers
 }
 
-/** Peace terms: the goal cells the winner holds, then up to SIM.PEACE_EXTRA_CELLS more that touch its land. Returns all it took. */
+/** The winner holds the loser's capital: the whole nation is its, and the loser is gone. Returns all it took. */
+function takeWholeNation(state: WorldState, winner: Nation, loser: Nation): CellId[] {
+  const owner = state.state.owner;
+  const taken: CellId[] = [];
+  for (let c = 0; c < owner.length; c++) if (owner[c] === loser.id) taken.push(c);
+  for (const c of taken) takeCell(state, c, winner);
+  loser.alive = false;
+  return taken;
+}
+
+/**
+ * Peace terms. Whoever holds the loser's capital takes the whole nation. Otherwise: the
+ * goal cells the winner holds, then up to SIM.PEACE_EXTRA_CELLS more that touch its land.
+ * Returns all it took.
+ */
 export function takeLand(state: WorldState, war: War, winner: Nation, loser: Nation): CellId[] {
   const { owner, occupier } = state.state;
+  if (occupier[loser.capital] === winner.id) return takeWholeNation(state, winner, loser);
   const taken = war.attacker === winner.id ? goalsStanding(state, war).filter((c) => occupier[c] === winner.id) : [];
   for (const c of taken) takeCell(state, c, winner);
 

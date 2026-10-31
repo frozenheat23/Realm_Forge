@@ -61,20 +61,26 @@ describe("how much a conquest aims for", () => {
 
   it("an even fight aims for one province, a far stronger attacker for several", () => {
     const raid = SIM.RAID_CHANCE;
+    const subjugate = SIM.SUBJUGATE_RATIO;
     SIM.RAID_CHANCE = 0;
+    SIM.SUBJUGATE_RATIO = Infinity; // leave the capital out of it
     expect(provinces(1).conquest().goalCells).toEqual([5, 6, 7, 8, 9]);
     expect(provinces(3).conquest().goalCells).toEqual([5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
     SIM.RAID_CHANCE = raid;
+    SIM.SUBJUGATE_RATIO = subjugate;
   });
 
   it("never aims past CONQUEST_MAX_PROVINCES", () => {
     const raid = SIM.RAID_CHANCE;
     const most = SIM.CONQUEST_MAX_PROVINCES;
+    const subjugate = SIM.SUBJUGATE_RATIO;
     SIM.RAID_CHANCE = 0;
     SIM.CONQUEST_MAX_PROVINCES = 2;
+    SIM.SUBJUGATE_RATIO = Infinity; // leave the capital out of it
     expect(provinces(100).conquest().goalCells).toHaveLength(10);
     SIM.RAID_CHANCE = raid;
     SIM.CONQUEST_MAX_PROVINCES = most;
+    SIM.SUBJUGATE_RATIO = subjugate;
   });
 });
 
@@ -115,6 +121,42 @@ describe("reaching the goal", () => {
     expect(state.wars).toHaveLength(0);
     expect(state.state.owner[10]).toBe(1);
     expect(events[0]!.text).toContain("defeats");
+  });
+});
+
+describe("taking the capital", () => {
+  it("a strong enough attacker also marches on the enemy capital", () => {
+    const raid = SIM.RAID_CHANCE;
+    SIM.RAID_CHANCE = 0;
+    // The capital is in another province, so only the march on the throne can make it a goal.
+    const spec = row(20).map((c, i) => ({ ...c, province: Math.floor(i / 5) }));
+    const owners = Array.from({ length: 20 }, (_, i) => (i < 10 ? 1 : 2));
+    const state = makeState(spec, owners, [makeNation(1, 0), makeNation(2, 19, { reserve: 1 })]);
+    const goals = () => chooseGoal(state, state.nations.get(1)!, state.nations.get(2)!, false, 10, createRng("c")).goalCells;
+    state.nations.get(1)!.reserve = SIM.SUBJUGATE_RATIO;
+    expect(goals()).toContain(19);
+    state.nations.get(1)!.reserve = SIM.SUBJUGATE_RATIO / 2;
+    expect(goals()).not.toContain(19);
+    SIM.RAID_CHANCE = raid;
+  });
+
+  it("holding the capital at peace wins the whole nation, and the loser is gone", () => {
+    const state = neighbors();
+    state.wars.push(war("conquer", [19]));
+    state.state.occupier[19] = 1;
+    const events = endWars(state);
+    expect(state.state.owner.slice(10, 20).every((o) => o === 1)).toBe(true);
+    expect(state.nations.get(2)!.alive).toBe(false);
+    expect(events[0]!.text).toContain("whole realm");
+  });
+
+  it("without the capital, the loser survives", () => {
+    const state = neighbors();
+    state.wars.push(war("conquer", [10]));
+    state.state.occupier[10] = 1;
+    endWars(state);
+    expect(state.state.owner[10]).toBe(1);
+    expect(state.nations.get(2)!.alive).toBe(true);
   });
 });
 

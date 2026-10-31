@@ -564,7 +564,7 @@ steps to take it = SIEGE_STEPS × (1 + SIEGE_SETTLEMENT_K × settlement level) �
 |---|---|---|---|
 | **Reclaim** | The attacker has a claim (§4.5) | Its claimed cells the defender holds | *"…to reclaim its lost lands"* |
 | **Raid** | Otherwise, with chance `RAID_CHANCE × aggression` (ruling race) | None: armies go for rich cells and the enemy army | *"…to raid its lands"* |
-| **Conquer** | Otherwise | The defender's cells in the province holding its most valuable border cell (§4.11 value, as the attacker's race sees it), and in nearby provinces: one province per whole time the attacker's fighting power beats the defender's, up to `CONQUEST_MAX_PROVINCES` | *"…to seize the lands around Arvenna"* (nearest city) or *"…, coveting its iron"* |
+| **Conquer** | Otherwise | The defender's cells in the province holding its most valuable border cell (§4.11 value, as the attacker's race sees it), and in nearby provinces: one province per whole time the attacker's fighting power beats the defender's, up to `CONQUEST_MAX_PROVINCES`. If the attacker is at least `SUBJUGATE_RATIO` times stronger, the enemy capital is a goal cell too | *"…to seize the lands around Arvenna"* (nearest city) or *"…, coveting its iron"* |
 
 Goal cells that break away to rebels stop counting. Joined allies fight in support (goal `support`): no goal cells; their armies hunt enemy armies and free occupied allied land.
 
@@ -581,6 +581,7 @@ Occupations can't outlive their war: at the end of each tick any occupier that's
 - the war has lasted `MAX_WAR_YEARS`
 
 **Terms.** A winner (goal achieved, or `|score|` ≥ `WIN_SCORE`) takes:
+- **the whole nation, if it holds the loser's capital** (the loser is gone; *"…takes the capital of Kethar and conquers the whole realm, 120 provinces in all."*). This is how giants form: nations swallow rivals in one stroke. Otherwise:
 - the goal cells it occupies (only the attacker has goals);
 - up to `PEACE_EXTRA_CELLS` other occupied cells that touch its own land, most valuable first; each cell taken can make the next one touch;
 - for a raid the **attacker** won, no land. Instead the loser loses `RAID_TRIBUTE` stability, the winner gains it, and the event reads *"…plunders Kethar and goes home laden with spoils."* A defender who beats a raid still takes what it occupies.

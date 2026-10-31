@@ -4,7 +4,7 @@ import type { CellId, Nation, NationId, ResourceKind, SimEvent, War, WarGoal, Wo
 import { RESOURCES } from "../gen/params";
 import { traits } from "../gen/races";
 import { allied, alliesOf, opinion } from "./diplomacy";
-import { joinAttackEvent, joinDefenseEvent, peaceEvent, raidEvent, warEvent } from "./events";
+import { conquestEvent, joinAttackEvent, joinDefenseEvent, peaceEvent, raidEvent, warEvent } from "./events";
 import { neighborPairs, pairKey } from "./helpers";
 import { fightingPower } from "./manpower";
 import { SIM } from "./params";
@@ -236,7 +236,7 @@ export function endWars(state: WorldState): SimEvent[] {
     // Name a deposit the winner took, if any.
     const prize = taken.find((c) => state.cells[c]!.resource !== 0);
     const prizeName = prize !== undefined ? RESOURCES[state.cells[prize]!.resource as ResourceKind].name : undefined;
-    events.push(peaceEvent(state.year, attacker, defender, winner, taken.length, prizeName));
+    events.push(!loser.alive ? conquestEvent(state.year, winner!, loser, taken.length) : peaceEvent(state.year, attacker, defender, winner, taken.length, prizeName));
   }
 
   state.wars = ongoing;

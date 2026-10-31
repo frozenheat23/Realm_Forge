@@ -13,21 +13,21 @@ export const SIM = {
   // --- Stability ---
   STAB_RECOVERY: 0.01,
   ADMIN_CAP_BASE: 120,
-  OVEREXT_K: 0.0001,
+  OVEREXT_K: 0.00005,
   /** Extra land a brand-new nation can rule, as a multiple of its normal cap. */
-  VIGOR_BONUS: 5,
+  VIGOR_BONUS: 80,
   /** Years for that extra to fade to ~37%. */
-  VIGOR_YEARS: 200,
-  WEARINESS_STAB_K: 0.02,
+  VIGOR_YEARS: 250,
+  WEARINESS_STAB_K: 0.01,
   /** Travel cost from the capital at which control falls to ~37%. */
-  CONTROL_RANGE: 18,
+  CONTROL_RANGE: 50,
   /** Control of cells the capital can't reach over its own land. */
   CONTROL_ISLAND: 0.2,
   /** Average control below which stability suffers. */
   CONTROL_FREE: 0.5,
   /** Stability lost per year per point of average control below CONTROL_FREE. */
   CONTROL_STAB_K: 0.02,
-  WEARINESS_GAIN: 0.03,
+  WEARINESS_GAIN: 0.02,
   WEARINESS_DECAY: 0.05,
   /** Share of foreign-race population a nation can hold before it hurts stability. */
   FOREIGN_FREE: 0.2,
@@ -36,7 +36,7 @@ export const SIM = {
 
   // --- Land (unrest, devastation, ownership) ---
   /** Unrest a cell jumps to (at least) when captured. */
-  UNREST_CONQUEST: 0.6,
+  UNREST_CONQUEST: 0.2,
   /** Unrest gained per year × (1 − control). Must beat UNREST_DECAY for weak control to matter. */
   UNREST_CONTROL_K: 0.05,
   /** Unrest gained per year when ruled by another race (÷ ruler's tolerance). */
@@ -80,13 +80,13 @@ export const SIM = {
   EXPANSION_RATE: 0.1,
 
   // --- War ---
-  WAR_BASE_PROB: 0.0016,
-  WAR_STRENGTH_EXP: 0.7,
+  WAR_BASE_PROB: 0.0012,
+  WAR_STRENGTH_EXP: 1.75,
   /** Ceiling on the yearly chance a pair goes to war, however lopsided they are. */
-  WAR_MAX_PROB: 0.1,
+  WAR_MAX_PROB: 0.3,
   MAX_WARS_PER_NATION: 2,
   DEFENDER_BONUS: 1.2,
-  PEACE_SCORE: 200,
+  PEACE_SCORE: 400,
   /** Score a war must reach to have a winner when it ends. Below this it is a white peace. */
   WIN_SCORE: 30,
   WEARINESS_PEACE: 0.9,
@@ -142,7 +142,7 @@ export const SIM = {
   /** Devastation per enemy cell an army marches through. */
   DEVASTATION_MARCH: 0.05,
   /** Seasons to occupy an empty cell (× defensibility). */
-  SIEGE_STEPS: 0.5,
+  SIEGE_STEPS: 0.3,
   /** Extra siege time per settlement level. */
   SIEGE_SETTLEMENT_K: 1.5,
   CAPITAL_SIEGE_MULT: 2,
@@ -159,6 +159,8 @@ export const SIM = {
   RAID_CHANCE: 0.15,
   /** Most provinces one conquest aims for. A war aims for one per whole time the attacker outmatches the defender. */
   CONQUEST_MAX_PROVINCES: 8,
+  /** How many times stronger an attacker must be to march on the enemy capital and try to take the whole nation. */
+  SUBJUGATE_RATIO: 1,
   /** Occupied non-goal cells a winner may also keep. */
   PEACE_EXTRA_CELLS: 40,
   /** Stability the loser of a raid loses and the winner gains. */
@@ -201,10 +203,10 @@ export const SIM = {
   ALLY_ATTACK_PROB: 0.4,
 
   // --- Rebellion ---
-  REBEL_THRESHOLD: 0.25,
+  REBEL_THRESHOLD: 0.15,
   REBEL_PROB: 0.03,
   /** Total unrest of a nation's land at which the yearly revolt chance equals REBEL_PROB. */
-  REBEL_RESTLESS_CELLS: 40,
+  REBEL_RESTLESS_CELLS: 200,
   /** Chance each revolt sets off another in the same nation that year. */
   REBEL_SPREAD: 0.3,
   /** Most revolts one nation can have in a year. */
