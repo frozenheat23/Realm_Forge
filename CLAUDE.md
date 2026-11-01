@@ -46,7 +46,7 @@ I'm new to coding and learning TypeScript through this project. Every session is
 - Show it as a good-looking map with play / pause / speed controls, a year counter and an event log.
 - Same seed + same settings = same history (in the same browser).
 
-**Not now:** player control, economy, trade, religion, multiplayer, servers or accounts. (Ideas are parked in SPEC.md §8 and PARAMS.md "Candidate parameters".)
+**Not now:** player control, economy, trade, multiplayer, servers or accounts. (Ideas are parked in SPEC.md §8 and PARAMS.md "Candidate parameters".)
 
 ---
 
@@ -98,6 +98,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | M10 ✅ | War and unrest effects | Animated layer (key E): sliding hatch on war fronts, battle flashes with crossed swords, smoke over devastated land, embers in realms close to rebellion, rings when nations rise or fall; history unchanged with effects on or off | §5.4g |
 | M11 ✅ | Armies | Nations have a soldier reserve that refills slowly; one army per side per war marches across the map (4 seasons a year), fights battles and besieges towns; occupied land changes hands at peace by war goal (reclaim, conquer, raid); rebels raise armies; Armies layer (key W); tick < 10 ms; 10-seed balance check still passes | §4.5, §4.13, §5.4h, §6 |
 | M12 ✅ | Culture and faith | Cells hold a culture (inside a race) and a faith (across races); both spread by neighbor rule; conquered people assimilate; rebels are one culture and dead realms return; nine faiths with reach, fervor and a blessing; realms can convert; Cultures and Faiths layers; checks in SPEC §4.14 pass on unseen seeds | §2, §4.14, §5.4i, §6 |
+| M13 | Rulers and dynasties | Every nation has a named ruler and dynasty; five types of great ruler, with each race leaning toward one; titles with female variants; succession crises and civil wars, worst after a great ruler; golden ages that end in decline; crowns on the map; checks in `docs/systems/rulers.md` pass on unseen seeds | §4.15, `docs/systems/rulers.md` |
 | Later | Backlog | See SPEC.md §8 | §8 |
 
 ---
@@ -220,3 +221,6 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-11-01 | M12 step 6: `blessing(nation, faith)` in `gen/faiths.ts`. Whispers changed from "land at war with an Old Gods realm" (almost never happened) to "land next to a hidden shrine". Order 1.3 → 1.1 after leave-one-out runs showed it alone cut rebellions by a quarter |
 | 2026-11-01 | M12 done. On 20 unseen seeds, against the same seeds before M12: 17 realms reborn and 4.8 realm conversions per run; rebellions 4.5/century (4.6), wars 56 (54), peak empire 31% (30%), 65% of worlds reach 25% (60%), tick 8.3 ms (6.9). Race balance: biggest race 42%. Conversions missed the ≥ 10 target but stay; SPEC §4.14 says why |
 | 2026-11-01 | Guardrails from earlier runs (7 rebellions, 33% peak) were one seed set's numbers. Always compare old and new code on the same seeds: seed sets differ by more than most changes |
+| 2026-11-01 | M13 = rulers and dynasties, designed in `docs/systems/rulers.md` (planned until built), the first system with its own file, since SPEC.md is past the ~700-line limit. Great rulers are five shared types and each race leans toward one (user's choice: orcs make great warlords more often, dwarves great builders). Gender changes titles and names only; Humans and both elf races have female variants. Plague and famine stay in the backlog; golden ages stay in M13 and must end in decline |
+| 2026-11-01 | Measured in the browser (M1 Pro, year 300–600): tick 4.7 ms, nation overlay 16.5 ms, effects refresh 3.5 ms, each new year's frame ~44 ms in all. The sim is only about a tenth of a frame, so playback stutter comes from drawing. A Rust port of `sim/` wouldn't fix it. Overlay is over its 8 ms budget (SPEC §5.5) |
+| 2026-11-01 | CLAUDE.md "Not now" still listed religion after M12 built faith; removed |

@@ -699,6 +699,12 @@ Measured on 20 seeds never used for tuning, each 1,000 years, against the same s
 - Every blessing changed what it should when switched off and on: Order stability 0.938 → 0.964 (at 1.3, before it was cut to 1.1), Forge development 0.57 → 0.65, Warpath wars 31 → 42 per 1,000 nation-years, Grudges reclaim wars 1% → 9%, Kinship cells assimilated 3,320 → 5,304, Remembrance 605 → 316, Devotion reserve 83.5% → 85.8%, Whispers unrest beside shrines 0.76 → 0.83. Sanctuary is the weakest: Evergreen land 404 → 439, within noise, kept because it directly multiplies battle power.
 - Realm conversions missed their target: rulers' faith spreads faster than any rival's, so a realm rarely holds a majority against it. Raising cross-border spread further got ~7 a run but cut rebellions and rebirths. Kept at ~5 a run, since each one is a moment worth seeing.
 
+### 4.15 Rulers and dynasties
+
+> Planned for M13, not built. The full design is in [`systems/rulers.md`](systems/rulers.md), because this doc is past the size limit in §9. Numbers are in `PARAMS.md` → "Rulers and dynasties".
+
+Every nation has a named ruler and dynasty. A few rulers are great (Conqueror, Lawgiver, Builder, Prophet, Schemer), and each race leans toward one type. When a reign ends, a crisis can strike, and big or overreaching nations fall into civil war, worst after a great ruler. Golden ages are earned by long peace and always end in decline. Two new tick steps: 3b Golden age and 7b Succession.
+
 ---
 
 ## 5. Rendering (`render/`)
@@ -803,11 +809,10 @@ Not designed yet. When one is picked up, give it its own section in §4 and matc
 
 - Schisms, holy wars and holy cities (§4.14)
 - Red Orcs as a second orc race (disciplined empire-builders who rule Green Orcs easily)
-- Dynasties and succession crises
 - Trade routes and economy
 - Deeper diplomacy: vassals, peace terms, betrayal (an ally refusing to help), alliances slowly cooling so kin pacts don't last forever
 - Naval expansion across water (and fleets carrying armies, after M11)
-- Plagues, famines and golden ages
+- Plagues (spreading by neighbor, carried by armies and through cities, burning out as survivors gain immunity) and famines (regional, 2–5 years, worst in war-torn land, eased by grain). Brainstormed in M13 and set aside by choice
 - Azgaar map import
 - Rust port of `sim/` (after M5)
 

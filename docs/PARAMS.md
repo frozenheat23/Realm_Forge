@@ -505,6 +505,65 @@ SPEC §4.14. `FAITHS` and the race traits are in `gen/params.ts`; the rest are i
 
 ---
 
+## Rulers and dynasties
+
+> **Planned for M13, not in code yet.** SPEC §4.15 and `docs/systems/rulers.md`. All values are starting guesses until tuned. Race tables will go in `gen/params.ts`, the rest in `SIM`.
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `GREAT_RULER_CHANCE` | 0.05 | 0–0.3 | Chance a new ruler is great (× the race's number for the type) | Great rulers everywhere, none feel special | Rare legends |
+| `GREAT_CONQUEROR_POWER` | 1.25 | 1–2 | × army power | Unstoppable conquerors (it also raises the strength ratio in war chance) | Barely noticed |
+| `GREAT_CONQUEROR_WAR` | 1.5 | 1–3 | × chance of starting wars | Constant war | Conquerors sit at home |
+| `GREAT_LAWGIVER_CAP` | 2 | 1–4 | × `adminCap` | Old realms hold far more land | No help to big realms |
+| `GREAT_LAWGIVER_CALM` | 1.5 | 1–3 | × `UNREST_DECAY` on its land | Quiet realms | Unrest ignores them |
+| `GREAT_BUILDER_DEV` | 2 | 1–4 | × `DEV_GROWTH` | Cities spring up | Little effect |
+| `GREAT_PROPHET_SPREAD` | 3 | 1–6 | × spread of the nation's faith | Faith sweeps the map, more conversions | Prophets go unheard |
+| `GREAT_SCHEMER_STAB` | 0.01 | 0–0.05 | Stability its most hated neighbor loses each year | Rivals crumble from afar | Harmless |
+| `HEIR_CHANCE` | 0.75 | 0–1 | Chance the same dynasty continues | Dynasties last centuries | A new house each generation |
+| `DYNASTY_STAB_HIT` | 0.05 | 0–0.3 | Stability lost when a dynasty ends | Dynasty changes hurt | Pass unnoticed |
+| `CRISIS_BASE` | 0.05 | 0–0.3 | Crisis chance at a succession (× race `succession`) | Constant turmoil | Peaceful handovers |
+| `CRISIS_OVERREACH_K` | 2 | 0–10 | Extra crisis chance per adminCap the nation is over | Oversized realms always break | Size doesn't matter |
+| `CRISIS_GREAT` | 4 | 1–10 | × crisis chance after a great ruler | Every legend ends in ruin | Their realms carry on |
+| `CRISIS_STAB_HIT` | 0.3 | 0–1 | Stability lost in a crisis | Crises turn into collapse | Mild |
+| `CIVIL_WAR_MIN_AREA` | 40 | 10–300 | Cells needed for a crisis to become civil war | Only great realms split | Small realms split too |
+| `CIVIL_WAR_CELLS_PER_SPLIT` | 150 | 30–500 | One pretender per this many cells | Fewer successors | More successors |
+| `CIVIL_WAR_MAX_SPLITS` | 4 | 1–8 | Most pretenders in one crisis | Empires shatter | Clean two-way splits |
+| `CIVIL_WAR_SHARE` | 0.25 | 0.05–0.5 | Largest share of the land one pretender can take | Big successors | Small breakaways |
+| `GOLDEN_PEACE_YEARS` | 30 | 5–100 | Years of peace needed for a golden age | Rare | Common |
+| `GOLDEN_MIN_STABILITY` | 0.8 | 0.3–1 | Stability needed | Only the calmest | Many qualify |
+| `GOLDEN_CHANCE` | 0.01 | 0–0.05 | Yearly chance once qualified | Most peaceful realms flower | Rare |
+| `GOLDEN_RULER_BONUS` | 3 | 1–10 | × that chance under a great Lawgiver or Builder | Great rulers bring golden ages | Unrelated |
+| `GOLDEN_YEARS` | 50 | 10–150 | How long it lasts | Long eras | Brief flowering |
+| `GOLDEN_DEV` | 1.5 | 1–3 | × `DEV_GROWTH` during it | Cities boom | Little to show |
+| `GOLDEN_STAB` | 1.25 | 1–2 | × `STAB_RECOVERY` during it | Unshakable | Little effect |
+| `DECLINE_YEARS` | 30 | 0–100 | How long decline lasts | Long hangover | Barely a cost |
+| `DECLINE_STAB` | 0.5 | 0–1 | × `STAB_RECOVERY` in decline | Mild | Harsh |
+| `DECLINE_CAP` | 0.75 | 0.3–1 | × `adminCap` in decline | Mild | Declining realms lose land |
+
+### Great ruler table
+
+The race's number for each type, × `GREAT_RULER_CHANCE`.
+
+| Race | Conqueror | Lawgiver | Builder | Prophet | Schemer |
+|---|---|---|---|---|---|
+| Humans | 1 | 3 | 1 | 1 | 1 |
+| Orcs | 3 | 0.5 | 0.5 | 1 | 0.5 |
+| Dwarves | 0.5 | 1 | 3 | 0.5 | 0.5 |
+| Light Elves | 0.5 | 1 | 1 | 3 | 1 |
+| Dark Elves | 1 | 0.5 | 0.5 | 1 | 3 |
+
+### Race traits
+
+| Race | `reign` (average years) | `succession` (× crisis chance) | `femaleChance` |
+|---|---|---|---|
+| Humans | 25 | 1.0 | 0.5 |
+| Light Elves | 120 | 0.5 | 0.5 |
+| Dark Elves | 80 | 1.2 | 0.8 |
+| Dwarves | 60 | 0.4 | 0 |
+| Orcs | 15 | 2.0 | 0 |
+
+---
+
 # Rendering
 
 All in `render/palette.ts`.
@@ -654,8 +713,6 @@ Ideas for future rules. When one is adopted, design it in SPEC.md, move it into 
 | River crossings | `RIVER_CROSSING_PENALTY` | Attacks across rivers slower |
 | Naval expansion | `NAVAL_RANGE`, `NAVAL_EXPANSION_RATE` | Coastal nations claim islands across water |
 | Culture affinity | `CULTURE_REBEL_BONUS`, `CULTURE_WAR_PENALTY` | Foreign-culture provinces rebel more; kin nations fight less |
-| Dynasties | `SUCCESSION_CRISIS_PROB` | Random stability shocks on ruler death |
 | Plague | `PLAGUE_PROB`, `PLAGUE_DEATH_RATE`, `PLAGUE_SPREAD` | Population crashes that spread through neighbors |
-| Golden age | `GOLDEN_AGE_PROB`, `GOLDEN_AGE_BONUS` | Temporary stability and strength boost |
 | Trade | `TRADE_ROUTE_BONUS` | Connected coastal/river cells gain capacity |
 | Time slowdown | `SLOWDOWN_ON_EVENTS`, `SLOWDOWN_FACTOR` | Playback slows for major wars and collapses |
