@@ -574,9 +574,29 @@ All in `render/palette.ts`.
 | `SEA_GRID_ALPHA` | 0.08 | 0–0.2 | Visibility of the sea grid | Obvious grid | Invisible (0) |
 | `LAND_RAMP` / `WATER_RAMP` | see code | — | Height → color stops (`?style=painted` only) | — | — |
 
+### Parchment style (`?style=atlas`)
+
+An old chart: aged paper, pale sea, thin ink outlines, drawn terrain symbols. Colors and sizes are the `ATLAS_*` values in `render/palette.ts`; how it changes realms, names and towns is the `LOOK_ATLAS` object below them.
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `LOOK_ATLAS.overlayAlpha` | 0.38 | 0.1–0.7 | Strength of realm color | Bolder, paper fades | Paler, more paper shows |
+| `LOOK_ATLAS.overlayEdgeAlpha` | 0.54 | 0.2–0.9 | Strength of the color band along borders | Hand-tinted edges stand out | Flat color |
+| `LOOK_ATLAS.overlayEdgeWidth` | 3 | 0–5 | Width of that band in pixels (keep ≤ 5, or redraws can miss it) | Wider band | 0 = no band |
+| `LOOK_ATLAS.tintShare` | 0.32 | 0–0.7 | How far realm colors lean toward sepia | Calmer, realms look alike | Brighter colors |
+| `LOOK_ATLAS.borderAlpha` | 0.88 | 0.3–1 | Darkness of border lines | Crisper | Softer |
+| `ATLAS_HILL_CHANCE` | 0.3 | 0–1 | Share of hill cells with a symbol | Busier | Calmer |
+| `ATLAS_FOREST_CHANCE` | 0.3 | 0–1 | Share of forest cells with trees | Busier | Calmer |
+| `ATLAS_PEAK_SIZE` | 13 | 8–20 | Mountain symbol size in pixels | Taller peaks | Smaller peaks |
+| `ATLAS_WATERLINES` | see code | — | Lines along the coast: distance and strength | — | — |
+| `ATLAS_COAST_WIDTH` | 1.7 | 1–4 | Coastline thickness in pixels | Heavier | Finer |
+| `ATLAS_STAIN` | 0.07 | 0–0.15 | Paper stains | Older paper | Clean paper |
+| `ATLAS_EDGE_DARKEN` | 0.2 | 0–0.4 | Darkening at the sheet's edge | Stronger | None |
+| `ATLAS_SAILING_RAYS` | 16 | 8–32 | Sailing lines from each hub | Denser net | Sparser |
+
 ### Cel-shaded style (default)
 
-Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shading and ink lines. Kept light and muted so nation colors read on top. Pick the other style with `?style=painted`.
+Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shading and ink lines. Kept light and muted so nation colors read on top. Pick another style with `?style=painted` or `?style=atlas`.
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|

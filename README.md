@@ -24,7 +24,7 @@ npm install
 npm run dev
 ```
 
-Then open the link shown in the terminal (usually http://localhost:5173). Add `?seed=anything` to the address to get a different world, or `?style=painted` for the painted look. Press **Space** to play/pause, **→** to step a year, **C** to see the cells, **N** to hide/show nations, and hover to inspect a cell. Open **Settings** to tune the simulation live, click an event to highlight its nations, and use **Save / Load / Record** to keep a history or export a video.
+Then open the link shown in the terminal (usually http://localhost:5173). Add `?seed=anything` to the address to get a different world, `?style=painted` for the painted look, or `?style=atlas` for the parchment map (also on the **Parchment map** button). Press **Space** to play/pause, **→** to step a year, **C** to see the cells, **N** to hide/show nations, and hover to inspect a cell. Open **Settings** to tune the simulation live, click an event to highlight its nations, and use **Save / Load / Record** to keep a history or export a video.
 
 Run the tests with:
 
@@ -52,3 +52,7 @@ TypeScript · Vite · Canvas 2D · simplex-noise · d3-delaunay · Vitest
 - *Fantasy Map Simulator* (Steam)
 - [Azgaar's Fantasy Map Generator](https://github.com/Azgaar/Fantasy-Map-Generator)
 - [Red Blob Games](https://www.redblobgames.com/) articles on map generation
+
+## Credits
+
+Parchment map lettering: IM Fell English and IM Fell English SC by Igino Marini, under the SIL Open Font License 1.1, through Fontsource.

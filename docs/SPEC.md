@@ -33,7 +33,7 @@ src/
   core/    rng.ts, types.ts, math.ts, graph.ts
   gen/     params.ts, heightmap.ts, climate.ts, biomes.ts, rivers.ts, cells.ts, races.ts, resources.ts, provinces.ts, nations.ts, names.ts, index.ts
   sim/     params.ts, tick.ts, population.ts, totals.ts, manpower.ts, control.ts, land.ts, resources.ts, stability.ts, expansion.ts, diplomacy.ts, war.ts, armies.ts, rebellion.ts, collapse.ts, emergence.ts, events.ts, snapshot.ts
-  render/  palette.ts, terrain*.ts, overlay.ts, labels.ts, alliances.ts, armies.ts, heatmap.ts, resources.ts, settlements.ts, hud.ts
+  render/  palette.ts, terrain*.ts, atlasChart.ts, atlasSymbols.ts, overlay.ts, labels.ts, alliances.ts, armies.ts, heatmap.ts, resources.ts, settlements.ts, hud.ts
   ui/      controls.ts, eventLog.ts, timeline.ts, export.ts
   main.ts
 tests/
@@ -717,6 +717,18 @@ Every nation has a named ruler and dynasty. A few rulers are great (Conqueror, L
 - **Hillshade:** light from direction `HILLSHADE_AZIMUTH` at angle `HILLSHADE_ALTITUDE`, blended in at `HILLSHADE_STRENGTH`. This is the single biggest contributor to the look.
 - **Grain:** faint noise texture at `TERRAIN_GRAIN`.
 - **Water:** deep-to-shallow gradient with a lighter coastal band.
+
+### 5.1b Parchment style (`?style=atlas`)
+
+An old chart, chosen from mockups by the user: aged paper, a pale sea with engraved lines along the shore, and thin ink outlines. A "Parchment map" button switches style, which reloads and restarts the world. It only changes drawing, so history is the same in every style.
+
+- **Terrain layer:** paper and sea (`terrainAtlas.ts`), then sailing lines over water only, a faint grid and the compass rose (`atlasChart.ts`).
+- **Symbol layer:** rivers, mountains, hills, trees and desert dots (`atlasSymbols.ts`). They sit on their own layer above the nation colors, so tinting doesn't fade the ink.
+- **Nation colors:** the same overlay, given `LOOK_ATLAS`: pale colors leaning toward sepia, a stronger band along borders, and one ink for every border. War borders stay red.
+- **Labels and places:** IM Fell fonts (bundled, SIL Open Font License), castles for capitals, rings for cities, no town dots.
+- **Frame and title panel:** drawn with the labels each year. The panel takes the corner with the least land and carries the year and heatmap name, replacing `hud.ts`.
+
+`MapLook` in `palette.ts` holds what a style changes in the shared layers. A new style adds one more look.
 
 ### 5.2 Nation overlay (redrawn each year)
 - Tint land pixels with the owner's color at `OVERLAY_ALPHA` so terrain shows through. Unowned land is not tinted.

@@ -1,21 +1,28 @@
 // Entry point: generates a world from a seed, draws it, and plays its history.
-// Page address options: ?seed=anything picks the world, ?style=painted switches the look.
+// Page address options: ?seed=anything picks the world, ?style=painted or ?style=atlas switches the look.
 // Keys: Space play/pause, → step, C cell outlines, N nations, R races, K cultures, F faiths, A alliances, M resources, T towns, H heatmaps, E effects, W armies. Hover the map to inspect a cell.
+import "@fontsource/im-fell-english/400.css";
+import "@fontsource/im-fell-english/400-italic.css";
+import "@fontsource/im-fell-english-sc/400.css";
 import { createRng } from "./core/rng";
 import type { NationId, WorldState } from "./core/types";
 import { generateWorld } from "./gen";
 import { drawAlliances } from "./render/alliances";
 import { drawArmies } from "./render/armies";
+import { drawChartFrame, drawSailingLines, drawTitlePanel, planChart } from "./render/atlasChart";
+import { drawAtlasLand } from "./render/atlasSymbols";
 import { drawCellOutlines } from "./render/debug";
 import { buildDisplayCells, groupPixelsByCell } from "./render/displayCells";
 import { createEffects } from "./render/effects";
 import { HEAT_KINDS, renderHeatmap, type HeatKind } from "./render/heatmap";
 import { drawHeatmapName, drawYear } from "./render/hud";
 import { drawLabels } from "./render/labels";
+import { ATLAS_FONTS, LOOK_ATLAS, LOOK_STANDARD } from "./render/palette";
 import { createNationOverlay, type OverlayTint } from "./render/overlay";
 import { drawResources } from "./render/resources";
 import { drawSettlements } from "./render/settlements";
 import { drawRivers } from "./render/rivers";
+import { renderAtlasTerrain } from "./render/terrainAtlas";
 import { renderCelTerrain } from "./render/terrainCel";
 import { renderPaintedTerrain } from "./render/terrainPainted";
 import { fromSnapshot, type Snapshot } from "./sim/snapshot";
@@ -43,7 +50,9 @@ const logList = element("#log");
 // --- Generate the world (or restore a loaded save) ---
 const query = new URLSearchParams(location.search);
 const seed = query.get("seed") ?? "realm-forge";
-const style = query.get("style") === "painted" ? "painted" : "cel";
+const styleParam = query.get("style");
+const style = styleParam === "painted" || styleParam === "atlas" ? styleParam : "cel";
+const look = style === "atlas" ? LOOK_ATLAS : LOOK_STANDARD;
 
 // A save file picked with "Load" waits in sessionStorage while the page reloads with its seed.
 const LOAD_KEY = "realm-forge-load";
@@ -85,10 +94,18 @@ function offscreen(): [HTMLCanvasElement, CanvasRenderingContext2D] {
 // The terrain never changes, so draw it once and copy it every frame.
 const displayCells = buildDisplayCells(world);
 const [terrain, terrainCtx] = offscreen();
-const terrainImage =
-  style === "painted" ? renderPaintedTerrain(world.heightmap) : renderCelTerrain(world, displayCells);
-terrainCtx.putImageData(terrainImage, 0, 0);
-drawRivers(terrainCtx, world);
+// The parchment map also keeps its rivers and terrain symbols on a layer above the nation
+// colors, and works out where its title panel and compass go.
+const chart = style === "atlas" ? planChart(world) : null;
+const [symbols, symbolsCtx] = offscreen();
+if (chart) {
+  terrainCtx.putImageData(renderAtlasTerrain(world, chart), 0, 0);
+  drawSailingLines(terrainCtx, world, chart);
+  drawAtlasLand(symbolsCtx, world, chart);
+} else {
+  terrainCtx.putImageData(style === "painted" ? renderPaintedTerrain(world.heightmap) : renderCelTerrain(world, displayCells), 0, 0);
+  drawRivers(terrainCtx, world);
+}
 
 // --- Drawing ---
 const layers: Layers = { nations: true, races: false, cultures: false, faiths: false, alliances: true, resources: false, settlements: true, labels: true, effects: true, armies: true, cells: query.get("debug") === "cells" };
@@ -109,7 +126,7 @@ const [heatLayer, heatCtx] = offscreen();
 // Animated war and unrest effects (SPEC §5.4g) remember last year themselves.
 const cellPixels = groupPixelsByCell(displayCells, world.cells.length);
 const effects = createEffects(world, cellPixels);
-const overlay = createNationOverlay(world, displayCells, cellPixels);
+const overlay = createNationOverlay(world, displayCells, cellPixels, look);
 // Shares the overlay's memory, so it never needs rebuilding.
 const nationImage = new ImageData(new Uint8ClampedArray(overlay.pixels.buffer), world.width, world.height);
 function redrawNations(): void {
@@ -126,13 +143,19 @@ function draw(): void {
   baseCtx.drawImage(terrain, 0, 0);
   if (layers.nations) baseCtx.drawImage(nationLayer, 0, 0);
   if (heat) baseCtx.drawImage(heatLayer, 0, 0);
+  if (chart) baseCtx.drawImage(symbols, 0, 0);
   if (layers.cells) drawCellOutlines(baseCtx, world);
-  if (layers.settlements) drawSettlements(baseCtx, world, state);
+  if (layers.settlements) drawSettlements(baseCtx, world, state, look);
   if (layers.resources) drawResources(baseCtx, world);
   if (layers.alliances) drawAlliances(baseCtx, world, state);
-  if (layers.nations && layers.labels) drawLabels(baseCtx, world, state);
-  drawYear(baseCtx, state.year, world.width);
-  if (heat) drawHeatmapName(baseCtx, heat, world.width);
+  if (layers.nations && layers.labels) drawLabels(baseCtx, world, state, look);
+  if (chart) {
+    drawChartFrame(baseCtx, world);
+    drawTitlePanel(baseCtx, chart, state.year, heat);
+  } else {
+    drawYear(baseCtx, state.year, world.width);
+    if (heat) drawHeatmapName(baseCtx, heat, world.width);
+  }
   present(performance.now()); // show it right away, without waiting for the next frame
 }
 
@@ -203,9 +226,9 @@ function frame(now: number): void {
 }
 
 // --- Toolbar: world, save/load, video ---
-function goTo(newSeed: string): void {
+function goTo(newSeed: string, newStyle: string = style): void {
   const params = new URLSearchParams({ seed: newSeed });
-  if (style === "painted") params.set("style", "painted");
+  if (newStyle !== "cel") params.set("style", newStyle);
   location.search = params.toString();
 }
 
@@ -243,6 +266,7 @@ bar.append(
     }
   }),
   recordButton,
+  makeButton(style === "atlas" ? "Classic map" : "Parchment map", "Switch map style (restarts this world from year 0)", () => goTo(seed, style === "atlas" ? "cel" : "atlas")),
 );
 
 // --- Settings, keys, hover ---
@@ -302,3 +326,5 @@ showCellOnHover(canvas, infoPanel, world, () => state);
 redrawNations();
 draw();
 requestAnimationFrame(frame);
+// Canvas text can't wait for a font, so draw again once the parchment map's fonts arrive.
+if (chart) void Promise.all(ATLAS_FONTS.map((font) => document.fonts.load(font))).then(draw);

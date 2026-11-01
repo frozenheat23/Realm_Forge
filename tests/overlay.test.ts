@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
 import { generateWorld } from "../src/gen";
 import { buildDisplayCells, groupPixelsByCell } from "../src/render/displayCells";
+import { planChart } from "../src/render/atlasChart";
 import { createNationOverlay } from "../src/render/overlay";
+import { LOOK_ATLAS } from "../src/render/palette";
 import { tick } from "../src/sim/tick";
 
 describe("groupPixelsByCell", () => {
@@ -38,4 +40,36 @@ describe("the nation overlay", () => {
       if (year % 20 === 0) expectSameAsFresh(year, year > 100 ? "faith" : undefined);
     }
   }, 60_000);
+
+  it("also matches with the parchment look, whose border band reaches further into a cell", () => {
+    const { world, state } = generateWorld("overlay");
+    const display = buildDisplayCells(world);
+    const groups = groupPixelsByCell(display, world.cells.length);
+    const kept = createNationOverlay(world, display, groups, LOOK_ATLAS);
+    const rng = createRng("overlay").fork("sim");
+
+    kept.update(state);
+    for (let year = 1; year <= 60; year++) {
+      tick(state, rng);
+      kept.update(state);
+    }
+    const fresh = createNationOverlay(world, display, groups, LOOK_ATLAS);
+    fresh.update(state);
+    let different = 0;
+    for (let i = 0; i < fresh.pixels.length; i++) if (fresh.pixels[i] !== kept.pixels[i]) different++;
+    expect(different).toBe(0);
+  }, 60_000);
+});
+
+describe("the parchment chart", () => {
+  it("puts the compass rose and sailing hub at sea, and the title panel on the map", () => {
+    const { world } = generateWorld("overlay");
+    const chart = planChart(world);
+    const { heightmap, width, height } = world;
+    for (const [x, y] of [chart.rose, chart.sailingHub]) expect(heightmap.data[y * width + x]!).toBeLessThanOrEqual(heightmap.seaLevel);
+    expect(chart.panelX).toBeGreaterThanOrEqual(0);
+    expect(chart.panelY).toBeGreaterThanOrEqual(0);
+    expect(chart.panelX).toBeLessThan(width);
+    expect(chart.panelY).toBeLessThan(height);
+  });
 });

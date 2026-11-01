@@ -118,6 +118,8 @@ export const ALLIANCE_DASH = [6, 4];
 export const TOWN_RADIUS = 1.8;
 export const TOWN_FILL = "#3a2f25";
 export const CITY_SIZE = 5;
+/** Radius of the city marker on the parchment map. */
+export const CITY_RING_RADIUS = 3.8;
 export const CITY_FILL = "#fbf6e9";
 export const CITY_FONT = "italic 10px Georgia, serif";
 /** Resources layer (SPEC §5.4e): a marker per deposit, colored by type (indexed by ResourceId; 0 unused). */
@@ -155,6 +157,9 @@ export const LABEL_COLOR = "#2b2620";
 export const LABEL_HALO = "rgba(250, 246, 235, 0.85)";
 export const CAPITAL_RADIUS = 3;
 export const CAPITAL_FILL = "#fbf6e9";
+/** The castle marking capitals on the parchment map. */
+export const CASTLE_WALL = "#f0e2c0";
+export const CASTLE_FLAG = "#8c2f22";
 /** The crown over the capital of a realm with a great ruler. */
 export const CROWN_FILL = "#f2c744";
 export const CROWN_WIDTH = 22;
@@ -236,3 +241,129 @@ export const ARMY_LABEL_COLOR = "#fbf6e9";
 export const SIEGE_RING_RADIUS = 7;
 export const SIEGE_RING_WIDTH = 2;
 export const SIEGE_RING_COLOR = "#fbf6e9";
+
+// =====================================================================
+// How a map style changes the shared layers (nations, labels, settlements).
+// =====================================================================
+
+export interface MapLook {
+  /** Opacity of realm color inside a realm, and in a thin band along its borders (0 = no band). */
+  overlayAlpha: number;
+  overlayEdgeAlpha: number;
+  overlayEdgeWidth: number;
+  /** Realm colors are pulled this far toward `tintToward`, so they sit on the map. */
+  tintToward: string;
+  tintShare: number;
+  /** One color for every border, or null to use a darker shade of each realm's color. */
+  borderInk: string | null;
+  borderAlpha: number;
+  labelFont: string;
+  labelWeight: number;
+  /** Capital letters for realm names, or the name as it's spelled (for small-caps fonts). */
+  labelUpper: boolean;
+  labelSpacing: number;
+  labelColor: string;
+  labelHalo: string;
+  capital: "dot" | "castle";
+  /** Height of the capital marker above its cell center, so the crown clears it. */
+  capitalHeight: number;
+  townDots: boolean;
+  cityMarker: "square" | "ring";
+  cityFont: string;
+}
+
+/** The look of the cel-shaded and painted styles. */
+export const LOOK_STANDARD: MapLook = {
+  overlayAlpha: OVERLAY_ALPHA,
+  overlayEdgeAlpha: OVERLAY_ALPHA,
+  overlayEdgeWidth: 0,
+  tintToward: "#000000",
+  tintShare: 0,
+  borderInk: null,
+  borderAlpha: BORDER_ALPHA,
+  labelFont: LABEL_FONT,
+  labelWeight: 600,
+  labelUpper: true,
+  labelSpacing: LABEL_LETTER_SPACING,
+  labelColor: LABEL_COLOR,
+  labelHalo: LABEL_HALO,
+  capital: "dot",
+  capitalHeight: CAPITAL_RADIUS,
+  townDots: true,
+  cityMarker: "square",
+  cityFont: CITY_FONT,
+};
+
+// =====================================================================
+// Parchment ("atlas") style, ?style=atlas: an old chart with thin ink outlines.
+// =====================================================================
+
+export const ATLAS_INK = "#2a1c10";
+export const ATLAS_PAPER = "#ecdcb6";
+/** Open sea, and the darker wash near the shore. */
+export const ATLAS_SEA = "#d3d3b4";
+export const ATLAS_SEA_NEAR = "#9fb8ad";
+/** How strong the wash is at the coast, and how many pixels out it fades over. */
+export const ATLAS_SEA_NEAR_SHARE = 0.75;
+export const ATLAS_SEA_NEAR_FADE = 28;
+/** Engraved lines following the shore: [pixels from the coast, ink strength]. */
+export const ATLAS_WATERLINES: [number, number][] = [[4, 0.6], [8, 0.46], [13, 0.34], [19, 0.24], [26, 0.15], [34, 0.09]];
+export const ATLAS_COAST_WIDTH = 1.7;
+/** How much stains lighten or darken the paper, and how dark the sheet's edge gets. */
+export const ATLAS_STAIN = 0.07;
+export const ATLAS_EDGE_DARKEN = 0.2;
+/** Lines radiating from the compass rose and a second point at sea. */
+export const ATLAS_SAILING_INK = "rgba(42, 28, 16, 0.45)";
+export const ATLAS_SAILING_RED = "rgba(122, 52, 36, 0.4)";
+export const ATLAS_SAILING_RAYS = 16;
+/** Faint latitude and longitude lines. */
+export const ATLAS_GRID_COLOR = "rgba(58, 42, 26, 0.13)";
+export const ATLAS_GRID_X = 200;
+export const ATLAS_GRID_Y = 150;
+export const ATLAS_RIVER_COLOR = "rgba(52, 74, 84, 0.9)";
+export const ATLAS_RIVER_MIN_WIDTH = 1;
+export const ATLAS_RIVER_WIDTH_PER_FLOW = 0.35;
+/** Mountain symbol height: base pixels, plus this much per unit of elevation above MOUNTAIN_H. */
+export const ATLAS_PEAK_SIZE = 13;
+export const ATLAS_PEAK_GROWTH = 42;
+export const ATLAS_PEAK_FILL = "#e6d3a8";
+/** Share of hill and forest cells that get a symbol. */
+export const ATLAS_HILL_CHANCE = 0.3;
+export const ATLAS_FOREST_CHANCE = 0.3;
+export const ATLAS_TREE_FILL = "rgba(226, 212, 170, 0.4)";
+export const ATLAS_TREE_SIZE = 5.5;
+/** Symbols stay this many pixels clear of the coast. */
+export const ATLAS_SYMBOL_COAST_GAP = 7;
+export const ATLAS_ROSE_RADIUS = 76;
+export const ATLAS_PANEL_FILL = "#efe0bd";
+export const ATLAS_PANEL_WIDTH = 330;
+export const ATLAS_PANEL_HEIGHT = 150;
+export const ATLAS_PANEL_MARGIN = 44;
+/** Checkered edge of the sheet. */
+export const ATLAS_FRAME_WIDTH = 12;
+export const ATLAS_FRAME_CHECK = 50;
+export const ATLAS_TITLE_FONT = "34px 'IM Fell English SC', Georgia, serif";
+export const ATLAS_NOTE_FONT = "italic 16px 'IM Fell English', Georgia, serif";
+/** Bundled with the game; the map redraws once they've loaded. */
+export const ATLAS_FONTS = [ATLAS_TITLE_FONT, ATLAS_NOTE_FONT, "italic 13px 'IM Fell English'"];
+
+export const LOOK_ATLAS: MapLook = {
+  overlayAlpha: 0.38,
+  overlayEdgeAlpha: 0.54,
+  overlayEdgeWidth: 3,
+  tintToward: "#8a6a3f",
+  tintShare: 0.32,
+  borderInk: ATLAS_INK,
+  borderAlpha: 0.88,
+  labelFont: "'IM Fell English SC', Georgia, serif",
+  labelWeight: 400,
+  labelUpper: false,
+  labelSpacing: 0.16,
+  labelColor: ATLAS_INK,
+  labelHalo: "rgba(236, 220, 182, 0.8)",
+  capital: "castle",
+  capitalHeight: 16,
+  townDots: false,
+  cityMarker: "ring",
+  cityFont: "italic 13px 'IM Fell English', Georgia, serif",
+};

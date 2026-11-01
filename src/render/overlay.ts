@@ -2,10 +2,10 @@
 // Redrawn every year, so after the first paint it only repaints the cells that changed. Only reads the world.
 import type { GeneratedWorld } from "../gen";
 import type { CellId, NationId, WorldState } from "../core/types";
-import { hexToRgb, scaleRgb, type Rgb } from "./color";
+import { hexToRgb, mixRgb, scaleRgb, type Rgb } from "./color";
 import type { CellPixels } from "./displayCells";
 import { pairKey } from "../sim/war";
-import { BORDER_ALPHA, BORDER_DARKEN, FAITH_COLORS, HIGHLIGHT_DIM, OVERLAY_ALPHA, RACE_COLORS, WAR_FRONT_COLOR } from "./palette";
+import { BORDER_DARKEN, FAITH_COLORS, HIGHLIGHT_DIM, LOOK_STANDARD, RACE_COLORS, WAR_FRONT_COLOR, type MapLook } from "./palette";
 
 /** Packs a color and alpha into one 32-bit number, the way ImageData stores a pixel. */
 function packPixel(rgb: Rgb, alpha: number): number {
@@ -29,8 +29,11 @@ export interface NationOverlay {
 /** War borders are thick, so a change reaches 2 pixels into the next cell, and the wobbly edges can reach one cell further. */
 const REPAINT_RINGS = 2;
 
-export function createNationOverlay(world: GeneratedWorld, displayCells: Int32Array, cellPixels: CellPixels): NationOverlay {
+export function createNationOverlay(world: GeneratedWorld, displayCells: Int32Array, cellPixels: CellPixels, look: MapLook = LOOK_STANDARD): NationOverlay {
   const { width, height, cells } = world;
+  const edge = look.overlayEdgeWidth;
+  const tintToward = hexToRgb(look.tintToward);
+  const tinted = (hex: string) => mixRgb(hexToRgb(hex), tintToward, look.tintShare);
   const pixels = new Uint32Array(width * height);
   // Owner of every pixel: 0 = unowned land, −1 = water.
   const pixelOwner = new Int32Array(width * height);
@@ -43,8 +46,8 @@ export function createNationOverlay(world: GeneratedWorld, displayCells: Int32Ar
   let shownHighlight = new Set<NationId>();
   let shownWars = new Set<number>();
 
-  const raceFill = RACE_COLORS.map((hex, r) => (r === 0 ? 0 : packPixel(hexToRgb(hex), Math.round(OVERLAY_ALPHA * 255))));
-  const faithFill = FAITH_COLORS.map((hex, f) => (f === 0 ? 0 : packPixel(hexToRgb(hex), Math.round(OVERLAY_ALPHA * 255))));
+  const raceFill = RACE_COLORS.map((hex, r) => (r === 0 ? 0 : packPixel(tinted(hex), Math.round(look.overlayAlpha * 255))));
+  const faithFill = FAITH_COLORS.map((hex, f) => (f === 0 ? 0 : packPixel(tinted(hex), Math.round(look.overlayAlpha * 255))));
   const warFront = packPixel(hexToRgb(WAR_FRONT_COLOR), 255);
 
   /** All of `cell`'s pixels get the owner it has now. */
@@ -63,15 +66,30 @@ export function createNationOverlay(world: GeneratedWorld, displayCells: Int32Ar
     let maxId = 0;
     for (const id of state.nations.keys()) maxId = Math.max(maxId, id);
     const fill = new Uint32Array(maxId + 1);
+    const edgeFill = new Uint32Array(maxId + 1);
     const border = new Uint32Array(maxId + 1);
-    const fillAlpha = Math.round(OVERLAY_ALPHA * 255);
-    const borderAlpha = Math.round(BORDER_ALPHA * 255);
+    const fillAlpha = Math.round(look.overlayAlpha * 255);
+    const edgeAlpha = Math.round(look.overlayEdgeAlpha * 255);
+    const borderAlpha = Math.round(look.borderAlpha * 255);
+    const borderInk = look.borderInk === null ? null : hexToRgb(look.borderInk);
     for (const nation of state.nations.values()) {
-      const rgb = hexToRgb(nation.color);
+      const rgb = tinted(nation.color);
       const fade = highlight.size > 0 && !highlight.has(nation.id) ? HIGHLIGHT_DIM : 1;
       fill[nation.id] = packPixel(rgb, Math.round(fillAlpha * fade));
-      border[nation.id] = packPixel(scaleRgb(rgb, 1 - BORDER_DARKEN), Math.round(borderAlpha * fade));
+      edgeFill[nation.id] = packPixel(rgb, Math.round(edgeAlpha * fade));
+      border[nation.id] = packPixel(borderInk ?? scaleRgb(hexToRgb(nation.color), 1 - BORDER_DARKEN), Math.round(borderAlpha * fade));
     }
+
+    /** Is another realm's land `edge` pixels away, in any of the four directions? */
+    const nearAnotherRealm = (me: number, i: number, x: number, y: number): boolean => {
+      const foreign = (other: number) => other !== -1 && other !== me;
+      return (
+        (x >= edge && foreign(pixelOwner[i - edge]!)) ||
+        (x < width - edge && foreign(pixelOwner[i + edge]!)) ||
+        (y >= edge && foreign(pixelOwner[i - edge * width]!)) ||
+        (y < height - edge && foreign(pixelOwner[i + edge * width]!))
+      );
+    };
 
     // Borders between nations at war are drawn in red.
     const atWar = new Set(state.wars.map((w) => pairKey(w.attacker, w.defender)));
@@ -107,7 +125,11 @@ export function createNationOverlay(world: GeneratedWorld, displayCells: Int32Ar
         const cell = displayCells[i]!;
         // A culture wears the color of the realm it began as, living or dead.
         const inside =
-          tint === "race" ? raceFill[race[cell]!]! : tint === "culture" ? fill[culture[cell]!]! : tint === "faith" ? faithFill[faith[cell]!]! : fill[me]!;
+          tint === "race" ? raceFill[race[cell]!]!
+          : tint === "culture" ? fill[culture[cell]!]!
+          : tint === "faith" ? faithFill[faith[cell]!]!
+          : edge > 0 && nearAnotherRealm(me, i, x, y) ? edgeFill[me]!
+          : fill[me]!;
         pixels[i] = nearEnemy2 ? warFront : inside;
       } else if (atWar.size > 0 && (isEnemy(me, left) || isEnemy(me, right) || isEnemy(me, up) || isEnemy(me, down))) {
         pixels[i] = warFront;

@@ -8,10 +8,16 @@ function midpoint(a: Point, b: Point): Point {
   return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
 }
 
-export function drawRivers(ctx: CanvasRenderingContext2D, world: GeneratedWorld): void {
+export function drawRivers(
+  ctx: CanvasRenderingContext2D,
+  world: GeneratedWorld,
+  color = RIVER_COLOR,
+  minWidth = RIVER_MIN_WIDTH,
+  widthPerFlow = RIVER_WIDTH_PER_FLOW,
+): void {
   const { cells } = world;
   ctx.save();
-  ctx.strokeStyle = RIVER_COLOR;
+  ctx.strokeStyle = color;
   ctx.lineCap = "round";
 
   for (const cell of cells) {
@@ -26,7 +32,7 @@ export function drawRivers(ctx: CanvasRenderingContext2D, world: GeneratedWorld)
     const start = midpoint(cell.site, next.site);
     const end = afterNext ? midpoint(next.site, afterNext.site) : next.site;
 
-    ctx.lineWidth = RIVER_MIN_WIDTH + Math.sqrt(cell.riverFlow) * RIVER_WIDTH_PER_FLOW;
+    ctx.lineWidth = minWidth + Math.sqrt(cell.riverFlow) * widthPerFlow;
     ctx.beginPath();
     ctx.moveTo(start[0], start[1]);
     ctx.quadraticCurveTo(next.site[0], next.site[1], end[0], end[1]);
