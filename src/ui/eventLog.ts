@@ -17,6 +17,7 @@ const ICONS: Record<SimEvent["type"], string> = {
   city_founded: "♜",
   battle: "⚒",
   faith: "☽",
+  ruler: "♛",
 };
 
 // Filter checkboxes: label → the event types it shows or hides.
@@ -30,6 +31,7 @@ const FILTERS: [string, SimEvent["type"][]][] = [
   ["Capitals", ["capital_moved"]],
   ["Cities", ["city_founded"]],
   ["Faith", ["faith"]],
+  ["Rulers", ["ruler"]],
   ["Battles", ["battle"]],
 ];
 

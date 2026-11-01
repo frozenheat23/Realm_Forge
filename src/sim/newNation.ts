@@ -6,6 +6,7 @@ import { nameNationAt, nationColor } from "../gen/nations";
 import { traits } from "../gen/races";
 import { nextNationId, takenNames } from "./helpers";
 import { emptyAccess } from "./resources";
+import { crown } from "./rulers";
 
 /** What a new nation carries over from a people that came before it (SPEC §4.14). */
 export interface Heritage {
@@ -39,6 +40,7 @@ export function addNation(
     race,
     culture: heritage?.culture ?? id,
     faith: faithAt(state.raceHomes, race, x, y),
+    ruler: crown(state, rng.fork("ruler"), race, capital),
     alive: true,
     stability,
     warWeariness: 0,

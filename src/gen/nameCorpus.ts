@@ -21,6 +21,26 @@ export const FAMILY_NAMES: Record<Exclude<RaceFamily, "human">, string[]> = {
   ],
 };
 
+/** Example rulers' names by race family, for the same Markov chain. */
+export const RULER_NAMES: Record<RaceFamily, { male: string[]; female: string[] }> = {
+  human: {
+    male: ["Aldric", "Bertrand", "Cedric", "Edmund", "Godfrey", "Harald", "Leofric", "Oswin", "Roland", "Theobald", "Wulfric", "Conrad"],
+    female: ["Adela", "Beatrice", "Cecily", "Edith", "Helena", "Isolde", "Matilda", "Rosamund", "Sibyl", "Theodora", "Ysolde", "Eleanor"],
+  },
+  elf: {
+    male: ["Aerandir", "Caladon", "Elrion", "Faelar", "Galion", "Ithilion", "Lorendil", "Mithrandel", "Saelon", "Thandor", "Valion", "Erevan"],
+    female: ["Aerin", "Celeste", "Elanor", "Faeliel", "Galadwen", "Ithiliel", "Lorien", "Miriel", "Saelwen", "Thaliel", "Vanyel", "Arwen"],
+  },
+  dwarf: {
+    male: ["Balgrim", "Dorin", "Durgan", "Gimrak", "Hargrim", "Kazgar", "Morgrin", "Thorgrim", "Ungrim", "Brokk", "Skorri", "Valdrin"],
+    female: [],
+  },
+  orc: {
+    male: ["Azgrim", "Bolgar", "Drogga", "Gorbash", "Grukk", "Krushak", "Morzog", "Narzug", "Ragnok", "Skarrok", "Urzog", "Zurgash"],
+    female: [],
+  },
+};
+
 export const NAME_CULTURES: { label: string; examples: string[] }[] = [
   {
     label: "northern",

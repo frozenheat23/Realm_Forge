@@ -7,8 +7,8 @@ import type { Alliance, Army, CellState, Nation, RaceHome, SimEvent, War, WorldS
 import type { GeneratedWorld } from "../gen";
 import type { SimParams } from "./params";
 
-/** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9), 5 armies (M11), 8 culture and faith (M12). */
-export const SNAPSHOT_VERSION = 8;
+/** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9), 5 armies (M11), 8 culture and faith (M12), 9 rulers (M13). */
+export const SNAPSHOT_VERSION = 9;
 
 /** Why older saves can't be loaded, by version. */
 const TOO_OLD: Record<number, string> = {
@@ -19,6 +19,7 @@ const TOO_OLD: Record<number, string> = {
   5: "battles, occupation and war goals were added",
   6: "rebel armies were added",
   7: "cultures and faiths were added",
+  8: "rulers were added",
 };
 
 export interface Snapshot {

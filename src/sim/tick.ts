@@ -13,6 +13,7 @@ import { updateLand } from "./land";
 import { growPopulation } from "./population";
 import { rebellions } from "./rebellion";
 import { updateStability } from "./stability";
+import { succession } from "./succession";
 import { updateTotals } from "./totals";
 import { releaseOccupations } from "./siege";
 import { declareWars, endWars } from "./war";
@@ -44,6 +45,7 @@ export function tick(state: WorldState, rng: Rng): SimEvent[] {
   events.push(...battleEvents(state));
   events.push(...endWars(state)); //                      6b. Peace
   events.push(...rebellions(state, year.fork("rebellion"))); // 7. Rebellion
+  events.push(...succession(state, year.fork("succession"))); // 7b. Succession
   events.push(...collapses(state)); //                    8. Collapse
   disbandArmies(state); //                                … armies whose war is over go home
   releaseOccupations(state); //                           … and occupations with no war behind them end

@@ -1,4 +1,5 @@
 // Places the starting nations (SPEC §3.8): capitals, small home territories, names and colors.
+import { dynastyName, makeRuler, midReign } from "./rulers";
 import type { Rng } from "../core/rng";
 import type { Cell, CellId, Nation, NationId, RaceHome, RaceId, SimEvent } from "../core/types";
 import { faithAt } from "./faiths";
@@ -248,6 +249,8 @@ export function createStartingNations(
     }
 
     const name = nameNationAt(nameRng, cultureHomes, takenNames, x, y, race);
+    const rulerRng = rng.fork(`ruler-${id}`);
+    const surname = nameNationAt(rulerRng, cultureHomes, new Set(), x, y, race);
     nations.set(id, {
       id,
       name,
@@ -257,6 +260,7 @@ export function createStartingNations(
       race,
       culture: id,
       faith,
+      ruler: midReign(rulerRng, makeRuler(rulerRng, race, 0, dynastyName(race, surname))),
       alive: true,
       stability: START_STABILITY,
       warWeariness: 0,

@@ -55,6 +55,30 @@ export const Faith = {
 export type FaithId = (typeof Faith)[keyof typeof Faith];
 export type FaithKind = Exclude<FaithId, typeof Faith.None>;
 
+/** The five kinds of great ruler (docs/systems/rulers.md). 0 means an ordinary ruler. */
+export const RulerType = {
+  Conqueror: 1,
+  Lawgiver: 2,
+  Builder: 3,
+  Prophet: 4,
+  Schemer: 5,
+} as const;
+export type RulerTypeId = (typeof RulerType)[keyof typeof RulerType];
+
+export interface Ruler {
+  name: string;
+  /** "House Varrin". */
+  dynasty: string;
+  /** Changes the title and name only, never their power. */
+  female: boolean;
+  /** Year crowned. */
+  crowned: number;
+  /** Year the reign ends, rolled at coronation. */
+  ends: number;
+  /** Only great rulers have a type. */
+  great?: RulerTypeId;
+}
+
 /** One row of the FAITHS table. */
 export interface FaithInfo {
   name: string;
@@ -119,6 +143,16 @@ export interface RaceTraits {
   conversion: number;
   /** The faiths its homelands start with, in turn. */
   faiths: FaithKind[];
+  /** Average years on the throne. */
+  reign: number;
+  /** × CRISIS_BASE: how badly its handovers of power go. */
+  succession: number;
+  /** Chance a ruler of this race is a woman. Changes the title and name only. */
+  femaleChance: number;
+  /** "House", "Clan"... */
+  dynastyWord: string;
+  /** × GREAT_RULER_CHANCE, per type of great ruler. */
+  greatOdds: Record<RulerTypeId, number>;
   /** Capacity multiplier per biome (missing = 1). */
   affinity: Partial<Record<BiomeId, number>>;
   mountainAffinity: number;
@@ -217,6 +251,8 @@ export interface Nation {
   culture: number;
   /** Faith of its rulers. Can change (SPEC §4.14). */
   faith: FaithId;
+  /** Who rules it now (docs/systems/rulers.md). */
+  ruler: Ruler;
   alive: boolean;
   /** Year it died. */
   fell?: number;
@@ -270,7 +306,7 @@ export interface Alliance {
 
 export interface SimEvent {
   year: number;
-  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved" | "alliance" | "alliance_ended" | "city_founded" | "battle" | "faith";
+  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved" | "alliance" | "alliance_ended" | "city_founded" | "battle" | "faith" | "ruler";
   actors: NationId[];
   text: string;
 }

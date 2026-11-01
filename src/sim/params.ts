@@ -243,6 +243,10 @@ export const SIM = {
   REBEL_MAX_CELLS: 40,
   REBEL_START_STABILITY: 0.6,
 
+  // --- Rulers and dynasties ---
+  /** Chance the same dynasty keeps the throne when a reign ends. */
+  HEIR_CHANCE: 0.75,
+
   // --- Collapse ---
   MIN_AREA: 6,
   CAPITAL_LOSS_STAB_HIT: 0.3,

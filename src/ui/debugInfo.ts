@@ -3,6 +3,7 @@ import type { GeneratedWorld } from "../gen";
 import { NO_TARGET, type CellId, type Nation, type NationId, type ResourceKind, type WarGoal, type WorldState } from "../core/types";
 import { BIOME_STATS, RESOURCES } from "../gen/params";
 import { faithInfo } from "../gen/faiths";
+import { rulerName } from "../gen/rulers";
 import { traits } from "../gen/races";
 import { menText } from "../sim/events";
 import { armiesIn } from "../sim/armies";
@@ -28,6 +29,13 @@ function armyText(state: WorldState, cells: CellId[]): string {
       return ` · army of ${state.nations.get(a.owner)!.name} (${purpose}): ${menText(a.size)} men, morale ${Math.round(a.morale * 100)}%, ${heading}`;
     })
     .join("");
+}
+
+/** "High Queen Selena of House Varrin, 12 years on the throne". */
+function rulerText(state: WorldState, nation: Nation): string {
+  const { ruler } = nation;
+  const years = Math.max(0, state.year - ruler.crowned);
+  return `${rulerName(ruler, nation.race)} of ${ruler.dynasty}, ${years} year${years === 1 ? "" : "s"} on the throne`;
 }
 
 /** Calls `action` each time `key` is pressed (upper or lower case). */
@@ -88,7 +96,7 @@ export function showCellOnHover(
     const culture = state.nations.get(state.state.culture[cell.id]!);
     const peopleOf = culture ? ` of ${culture.name}, followers of ${faithInfo(state.state.faith[cell.id]!).name}` : "";
     const ownerText = nation
-      ? `${nation.name} (${ruler}, ${faithInfo(nation.faith).name}) · ${people}${peopleOf}, pop ${state.state.pop[cell.id]!.toFixed(2)} · ${soldierText(state, nation)}${diplomacyText(state, nation.id)}`
+      ? `${nation.name} (${ruler}, ${faithInfo(nation.faith).name}) · ${rulerText(state, nation)} · ${people}${peopleOf}, pop ${state.state.pop[cell.id]!.toFixed(2)} · ${soldierText(state, nation)}${diplomacyText(state, nation.id)}`
       : "unowned";
     const s = state.state;
     const deposit = cell.resource ? ` · ${RESOURCES[cell.resource as ResourceKind].name} (richness ${cell.richness.toFixed(2)})` : "";
