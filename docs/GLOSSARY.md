@@ -125,3 +125,5 @@ New concepts as we meet them, with where they show up in our code.
 | **Cellular automaton (neighbor rule)** | Many small cells each follow one simple rule about their neighbors, and big shapes appear by themselves. Here: copy a random neighbor now and then, and solid blobs of culture grow. | `assimilate()` in `src/sim/culture.ts`, `spreadFaith()` in `src/sim/faith.ts` |
 | **Feedback loop** | An effect that feeds its own cause. Cults make land restless, and restless land spreads cults faster. Worth measuring: loops can run away. | Whispers in `src/sim/land.ts` |
 | **Leave-one-out test** | Switch off one thing at a time and see what changes, to find which one is responsible. | How we found that Order was cutting rebellions |
+| **Static site** | A website that's only files sent to the browser, with no program running on a server. The game all runs in your browser, so it can be hosted for free. | `npm run build` makes it, in `dist/` |
+| **CI workflow (GitHub Actions)** | A recipe GitHub runs for you on its own computers whenever you push. Ours tests the game, builds it and publishes it, and a failed test stops the publish. | `.github/workflows/publish.yml` |

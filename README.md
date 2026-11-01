@@ -13,7 +13,9 @@ A fantasy world simulator that runs in your browser. It generates a continent, t
 
 ## Run it
 
-You need [Node.js](https://nodejs.org/) (LTS version).
+**Play it now, with nothing to install:** https://frozenheat23.github.io/Realm_Forge/
+
+To run it from the code instead, you need [Node.js](https://nodejs.org/) (LTS version).
 
 ```bash
 git clone https://github.com/frozenheat23/Realm_Forge.git

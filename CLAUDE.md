@@ -105,7 +105,8 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 
 ## 7. Environment and workflow
 
-- **Two PCs**, synced through a private GitHub repo (my personal account, not work).
+- **Play it:** https://frozenheat23.github.io/Realm_Forge/. Every push to `main` tests, builds and publishes the game (`.github/workflows/publish.yml`). If a test fails, the live site stays as it was.
+- **Two PCs**, synced through a public GitHub repo (my personal account, not work). Never commit anything private.
 - **Start of session:** `git pull`. **End of session:** commit and push. Nothing unpushed is safe.
 - **Work PC (Windows, managed):**
   - Do **not** change PowerShell execution policy or any system or security settings.
@@ -224,3 +225,4 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-11-01 | M13 = rulers and dynasties, designed in `docs/systems/rulers.md` (planned until built), the first system with its own file, since SPEC.md is past the ~700-line limit. Great rulers are five shared types and each race leans toward one (user's choice: orcs make great warlords more often, dwarves great builders). Gender changes titles and names only; Humans and both elf races have female variants. Plague and famine stay in the backlog; golden ages stay in M13 and must end in decline |
 | 2026-11-01 | Measured in the browser (M1 Pro, year 300–600): tick 4.7 ms, nation overlay 16.5 ms, effects refresh 3.5 ms, each new year's frame ~44 ms in all. The sim is only about a tenth of a frame, so playback stutter comes from drawing. A Rust port of `sim/` wouldn't fix it. Overlay is over its 8 ms budget (SPEC §5.5) |
 | 2026-11-01 | CLAUDE.md "Not now" still listed religion after M12 built faith; removed |
+| 2026-11-01 | "Easier to play" meant easier to open, not faster, so no Rust. Repo made public (user's choice, Gmail left visible in old commits) and the game hosted on GitHub Pages, published on every push to `main` once tests pass. Vite `base` is `./` so it works from `/Realm_Forge/` |
