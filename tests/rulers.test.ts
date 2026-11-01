@@ -232,5 +232,5 @@ describe("a new world", () => {
       expect(nation.ruler.ends).toBeGreaterThan(0);
       expect(again.nations.get(nation.id)!.ruler).toEqual(nation.ruler);
     }
-  });
+  }, 30_000); // builds two whole worlds, which is slow on GitHub's computers
 });
