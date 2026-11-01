@@ -157,8 +157,8 @@ export const CAPITAL_RADIUS = 3;
 export const CAPITAL_FILL = "#fbf6e9";
 /** The crown over the capital of a realm with a great ruler. */
 export const CROWN_FILL = "#f2c744";
-export const CROWN_WIDTH = 12;
-export const CROWN_HEIGHT = 8;
+export const CROWN_WIDTH = 22;
+export const CROWN_HEIGHT = 15;
 /** Gap between the capital marker and the crown. */
 export const CROWN_GAP = 3;
 

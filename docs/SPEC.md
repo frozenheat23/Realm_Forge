@@ -259,6 +259,7 @@ One tick = one year. The steps always run in this order:
 | 6 | Campaign (`CAMPAIGN_STEPS` seasons of target, march, battle, siege, attrition) | 4.13 |
 | 6b | Peace | 4.5 |
 | 7 | Rebellion | 4.6 |
+| 7b | Succession: schemes, reigns end, crises and civil wars | 4.15 |
 | 8 | Collapse, then armies with no war go home and leftover occupations end | 4.7, 4.13 |
 | 9 | Emergence | 4.8 |
 | 10 | Events | 4.9 |
@@ -701,9 +702,9 @@ Measured on 20 seeds never used for tuning, each 1,000 years, against the same s
 
 ### 4.15 Rulers and dynasties
 
-> Planned for M13, not built. The full design is in [`systems/rulers.md`](systems/rulers.md), because this doc is past the size limit in §9. Numbers are in `PARAMS.md` → "Rulers and dynasties".
+> Built in M13. The full description is in [`systems/rulers.md`](systems/rulers.md), because this doc is past the size limit in §9. Numbers are in `PARAMS.md` → "Rulers and dynasties".
 
-Every nation has a named ruler and dynasty. A few rulers are great (Conqueror, Lawgiver, Builder, Prophet, Schemer), and each race leans toward one type. When a reign ends, a crisis can strike, and big or overreaching nations fall into civil war, worst after a great ruler. Golden ages are earned by long peace and always end in decline. Two new tick steps: 3b Golden age and 7b Succession.
+Every nation has a named ruler and dynasty. A few rulers are great (Conqueror, Lawgiver, Builder, Prophet, Schemer): each race leans toward one type, and bigger realms draw them more often. When a reign ends, a crisis can strike, and big nations fall into civil war, worst after a great ruler. One new tick step: 7b Succession. Golden ages are designed in the same file but not built.
 
 ---
 
@@ -788,7 +789,7 @@ Two more tints like the Races layer (§5.4b), and only one of the three shows at
 - Event log: scrolling, newest first, filter checkboxes per type (Battles starts off, and battles are only kept while it's on, so they can't push everything else past `EVENT_LOG_MAX`), click an event to highlight its nations for `HIGHLIGHT_SECONDS` (others fade to `HIGHLIGHT_DIM`).
 - Seed box + **New world** (Enter works too) and **Random**. Both reload the page with `?seed=`.
 - **Settings** panel: every `SIM` parameter editable live (`ui/settings.ts`), layer toggles (nations, labels, cell outlines), reset to defaults. Generation numbers are not live; they need a new world.
-- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, every per-cell array (owner, pop, race, unrest, devastation, development, settlement, ownership history), nations, wars, truces, events, race homelands, opinions, alliances and city names (format v8, which has each nation's soldier reserve, the armies, each cell's occupier and siege, war goals, and cultures). Saves made before races (v1), diplomacy (v2), land detail (v3), armies (v4), battles and war goals (v5), the war counter (v6) or cultures (v7) are refused with a clear message. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
+- **Save** downloads a JSON snapshot (`sim/snapshot.ts`): seed, year, sim params, every per-cell array (owner, pop, race, unrest, devastation, development, settlement, ownership history), nations, wars, truces, events, race homelands, opinions, alliances and city names (format v9, which has each nation's soldier reserve, the armies, each cell's occupier and siege, war goals, and cultures). Saves made before races (v1), diplomacy (v2), land detail (v3), armies (v4), battles and war goals (v5), the war counter (v6), cultures (v7) or rulers (v8) are refused with a clear message. The map isn't stored; **Load** reloads the page with the save's seed (passing the file through `sessionStorage`), regenerates the map and restores the state. Continuing from a save gives exactly the same history as never stopping.
 - **Record** captures the canvas as WebM (`canvas.captureStream()` + `MediaRecorder`) and downloads it on stop.
 - Web Worker: not needed. A tick takes ~5–6 ms (M9, measured in Node; M8 was ~5 ms) and a redraw ~15 ms at 1600×900.
 
@@ -812,6 +813,7 @@ Not designed yet. When one is picked up, give it its own section in §4 and matc
 - Trade routes and economy
 - Deeper diplomacy: vassals, peace terms, betrayal (an ally refusing to help), alliances slowly cooling so kin pacts don't last forever
 - Naval expansion across water (and fleets carrying armies, after M11)
+- Golden ages that end in decline (designed in `systems/rulers.md`)
 - Plagues (spreading by neighbor, carried by armies and through cities, burning out as survivors gain immunity) and famines (regional, 2–5 years, worst in war-torn land, eased by grain). Brainstormed in M13 and set aside by choice
 - Azgaar map import
 - Rust port of `sim/` (after M5)
