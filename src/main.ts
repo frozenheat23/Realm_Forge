@@ -1,5 +1,5 @@
 // Entry point: generates a world from a seed, draws it, and plays its history.
-// Page address options: ?seed=anything picks the world, ?style=painted or ?style=atlas switches the look.
+// Page address options: ?seed=anything picks the world, ?style=cel or ?style=painted switches to an older look.
 // Keys: Space play/pause, → step, C cell outlines, N nations, R races, K cultures, F faiths, A alliances, M resources, T towns, H heatmaps, E effects, W armies. Hover the map to inspect a cell.
 import "@fontsource/im-fell-english/400.css";
 import "@fontsource/im-fell-english/400-italic.css";
@@ -51,7 +51,7 @@ const logList = element("#log");
 const query = new URLSearchParams(location.search);
 const seed = query.get("seed") ?? "realm-forge";
 const styleParam = query.get("style");
-const style = styleParam === "painted" || styleParam === "atlas" ? styleParam : "cel";
+const style = styleParam === "painted" || styleParam === "cel" ? styleParam : "atlas";
 const look = style === "atlas" ? LOOK_ATLAS : LOOK_STANDARD;
 
 // A save file picked with "Load" waits in sessionStorage while the page reloads with its seed.
@@ -125,7 +125,7 @@ const [nationLayer, nationCtx] = offscreen();
 const [heatLayer, heatCtx] = offscreen();
 // Animated war and unrest effects (SPEC §5.4g) remember last year themselves.
 const cellPixels = groupPixelsByCell(displayCells, world.cells.length);
-const effects = createEffects(world, cellPixels);
+const effects = createEffects(world, cellPixels, look);
 const overlay = createNationOverlay(world, displayCells, cellPixels, look);
 // Shares the overlay's memory, so it never needs rebuilding.
 const nationImage = new ImageData(new Uint8ClampedArray(overlay.pixels.buffer), world.width, world.height);
@@ -146,8 +146,8 @@ function draw(): void {
   if (chart) baseCtx.drawImage(symbols, 0, 0);
   if (layers.cells) drawCellOutlines(baseCtx, world);
   if (layers.settlements) drawSettlements(baseCtx, world, state, look);
-  if (layers.resources) drawResources(baseCtx, world);
-  if (layers.alliances) drawAlliances(baseCtx, world, state);
+  if (layers.resources) drawResources(baseCtx, world, look);
+  if (layers.alliances) drawAlliances(baseCtx, world, state, look);
   if (layers.nations && layers.labels) drawLabels(baseCtx, world, state, look);
   if (chart) {
     drawChartFrame(baseCtx, world);
@@ -162,7 +162,7 @@ function draw(): void {
 function present(now: number): void {
   ctx.drawImage(base, 0, 0);
   if (layers.effects) effects.draw(ctx, now);
-  if (layers.armies) drawArmies(ctx, world, state, (now - yearStart) * controls.speed / 1000);
+  if (layers.armies) drawArmies(ctx, world, state, (now - yearStart) * controls.speed / 1000, look);
 }
 
 // --- Event log (click an event → its nations light up for a few seconds) ---
@@ -228,7 +228,7 @@ function frame(now: number): void {
 // --- Toolbar: world, save/load, video ---
 function goTo(newSeed: string, newStyle: string = style): void {
   const params = new URLSearchParams({ seed: newSeed });
-  if (newStyle !== "cel") params.set("style", newStyle);
+  if (newStyle !== "atlas") params.set("style", newStyle);
   location.search = params.toString();
 }
 

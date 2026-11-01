@@ -129,5 +129,6 @@ New concepts as we meet them, with where they show up in our code.
 | **Incremental update** | Instead of redoing all the work each time, keep the old result and fix only what changed. The test that matters: the result must equal doing it all from scratch. | `createNationOverlay()` in `src/render/overlay.ts` |
 | **Options object** | One object holding many related settings, passed to a function, so it needs one extra argument and not twenty. | `MapLook` in `src/render/palette.ts`, `LOOK_ATLAS` |
 | **Default parameter** | A value a function uses when the caller leaves that argument out, so old calls keep working unchanged. | `look: MapLook = LOOK_STANDARD` in `src/render/labels.ts` |
+| **Canvas transform** | Moving or scaling the canvas's drawing position, so a picture can be drawn around (0, 0) and placed anywhere at any size. `save()` and `restore()` undo it afterwards. | `atPlace()` in `src/render/atlasMarkers.ts` |
 | **Static site** | A website that's only files sent to the browser, with no program running on a server. The game all runs in your browser, so it can be hosted for free. | `npm run build` makes it, in `dist/` |
 | **CI workflow (GitHub Actions)** | A recipe GitHub runs for you on its own computers whenever you push. Ours tests the game, builds it and publishes it, and a failed test stops the publish. | `.github/workflows/publish.yml` |

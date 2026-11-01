@@ -7,11 +7,12 @@ import {
   ARMY_BANNER_FULL,
   ARMY_BANNER_MAX,
   ARMY_BANNER_MIN,
-  ARMY_LABEL_COLOR,
   ARMY_TARGET_ALPHA,
-  CEL_INK_COLOR,
+  LOOK_STANDARD,
+  type MapLook,
 } from "./palette";
 import { ARMY_MEN_PER_UNIT } from "../sim/params";
+import { cssColor, lookTint } from "./color";
 
 /** A short size for a banner: "12k", or "800" under a thousand. */
 export function menLabel(size: number): string {
@@ -59,27 +60,29 @@ function drawTargetLine(ctx: CanvasRenderingContext2D, world: GeneratedWorld, ar
 }
 
 /** Draws every army. `progress` (0..1) is how far through its march this year's playback is. */
-export function drawArmies(ctx: CanvasRenderingContext2D, world: GeneratedWorld, state: WorldState, progress: number): void {
+export function drawArmies(ctx: CanvasRenderingContext2D, world: GeneratedWorld, state: WorldState, progress: number, look: MapLook = LOOK_STANDARD): void {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   for (const army of state.armies) {
     const nation = state.nations.get(army.owner)!;
     const [x, y] = marchPosition(world, army, progress);
-    drawTargetLine(ctx, world, army, nation.color, x, y);
+    const color = cssColor(lookTint(nation.color, look));
+    drawTargetLine(ctx, world, army, color, x, y);
 
     const grown = Math.sqrt(Math.min(1, army.size / ARMY_BANNER_FULL));
     const r = ARMY_BANNER_MIN + (ARMY_BANNER_MAX - ARMY_BANNER_MIN) * grown;
     shieldPath(ctx, x, y, r);
-    ctx.fillStyle = nation.color;
+    ctx.fillStyle = color;
     ctx.fill();
-    ctx.strokeStyle = CEL_INK_COLOR;
+    ctx.strokeStyle = look.armyOutline;
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    ctx.font = "bold 10px Georgia, serif";
+    ctx.font = look.armyFont;
     ctx.lineWidth = 3;
+    ctx.strokeStyle = look.armyLabelHalo;
     ctx.strokeText(menLabel(army.size), x, y - r * 0.1);
-    ctx.fillStyle = ARMY_LABEL_COLOR;
+    ctx.fillStyle = look.armyLabelColor;
     ctx.fillText(menLabel(army.size), x, y - r * 0.1);
   }
 }

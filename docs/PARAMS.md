@@ -574,7 +574,7 @@ All in `render/palette.ts`.
 | `SEA_GRID_ALPHA` | 0.08 | 0–0.2 | Visibility of the sea grid | Obvious grid | Invisible (0) |
 | `LAND_RAMP` / `WATER_RAMP` | see code | — | Height → color stops (`?style=painted` only) | — | — |
 
-### Parchment style (`?style=atlas`)
+### Parchment style (default)
 
 An old chart: aged paper, pale sea, thin ink outlines, drawn terrain symbols. Colors and sizes are the `ATLAS_*` values in `render/palette.ts`; how it changes realms, names and towns is the `LOOK_ATLAS` object below them.
 
@@ -592,11 +592,15 @@ An old chart: aged paper, pale sea, thin ink outlines, drawn terrain symbols. Co
 | `ATLAS_COAST_WIDTH` | 1.7 | 1–4 | Coastline thickness in pixels | Heavier | Finer |
 | `ATLAS_STAIN` | 0.07 | 0–0.15 | Paper stains | Older paper | Clean paper |
 | `ATLAS_EDGE_DARKEN` | 0.2 | 0–0.4 | Darkening at the sheet's edge | Stronger | None |
+| `ATLAS_CASTLE_SCALE` | 1 | 0.6–1.6 | Size of capital castles | Bigger castles, can cover names | Smaller castles |
+| `ATLAS_CITY_SCALE` | 1 | 0.6–1.6 | Size of city spires | Cities stand out | Quieter cities |
+| `ATLAS_RESOURCE_GROWTH` | 1.6 | 1–2.5 | Resource disc size, as a multiple of the classic marker | Icons easier to read | Less clutter |
+| `ATLAS_RESOURCE_PAPER` | 0.55 | 0–1 | How far resource discs lean toward paper | Paler discs | Stronger colors |
 | `ATLAS_SAILING_RAYS` | 16 | 8–32 | Sailing lines from each hub | Denser net | Sparser |
 
-### Cel-shaded style (default)
+### Cel-shaded style (Classic map, `?style=cel`)
 
-Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shading and ink lines. Kept light and muted so nation colors read on top. Pick another style with `?style=painted` or `?style=atlas`.
+Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shading and ink lines. Kept light and muted so nation colors read on top. Pick it with the Classic map button, or `?style=painted` for the painted style.
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
