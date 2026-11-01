@@ -720,7 +720,7 @@ Every nation has a named ruler and dynasty. A few rulers are great (Conqueror, L
 
 ### 5.2 Nation overlay (redrawn each year)
 - Tint land pixels with the owner's color at `OVERLAY_ALPHA` so terrain shows through. Unowned land is not tinted.
-- Implementation: write into `ImageData` using a *display-cell* map (`render/displayCells.ts`): like `pixelToCell`, but shifted by smooth waves so borders curve, and with coastal land pixels always mapped to a land cell. If redrawing gets too slow, only recolor cells whose owner changed.
+- Implementation: write into `ImageData` using a *display-cell* map (`render/displayCells.ts`): like `pixelToCell`, but shifted by smooth waves so borders curve, and with coastal land pixels always mapped to a land cell.
 
 The overlay keeps its pixels between years and repaints only the cells that changed, plus two rings of neighbors (their shared edges and thick war borders). Changing the tint or the highlight repaints everything. `tests/overlay.test.ts` checks the result matches a full paint, pixel for pixel. The occupied-land mask (§5.4g) works the same way.
 
