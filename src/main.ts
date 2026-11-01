@@ -7,12 +7,12 @@ import { generateWorld } from "./gen";
 import { drawAlliances } from "./render/alliances";
 import { drawArmies } from "./render/armies";
 import { drawCellOutlines } from "./render/debug";
-import { buildDisplayCells } from "./render/displayCells";
+import { buildDisplayCells, groupPixelsByCell } from "./render/displayCells";
 import { createEffects } from "./render/effects";
 import { HEAT_KINDS, renderHeatmap, type HeatKind } from "./render/heatmap";
 import { drawHeatmapName, drawYear } from "./render/hud";
 import { drawLabels } from "./render/labels";
-import { renderNationOverlay, type OverlayTint } from "./render/overlay";
+import { createNationOverlay, type OverlayTint } from "./render/overlay";
 import { drawResources } from "./render/resources";
 import { drawSettlements } from "./render/settlements";
 import { drawRivers } from "./render/rivers";
@@ -107,9 +107,14 @@ let heat: HeatKind | null = null;
 const [nationLayer, nationCtx] = offscreen();
 const [heatLayer, heatCtx] = offscreen();
 // Animated war and unrest effects (SPEC §5.4g) remember last year themselves.
-const effects = createEffects(world, displayCells);
+const cellPixels = groupPixelsByCell(displayCells, world.cells.length);
+const effects = createEffects(world, cellPixels);
+const overlay = createNationOverlay(world, displayCells, cellPixels);
+// Shares the overlay's memory, so it never needs rebuilding.
+const nationImage = new ImageData(new Uint8ClampedArray(overlay.pixels.buffer), world.width, world.height);
 function redrawNations(): void {
-  nationCtx.putImageData(renderNationOverlay(world, displayCells, state, highlight, overlayTint()), 0, 0);
+  overlay.update(state, highlight, overlayTint());
+  nationCtx.putImageData(nationImage, 0, 0);
   if (heat) heatCtx.putImageData(renderHeatmap(world, displayCells, state, heat), 0, 0);
   if (layers.effects) effects.refresh(state);
 }

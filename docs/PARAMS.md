@@ -657,7 +657,7 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 
 | Parameter | Default | Range | What it controls |
 |---|---|---|---|
-| `SPEEDS` | [1, 5, 20, 50] | — | Years per second options |
+| `SPEEDS` | [1, 5, 20, 50, 100] | — | Years per second options |
 | `DEFAULT_SPEED` | 5 | — | Speed on load |
 | `SIM_YEARS` | 1000 | 200–5000 | Default length of a run |
 | `EVENT_LOG_MAX` | 300 | 50–2000 | Most lines kept in the on-screen event log |

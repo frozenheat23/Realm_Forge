@@ -48,3 +48,24 @@ export function buildDisplayCells(world: GeneratedWorld): Int32Array {
   }
   return display;
 }
+
+/** The pixels of every cell: cell c's are `pixels[start[c]]` up to, not including, `pixels[start[c + 1]]`. */
+export interface CellPixels {
+  start: Int32Array;
+  pixels: Int32Array;
+}
+
+/** Groups pixels by the cell they show, so one cell can be repainted without touching the rest. */
+export function groupPixelsByCell(displayCells: Int32Array, cellCount: number): CellPixels {
+  // Count each cell's pixels, which says where each cell's run begins, then fill the runs in.
+  const start = new Int32Array(cellCount + 1);
+  for (const cell of displayCells) if (cell >= 0) start[cell + 1]!++;
+  for (let c = 0; c < cellCount; c++) start[c + 1]! += start[c]!;
+  const pixels = new Int32Array(start[cellCount]!);
+  const next = start.slice();
+  for (let i = 0; i < displayCells.length; i++) {
+    const cell = displayCells[i]!;
+    if (cell >= 0) pixels[next[cell]!++] = i;
+  }
+  return { start, pixels };
+}

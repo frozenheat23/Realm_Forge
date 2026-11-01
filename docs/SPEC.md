@@ -722,6 +722,8 @@ Every nation has a named ruler and dynasty. A few rulers are great (Conqueror, L
 - Tint land pixels with the owner's color at `OVERLAY_ALPHA` so terrain shows through. Unowned land is not tinted.
 - Implementation: write into `ImageData` using a *display-cell* map (`render/displayCells.ts`): like `pixelToCell`, but shifted by smooth waves so borders curve, and with coastal land pixels always mapped to a land cell. If redrawing gets too slow, only recolor cells whose owner changed.
 
+The overlay keeps its pixels between years and repaints only the cells that changed, plus two rings of neighbors (their shared edges and thick war borders). Changing the tint or the highlight repaints everything. `tests/overlay.test.ts` checks the result matches a full paint, pixel for pixel. The occupied-land mask (§5.4g) works the same way.
+
 ### 5.3 Borders
 - Draw a line wherever neighboring pixels have different owners: darker (`BORDER_DARKEN`) and more opaque (`BORDER_ALPHA`).
 - Borders between nations at war are drawn in `WAR_FRONT_COLOR`, 2 px wider on each side.
@@ -777,7 +779,7 @@ Hovering over an army (or next to it, since banners are wider than a cell) shows
 Two more tints like the Races layer (§5.4b), and only one of the three shows at a time. **Cultures** (key K) tints land by the color of the culture's founding realm, so a dead realm's people still show in its color. **Faiths** (key F) tints land by `FAITH_COLORS`. The hover info names both.
 
 ### 5.5 Performance budget
-- At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 5 ms, smooth at 20 years per second.
+- At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 10 ms, smooth at 50 years per second. Measured after M13: overlay 1.4 ms, effects 0.2 ms, tick ~4.6 ms in the browser, a whole new-year frame ~21 ms.
 - Run the sim on the main thread until M6; move it to a Web Worker only if it slows the screen.
 
 ---

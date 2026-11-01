@@ -5,6 +5,7 @@ import type { CellId, SimEvent, WorldState } from "../core/types";
 import { pairKey } from "../sim/helpers";
 import { SIM } from "../sim/params";
 import { cellPhase, hotCells, restlessCells, siegeCells } from "./changes";
+import type { CellPixels } from "./displayCells";
 import { hexToRgb } from "./color";
 import {
   BATTLE_RADIUS,
@@ -61,7 +62,7 @@ export interface Effects {
 
 const TAU = Math.PI * 2;
 
-export function createEffects(world: GeneratedWorld, displayCells: Int32Array): Effects {
+export function createEffects(world: GeneratedWorld, cellPixels: CellPixels): Effects {
   const { width, height, cells } = world;
 
   let bursts: Burst[] = [];
@@ -73,10 +74,14 @@ export function createEffects(world: GeneratedWorld, displayCells: Int32Array): 
   let sieges: CellId[] = [];
   let siegeProgress = new Float32Array(0);
   let hasOccupied = false;
+  // The mask as drawn: only cells whose occupier changed get repainted.
+  const shownOccupier = new Int32Array(cells.length);
 
   // Off-screen canvases: occupied cells in their occupier's color, and a scratch canvas to hatch them on.
   const [occupiedMask, maskCtx] = makeCanvas(width, height);
   const [hatch, hatchCtx] = makeCanvas(width, height);
+  const maskImage = maskCtx.createImageData(width, height);
+  const maskPixels = new Uint32Array(maskImage.data.buffer);
   const stripes = hatchCtx.createPattern(stripeTile(), "repeat")!;
   const smokeSprite = glowSprite(SMOKE_COLOR);
   const emberSprite = glowSprite(EMBER_COLOR);
@@ -119,23 +124,20 @@ export function createEffects(world: GeneratedWorld, displayCells: Int32Array): 
   function paintOccupied(state: WorldState): void {
     const { occupier } = state.state;
     hasOccupied = occupier.some((id) => id !== 0);
-    if (!hasOccupied) return;
-    const image = maskCtx.createImageData(width, height);
-    const px = new Uint32Array(image.data.buffer);
-    const colors = new Map<number, number>();
-    for (let i = 0; i < px.length; i++) {
-      const c = displayCells[i]!;
-      const id = c >= 0 ? occupier[c]! : 0;
-      if (id === 0) continue;
-      let color = colors.get(id);
-      if (color === undefined) {
+    let changed = false;
+    for (let c = 0; c < cells.length; c++) {
+      const id = occupier[c]!;
+      if (id === shownOccupier[c]) continue;
+      shownOccupier[c] = id;
+      changed = true;
+      let color = 0;
+      if (id !== 0) {
         const [r, g, b] = hexToRgb(state.nations.get(id)?.color ?? WAR_FRONT_COLOR);
         color = ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0; // pixels are stored as ABGR
-        colors.set(id, color);
       }
-      px[i] = color;
+      for (let p = cellPixels.start[c]!; p < cellPixels.start[c + 1]!; p++) maskPixels[cellPixels.pixels[p]!] = color;
     }
-    maskCtx.putImageData(image, 0, 0);
+    if (changed) maskCtx.putImageData(maskImage, 0, 0);
   }
 
   function draw(ctx: CanvasRenderingContext2D, now: number): void {
