@@ -6,7 +6,7 @@ import { generateWorld } from "../src/gen";
 import { makeRuler, midReign, rulerName } from "../src/gen/rulers";
 import { RACES } from "../src/gen/params";
 import { SIM, SIM_DEFAULTS } from "../src/sim/params";
-import { succession } from "../src/sim/succession";
+import { crisisChance, succession } from "../src/sim/succession";
 import { makeCells, makeNation, makeState, row } from "./tinyWorld";
 
 describe("making a ruler", () => {
@@ -76,6 +76,58 @@ describe("the throne passing on", () => {
     succession(state, createRng("no heir"));
     SIM.HEIR_CHANCE = SIM_DEFAULTS.HEIR_CHANCE;
     expect(nation.ruler.dynasty).not.toBe("House Test");
+  });
+});
+
+describe("a succession crisis", () => {
+  const withParams = (values: Partial<typeof SIM>, run: () => void) => {
+    Object.assign(SIM, values);
+    run();
+    Object.assign(SIM, SIM_DEFAULTS);
+  };
+
+  /** A row of `count` cells, ruled from cell 0, whose ruler has just died. */
+  const dyingRealm = (count: number, area = count) => {
+    const nation = makeNation(1, 0, { area, stability: 0.9 });
+    nation.ruler = { ...nation.ruler, ends: 5 };
+    const state = makeState(makeCells(row(count)), new Array(count).fill(1), [nation]);
+    state.year = 5;
+    state.state.culture.fill(1);
+    state.state.pop.fill(1);
+    state.state.unrest.fill(0.5);
+    return { state, nation };
+  };
+
+  it("is likelier in bigger realms, after great rulers, and for orcs", () => {
+    const small = makeNation(1, 0, { area: 50 });
+    const big = makeNation(2, 0, { area: 1000 });
+    const orcs = makeNation(3, 0, { area: 50, race: Race.Orc });
+    const dwarves = makeNation(4, 0, { area: 50, race: Race.Dwarf });
+    expect(crisisChance(big, false)).toBeGreaterThan(crisisChance(small, false));
+    expect(crisisChance(small, true)).toBeGreaterThan(crisisChance(small, false));
+    expect(crisisChance(orcs, false)).toBeGreaterThan(crisisChance(dwarves, false));
+  });
+
+  it("shakes a small realm without breaking it", () => {
+    const { state, nation } = dyingRealm(10);
+    withParams({ CRISIS_BASE: 10, CIVIL_WAR_MIN_AREA: 40 }, () => {
+      const events = succession(state, createRng("small crisis"));
+      expect(events.map((e) => e.text).join()).toContain("succession crisis");
+    });
+    expect(nation.stability).toBeCloseTo(0.9 - SIM.CRISIS_STAB_HIT);
+    expect(state.nations.size).toBe(1);
+  });
+
+  it("splits a large realm between pretenders, and the capital stays", () => {
+    const { state } = dyingRealm(60);
+    withParams({ CRISIS_BASE: 10, CIVIL_WAR_MIN_AREA: 40, CIVIL_WAR_CELLS_PER_SPLIT: 20, CIVIL_WAR_MAX_SPLITS: 2, CIVIL_WAR_SHARE: 0.25, REBEL_WAR_PROB: 0 }, () => {
+      const events = succession(state, createRng("civil war"));
+      expect(events[0]!.text).toContain("civil war");
+    });
+    expect(state.nations.size).toBeGreaterThan(1);
+    expect(state.state.owner[0]).toBe(1);
+    const taken = state.state.owner.filter((id) => id !== 1).length;
+    expect(taken).toBeLessThanOrEqual(30); // two pretenders, a quarter of the land each
   });
 });
 

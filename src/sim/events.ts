@@ -47,6 +47,14 @@ export function conversionEvent(year: number, nation: Nation): SimEvent {
   return { year, type: "faith", actors: [nation.id], text };
 }
 
+export function crisisEvent(year: number, nation: Nation): SimEvent {
+  return { year, type: "ruler", actors: [nation.id], text: `Year ${year}: a succession crisis shakes ${nation.name}.` };
+}
+
+export function civilWarEvent(year: number, nation: Nation): SimEvent {
+  return { year, type: "ruler", actors: [nation.id], text: `Year ${year}: civil war tears ${nation.name} apart.` };
+}
+
 export function collapseEvent(year: number, nation: Nation): SimEvent {
   return { year, type: "collapse", actors: [nation.id], text: `Year ${year}: ${nation.name} collapses.` };
 }

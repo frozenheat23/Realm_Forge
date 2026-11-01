@@ -42,10 +42,10 @@ export function floodFill(state: WorldState, nation: Nation, seed: CellId, max: 
 }
 
 /** Picks where a revolt starts among `candidates`, most restless first. Null if it can't grow big enough to be a nation. */
-function revoltRegion(state: WorldState, nation: Nation, candidates: CellId[], rng: Rng): CellId[] | null {
+function revoltRegion(state: WorldState, nation: Nation, candidates: CellId[], maxCells: number, rng: Rng): CellId[] | null {
   if (candidates.length === 0) return null;
   const seed = weightedPick(rng, candidates, candidates.map((c) => state.state.unrest[c]!));
-  const region = floodFill(state, nation, seed, SIM.REBEL_MAX_CELLS);
+  const region = floodFill(state, nation, seed, maxCells);
   return region.length >= SIM.MIN_AREA ? region : null;
 }
 
@@ -74,13 +74,13 @@ function yearsSinceFall(state: WorldState, rebels: Nation): number | null {
  * Tries to start one rebellion in `nation`. Returns the new rebel nation, or
  * null if no province is far enough away or the breakaway would be too small.
  */
-export function rebel(state: WorldState, nation: Nation, cells: CellId[], rng: Rng): Nation | null {
+export function rebel(state: WorldState, nation: Nation, cells: CellId[], rng: Rng, maxCells = SIM.REBEL_MAX_CELLS): Nation | null {
   const hops = hopsFromCapital(state, nation);
   // Rebels start far from the capital, or in land the capital can't even reach.
   const farAway = cells.filter((c) => hops[c]! === -1 || hops[c]! >= SIM.REBEL_MIN_CAPITAL_DIST);
   // Subject peoples rise first. If there are too few of them to form a nation, the ruling people rise instead.
   const foreign = farAway.filter((c) => state.state.culture[c] !== nation.culture);
-  const region = revoltRegion(state, nation, foreign, rng) ?? revoltRegion(state, nation, farAway, rng);
+  const region = revoltRegion(state, nation, foreign, maxCells, rng) ?? revoltRegion(state, nation, farAway, maxCells, rng);
   if (!region) return null;
 
   // The rebels are ruled by their own people. (`as RaceId`: the typed array only knows it's a number.)
@@ -116,6 +116,19 @@ function takeUpArms(state: WorldState, nation: Nation, rebels: Nation, rng: Rng)
   return warEvent(state.year, nation, rebels, " to crush the rebellion");
 }
 
+/**
+ * One region of `nation` rises and takes up arms, if it can. Returns what happened,
+ * or null if no region could break away. `rng` should be new to this uprising.
+ */
+export function uprising(state: WorldState, nation: Nation, cells: CellId[], rng: Rng, maxCells = SIM.REBEL_MAX_CELLS): SimEvent[] | null {
+  const rebelNation = rebel(state, nation, cells, rng.fork("revolt"), maxCells);
+  if (!rebelNation) return null;
+  const yearsGone = yearsSinceFall(state, rebelNation);
+  const rose = yearsGone === null ? rebellionEvent(state.year, rebelNation, nation) : rebornEvent(state.year, rebelNation, nation, yearsGone);
+  const war = takeUpArms(state, nation, rebelNation, rng.fork("arms"));
+  return war ? [rose, war] : [rose];
+}
+
 /** Yearly chance of a first revolt: restless peoples, and a lot of restless land, raise it. */
 function revoltChance(state: WorldState, nation: Nation, cells: CellId[]): number {
   const restlessLand = cells.reduce((sum, c) => sum + state.state.unrest[c]!, 0);
@@ -133,12 +146,9 @@ export function rebellions(state: WorldState, rng: Rng): SimEvent[] {
     let chance = revoltChance(state, nation, cells);
     // One revolt can set off the next: this is how a great empire falls in a few bad years.
     for (let revolt = 0; revolt < SIM.REBEL_MAX_SPREAD && nationRng.chance(chance); revolt++) {
-      const rebelNation = rebel(state, nation, cells, nationRng.fork(`revolt-${revolt}`));
-      if (!rebelNation) break;
-      const yearsGone = yearsSinceFall(state, rebelNation);
-      events.push(yearsGone === null ? rebellionEvent(state.year, rebelNation, nation) : rebornEvent(state.year, rebelNation, nation, yearsGone));
-      const war = takeUpArms(state, nation, rebelNation, nationRng.fork(`arms-${revolt}`));
-      if (war) events.push(war);
+      const happened = uprising(state, nation, cells, nationRng.fork(`revolt-${revolt}`));
+      if (!happened) break;
+      events.push(...happened);
       cells = cells.filter((c) => state.state.owner[c] === nation.id);
       chance = SIM.REBEL_SPREAD;
     }
