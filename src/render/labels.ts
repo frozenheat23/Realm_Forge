@@ -5,6 +5,10 @@ import { clamp } from "../core/math";
 import {
   CAPITAL_FILL,
   CAPITAL_RADIUS,
+  CROWN_FILL,
+  CROWN_GAP,
+  CROWN_HEIGHT,
+  CROWN_WIDTH,
   LABEL_COLOR,
   LABEL_FONT,
   LABEL_HALO,
@@ -56,6 +60,28 @@ function overlaps(a: Box, b: Box): boolean {
   return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 }
 
+/** A small three-pointed crown just above (x, y). */
+function drawCrown(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+  const half = CROWN_WIDTH / 2;
+  const base = y - CAPITAL_RADIUS - CROWN_GAP;
+  const top = base - CROWN_HEIGHT;
+  const dip = base - CROWN_HEIGHT * 0.45; // how far down the crown dips between its points
+  ctx.beginPath();
+  ctx.moveTo(x - half, base);
+  ctx.lineTo(x - half, top);
+  ctx.lineTo(x - half / 2, dip);
+  ctx.lineTo(x, top);
+  ctx.lineTo(x + half / 2, dip);
+  ctx.lineTo(x + half, top);
+  ctx.lineTo(x + half, base);
+  ctx.closePath();
+  ctx.fillStyle = CROWN_FILL;
+  ctx.fill();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = LABEL_COLOR;
+  ctx.stroke();
+}
+
 export function drawLabels(ctx: CanvasRenderingContext2D, world: GeneratedWorld, state: WorldState): void {
   // Group cells by owner.
   const owned = new Map<NationId, CellId[]>();
@@ -89,6 +115,7 @@ export function drawLabels(ctx: CanvasRenderingContext2D, world: GeneratedWorld,
     ctx.lineWidth = 1.2;
     ctx.strokeStyle = LABEL_COLOR;
     ctx.stroke();
+    if (nation.ruler.great !== undefined) drawCrown(ctx, capX, capY);
 
     if (cells.length < LABEL_MIN_AREA) continue;
     const size = clamp(Math.sqrt(cells.length) * LABEL_SIZE_PER_SQRT_AREA, LABEL_MIN_SIZE, LABEL_MAX_SIZE);

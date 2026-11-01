@@ -72,7 +72,7 @@ export function succession(state: WorldState, rng: Rng): SimEvent[] {
     if (wasGreat) events.push(greatDiesEvent(state.year, nation, old));
     if (!heir) nation.stability = Math.max(0, nation.stability - SIM.DYNASTY_STAB_HIT);
     nation.ruler = crown(state, nationRng.fork("crown"), nation.race, nation.capital, heir ? old.dynasty : undefined);
-    rollGreatness(nation.ruler, nation.race, nationRng.fork("great"));
+    rollGreatness(nation.ruler, nation, nationRng.fork("great"));
     if (nation.ruler.great !== undefined) events.push(greatRisesEvent(state.year, nation));
     if (nationRng.chance(crisisChance(nation, wasGreat))) events.push(...crisis(state, nation, nationRng.fork("crisis")));
   }

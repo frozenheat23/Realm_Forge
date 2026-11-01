@@ -155,6 +155,12 @@ export const LABEL_COLOR = "#2b2620";
 export const LABEL_HALO = "rgba(250, 246, 235, 0.85)";
 export const CAPITAL_RADIUS = 3;
 export const CAPITAL_FILL = "#fbf6e9";
+/** The crown over the capital of a realm with a great ruler. */
+export const CROWN_FILL = "#f2c744";
+export const CROWN_WIDTH = 12;
+export const CROWN_HEIGHT = 8;
+/** Gap between the capital marker and the crown. */
+export const CROWN_GAP = 3;
 
 // --- War and unrest effects (SPEC §5.4g, key E). Times are real seconds. ---
 /** Sliding stripes in the occupier's color over occupied land. */

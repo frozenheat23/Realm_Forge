@@ -23,8 +23,12 @@ export function greatBonus(nation: Nation, type: RulerTypeId, bonus: number): nu
   return nation.ruler.great === type ? bonus : 1;
 }
 
-/** Sees if this new ruler is great: picks a type evenly, then the race's odds for that type decide. */
-export function rollGreatness(ruler: Ruler, race: RaceId, rng: Rng): void {
+/**
+ * Sees if the new ruler of `nation` is great: picks a type evenly, then the race's
+ * odds for that type decide. Great realms draw great rulers, so size helps too.
+ */
+export function rollGreatness(ruler: Ruler, nation: Nation, rng: Rng): void {
   const type = rng.pick(TYPES);
-  if (rng.chance(SIM.GREAT_RULER_CHANCE * traits(race).greatOdds[type])) ruler.great = type;
+  const size = 1 + nation.area / SIM.GREAT_AREA;
+  if (rng.chance(SIM.GREAT_RULER_CHANCE * traits(nation.race).greatOdds[type] * size)) ruler.great = type;
 }

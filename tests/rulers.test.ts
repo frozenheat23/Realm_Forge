@@ -145,7 +145,7 @@ describe("great rulers", () => {
       SIM.GREAT_RULER_CHANCE = 0.3;
       for (let i = 0; i < 2000; i++) {
         const r = ruler();
-        rollGreatness(r, race, rng);
+        rollGreatness(r, makeNation(1, 0, { race }), rng);
         if (r.great === type) found++;
       }
       SIM.GREAT_RULER_CHANCE = SIM_DEFAULTS.GREAT_RULER_CHANCE;

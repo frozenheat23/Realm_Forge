@@ -246,8 +246,10 @@ export const SIM = {
   // --- Rulers and dynasties ---
   /** Chance a ruler is great (× the race's odds for the type). */
   GREAT_RULER_CHANCE: 0.05,
-  GREAT_CONQUEROR_POWER: 1.25,
-  GREAT_CONQUEROR_WAR: 1.5,
+  /** A realm this many cells big is twice as likely to have a great ruler. */
+  GREAT_AREA: 200,
+  GREAT_CONQUEROR_POWER: 1.5,
+  GREAT_CONQUEROR_WAR: 2,
   GREAT_LAWGIVER_CAP: 2,
   GREAT_LAWGIVER_CALM: 1.5,
   GREAT_BUILDER_DEV: 2,
@@ -259,14 +261,14 @@ export const SIM = {
   /** Stability lost when a dynasty ends. */
   DYNASTY_STAB_HIT: 0.05,
   /** Chance of a crisis at any handover of power (× the race's `succession`). */
-  CRISIS_BASE: 0.05,
+  CRISIS_BASE: 0.01,
   /** A nation this many cells big has twice the crisis chance. */
-  CRISIS_AREA: 500,
+  CRISIS_AREA: 400,
   /** × crisis chance when the ruler who died was great. */
-  CRISIS_GREAT: 4,
+  CRISIS_GREAT: 3,
   CRISIS_STAB_HIT: 0.3,
   /** Cells a nation needs for a crisis to become a civil war. */
-  CIVIL_WAR_MIN_AREA: 40,
+  CIVIL_WAR_MIN_AREA: 100,
   /** One pretender for every this many cells. */
   CIVIL_WAR_CELLS_PER_SPLIT: 150,
   CIVIL_WAR_MAX_SPLITS: 4,
