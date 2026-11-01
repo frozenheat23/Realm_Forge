@@ -1,13 +1,14 @@
 // Step 7b (docs/systems/rulers.md): reigns end, the throne passes on, and it can go badly.
 import type { Rng } from "../core/rng";
-import type { Nation, SimEvent, WorldState } from "../core/types";
+import { RulerType, type Nation, type NationId, type SimEvent, type WorldState } from "../core/types";
 import { clamp } from "../core/math";
 import { traits } from "../gen/races";
-import { civilWarEvent, crisisEvent } from "./events";
-import { livingNations } from "./helpers";
+import { opinion } from "./diplomacy";
+import { civilWarEvent, crisisEvent, greatDiesEvent, greatRisesEvent } from "./events";
+import { livingNations, neighborPairs } from "./helpers";
 import { SIM } from "./params";
 import { uprising } from "./rebellion";
-import { crown } from "./rulers";
+import { crown, rollGreatness } from "./rulers";
 
 /** Chance a handover of power turns into a crisis: bigger realms are harder to pass on. */
 export function crisisChance(nation: Nation, wasGreat: boolean): number {
@@ -39,15 +40,40 @@ function crisis(state: WorldState, nation: Nation, rng: Rng): SimEvent[] {
   return civilWar(state, nation, rng);
 }
 
+/** Each Schemer works against its most hated neighbor. */
+function schemes(state: WorldState): void {
+  const schemers = livingNations(state).filter((n) => n.ruler.great === RulerType.Schemer);
+  if (schemers.length === 0) return;
+  const pairs = neighborPairs(state);
+  for (const schemer of schemers) {
+    let target: NationId | null = null;
+    let worst = Infinity;
+    for (const [a, b] of pairs) {
+      if (a !== schemer.id && b !== schemer.id) continue;
+      const other = a === schemer.id ? b : a;
+      const feeling = opinion(state, schemer.id, other);
+      if (feeling < worst || (feeling === worst && other < target!)) [target, worst] = [other, feeling];
+    }
+    if (target === null) continue;
+    const victim = state.nations.get(target)!;
+    victim.stability = Math.max(0, victim.stability - SIM.GREAT_SCHEMER_STAB);
+  }
+}
+
 export function succession(state: WorldState, rng: Rng): SimEvent[] {
   const events: SimEvent[] = [];
+  schemes(state);
   for (const nation of livingNations(state)) {
     if (nation.ruler.ends > state.year) continue;
     const nationRng = rng.fork(`nation-${nation.id}`);
     const heir = nationRng.chance(SIM.HEIR_CHANCE);
-    const wasGreat = nation.ruler.great !== undefined;
+    const old = nation.ruler;
+    const wasGreat = old.great !== undefined;
+    if (wasGreat) events.push(greatDiesEvent(state.year, nation, old));
     if (!heir) nation.stability = Math.max(0, nation.stability - SIM.DYNASTY_STAB_HIT);
-    nation.ruler = crown(state, nationRng.fork("crown"), nation.race, nation.capital, heir ? nation.ruler.dynasty : undefined);
+    nation.ruler = crown(state, nationRng.fork("crown"), nation.race, nation.capital, heir ? old.dynasty : undefined);
+    rollGreatness(nation.ruler, nation.race, nationRng.fork("great"));
+    if (nation.ruler.great !== undefined) events.push(greatRisesEvent(state.year, nation));
     if (nationRng.chance(crisisChance(nation, wasGreat))) events.push(...crisis(state, nation, nationRng.fork("crisis")));
   }
   return events;

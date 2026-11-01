@@ -1,12 +1,16 @@
 // Rulers and dynasties (docs/systems/rulers.md), on tiny hand-made worlds.
 import { describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
-import { Race, RulerType } from "../src/core/types";
+import { Faith, Race, RulerType } from "../src/core/types";
 import { generateWorld } from "../src/gen";
 import { makeRuler, midReign, rulerName } from "../src/gen/rulers";
 import { RACES } from "../src/gen/params";
 import { SIM, SIM_DEFAULTS } from "../src/sim/params";
+import { fightingPower } from "../src/sim/manpower";
+import { greatBonus, rollGreatness } from "../src/sim/rulers";
+import { adminCap } from "../src/sim/stability";
 import { crisisChance, succession } from "../src/sim/succession";
+import { spreadFaith } from "../src/sim/faith";
 import { makeCells, makeNation, makeState, row } from "./tinyWorld";
 
 describe("making a ruler", () => {
@@ -128,6 +132,95 @@ describe("a succession crisis", () => {
     expect(state.state.owner[0]).toBe(1);
     const taken = state.state.owner.filter((id) => id !== 1).length;
     expect(taken).toBeLessThanOrEqual(30); // two pretenders, a quarter of the land each
+  });
+});
+
+describe("great rulers", () => {
+  const ruler = (great?: (typeof RulerType)[keyof typeof RulerType]) => ({ name: "Testa", dynasty: "House Test", female: false, crowned: 0, ends: 1_000_000, ...(great ? { great } : {}) });
+
+  it("come mostly as the type their race leans toward", () => {
+    const rng = createRng("leanings");
+    const count = (race: typeof Race.Orc | typeof Race.Dwarf, type: (typeof RulerType)[keyof typeof RulerType]) => {
+      let found = 0;
+      SIM.GREAT_RULER_CHANCE = 0.3;
+      for (let i = 0; i < 2000; i++) {
+        const r = ruler();
+        rollGreatness(r, race, rng);
+        if (r.great === type) found++;
+      }
+      SIM.GREAT_RULER_CHANCE = SIM_DEFAULTS.GREAT_RULER_CHANCE;
+      return found;
+    };
+    expect(count(Race.Orc, RulerType.Conqueror)).toBeGreaterThan(count(Race.Dwarf, RulerType.Conqueror) * 3);
+    expect(count(Race.Dwarf, RulerType.Builder)).toBeGreaterThan(count(Race.Orc, RulerType.Builder) * 3);
+  });
+
+  it("only change their own nation", () => {
+    const nation = makeNation(1, 0, { ruler: ruler(RulerType.Builder) });
+    expect(greatBonus(nation, RulerType.Builder, 2)).toBe(2);
+    expect(greatBonus(nation, RulerType.Conqueror, 2)).toBe(1);
+  });
+
+  it("a Conqueror's soldiers fight harder", () => {
+    const plain = makeNation(1, 0, { reserve: 10 });
+    const led = makeNation(2, 0, { reserve: 10, ruler: ruler(RulerType.Conqueror) });
+    const state = makeState(makeCells(row(2)), [1, 2], [plain, led]);
+    expect(fightingPower(state, led)).toBeCloseTo(fightingPower(state, plain) * SIM.GREAT_CONQUEROR_POWER);
+  });
+
+  it("a Lawgiver rules more land", () => {
+    const plain = makeNation(1, 0);
+    const wise = makeNation(2, 0, { ruler: ruler(RulerType.Lawgiver) });
+    const state = makeState(makeCells(row(2)), [1, 2], [plain, wise]);
+    expect(adminCap(state, wise)).toBeCloseTo(adminCap(state, plain) * SIM.GREAT_LAWGIVER_CAP);
+  });
+
+  it("a Prophet's faith spreads faster, even beyond their borders", () => {
+    const converted = (prophet: boolean) => {
+      const believer = makeNation(1, 0, prophet ? { ruler: ruler(RulerType.Prophet) } : {});
+      const other = makeNation(2, 2, { faith: Faith.AnvilOath });
+      const spec = row(3, { neighbors: [] });
+      spec.forEach((c, i) => (c.neighbors = i === 1 ? [0] : [1]));
+      const state = makeState(makeCells(spec), [1, 2, 2], [believer, other]);
+      state.state.faith.set([Faith.RadiantCovenant, Faith.AnvilOath, Faith.AnvilOath]);
+      state.state.race.fill(Race.Human);
+      let count = 0;
+      const rng = createRng("prophet");
+      for (let i = 0; i < 2000; i++) {
+        state.state.faith[1] = Faith.AnvilOath;
+        spreadFaith(state, rng.fork(`year-${i}`));
+        if (state.state.faith[1] === Faith.RadiantCovenant) count++;
+      }
+      return count;
+    };
+    expect(converted(true)).toBeGreaterThan(converted(false) * 2);
+  });
+
+  it("a Schemer wears down the neighbor they hate most", () => {
+    const schemer = makeNation(1, 0, { ruler: ruler(RulerType.Schemer) });
+    const friend = makeNation(2, 1);
+    const enemy = makeNation(3, 3);
+    const spec = row(4);
+    spec[0]!.neighbors = [1, 3];
+    spec[3]!.neighbors = [0, 2];
+    const state = makeState(makeCells(spec), [1, 2, 2, 3], [schemer, friend, enemy]);
+    state.relations.set(100002, 0.5);
+    state.relations.set(100003, -0.9);
+    succession(state, createRng("scheme"));
+    expect(enemy.stability).toBeCloseTo(0.8 - SIM.GREAT_SCHEMER_STAB);
+    expect(friend.stability).toBeCloseTo(0.8);
+  });
+
+  it("are logged when they rise and when they die", () => {
+    const nation = makeNation(1, 0, { ruler: { ...ruler(RulerType.Conqueror), ends: 5 } });
+    const state = makeState(makeCells(row(2)), [1, 1], [nation]);
+    state.year = 5;
+    SIM.CRISIS_BASE = 0;
+    SIM.GREAT_RULER_CHANCE = 1;
+    const texts = succession(state, createRng("great")).map((e) => e.text).join();
+    Object.assign(SIM, SIM_DEFAULTS);
+    expect(texts).toContain("dies after 5 years");
+    expect(texts).toContain("rises in Nation1");
   });
 });
 

@@ -1,7 +1,8 @@
 // Readable sentences for the event log (SPEC §4.9).
-import { Faith, type Nation, type SimEvent } from "../core/types";
+import { Faith, type Nation, type Ruler, type SimEvent } from "../core/types";
 import { faithInfo } from "../gen/faiths";
 import { traits } from "../gen/races";
+import { rulerName } from "../gen/rulers";
 import { ARMY_MEN_PER_UNIT } from "./params";
 
 /** "12,000": soldier units as a number of men. */
@@ -45,6 +46,15 @@ export function conversionEvent(year: number, nation: Nation): SimEvent {
   const faith = faithInfo(nation.faith).name;
   const text = nation.faith === Faith.OldGods ? `Year ${year}: ${nation.name} turns to ${faith}.` : `Year ${year}: ${nation.name} embraces ${faith}.`;
   return { year, type: "faith", actors: [nation.id], text };
+}
+
+export function greatRisesEvent(year: number, nation: Nation): SimEvent {
+  return { year, type: "ruler", actors: [nation.id], text: `Year ${year}: ${rulerName(nation.ruler, nation.race)} rises in ${nation.name}.` };
+}
+
+export function greatDiesEvent(year: number, nation: Nation, ruler: Ruler): SimEvent {
+  const text = `Year ${year}: ${rulerName(ruler, nation.race)} of ${nation.name} dies after ${year - ruler.crowned} years.`;
+  return { year, type: "ruler", actors: [nation.id], text };
 }
 
 export function crisisEvent(year: number, nation: Nation): SimEvent {

@@ -1,15 +1,17 @@
 // Step 3 (SPEC §4.3): big, loosely held, war-weary or many-raced nations become unstable.
-import { Faith, Resource, type Nation, type WorldState } from "../core/types";
+import { Faith, Resource, RulerType, type Nation, type WorldState } from "../core/types";
 import { clamp } from "../core/math";
 import { blessing } from "../gen/faiths";
 import { traits } from "../gen/races";
 import { SIM } from "./params";
 import { resourceBonus } from "./resources";
+import { greatBonus } from "./rulers";
 
 /** How much land a nation can rule well: young realms can hold far more, and that vigor fades with age. */
 export function adminCap(state: WorldState, nation: Nation): number {
   const age = state.year - nation.founded;
-  return SIM.ADMIN_CAP_BASE * traits(nation.race).cohesion * (1 + SIM.VIGOR_BONUS * Math.exp(-age / SIM.VIGOR_YEARS));
+  const vigor = 1 + SIM.VIGOR_BONUS * Math.exp(-age / SIM.VIGOR_YEARS);
+  return SIM.ADMIN_CAP_BASE * traits(nation.race).cohesion * vigor * greatBonus(nation, RulerType.Lawgiver, SIM.GREAT_LAWGIVER_CAP);
 }
 
 export function updateStability(state: WorldState): void {

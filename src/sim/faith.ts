@@ -1,6 +1,6 @@
 // Step 2, after the land (SPEC §4.14): faiths spread from neighbor to neighbor, and the Old Gods stir.
 import type { Rng } from "../core/rng";
-import { Faith, type CellId, type FaithId, type Nation, type NationId, type SimEvent, type WorldState } from "../core/types";
+import { Faith, RulerType, type CellId, type FaithId, type Nation, type NationId, type SimEvent, type WorldState } from "../core/types";
 import { faithInfo } from "../gen/faiths";
 import { traits } from "../gen/races";
 import { conversionEvent, oldGodsEvent } from "./events";
@@ -33,6 +33,8 @@ export function conversionChance(state: WorldState, cell: CellId, faith: number,
 export function spreadFaith(state: WorldState, rng: Rng): SimEvent[] {
   const events: SimEvent[] = [];
   const { owner, faith, unrest } = state.state;
+  // A great Prophet's faith spreads faster everywhere, not just at home.
+  const preached = new Set(livingNations(state).filter((n) => n.ruler.great === RulerType.Prophet).map((n) => n.faith as number));
   // Only a nation's first cult makes the news; after that it's old news.
   const haunted = new Set<number>();
   for (let c = 0; c < owner.length; c++) if (faith[c] === Faith.OldGods) haunted.add(owner[c]!);
@@ -41,7 +43,8 @@ export function spreadFaith(state: WorldState, rng: Rng): SimEvent[] {
     const nation = state.nations.get(owner[c]!);
     if (!nation || c === nation.capital) continue;
     const neighbor = faith[rng.pick(state.cells[c]!.neighbors)]!;
-    if (neighbor !== 0 && neighbor !== faith[c] && rng.chance(conversionChance(state, c, neighbor, nation))) faith[c] = neighbor;
+    const prophet = preached.has(neighbor) ? SIM.GREAT_PROPHET_SPREAD : 1;
+    if (neighbor !== 0 && neighbor !== faith[c] && rng.chance(conversionChance(state, c, neighbor, nation) * prophet)) faith[c] = neighbor;
 
     if (unrest[c]! >= SIM.OLD_GODS_MIN_UNREST && faith[c] !== Faith.OldGods && rng.chance(SIM.OLD_GODS_SPARK)) {
       faith[c] = Faith.OldGods;

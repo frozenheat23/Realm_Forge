@@ -1,9 +1,10 @@
 // Soldiers (SPEC §4.13 "Manpower"): each nation has a reserve of trained soldiers
 // that refills slowly up to a cap, and shrinks when it loses battles.
-import { Faith, type Army, type Nation, type WorldState } from "../core/types";
+import { Faith, RulerType, type Army, type Nation, type WorldState } from "../core/types";
 import { clamp } from "../core/math";
 import { blessing } from "../gen/faiths";
 import { SIM } from "./params";
+import { greatBonus } from "./rulers";
 
 /**
  * Sets the nation's cap from the fighting population it controls (`levyPop`:
@@ -34,14 +35,19 @@ export function soldiers(state: WorldState, nation: Nation): number {
   return total;
 }
 
-/** How well the nation's soldiers fight: a shaky realm fights badly (poor pay, deserters, quarrelling lords). */
+/** How well a nation's soldiers fight: a shaky realm fights badly (poor pay, deserters, quarrelling lords), and a Conqueror leads them better. */
+function fightingSpirit(nation: Nation): number {
+  return (0.5 + nation.stability) * greatBonus(nation, RulerType.Conqueror, SIM.GREAT_CONQUEROR_POWER);
+}
+
+/** The nation's soldiers, weighed by how well they fight. */
 export function fightingPower(state: WorldState, nation: Nation, share = 1): number {
-  return soldiers(state, nation) * share * (0.5 + nation.stability);
+  return soldiers(state, nation) * share * fightingSpirit(nation);
 }
 
 /** One army's strength in battle, before the ground helps: morale counts, and so does how shaky its realm is. */
 export function armyPower(state: WorldState, army: Army): number {
-  return army.size * army.morale * (0.5 + state.nations.get(army.owner)!.stability);
+  return army.size * army.morale * fightingSpirit(state.nations.get(army.owner)!);
 }
 
 /**

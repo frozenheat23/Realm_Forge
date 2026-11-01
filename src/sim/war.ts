@@ -1,6 +1,6 @@
 // Steps 5 and 6b (SPEC §4.5): neighbors go to war (allies may join), and wars end in peace and a truce.
 import type { Rng } from "../core/rng";
-import { Faith, type CellId, type Nation, type NationId, type ResourceKind, type SimEvent, type War, type WarGoal, type WorldState } from "../core/types";
+import { Faith, RulerType, type CellId, type Nation, type NationId, type ResourceKind, type SimEvent, type War, type WarGoal, type WorldState } from "../core/types";
 import { blessing } from "../gen/faiths";
 import { RESOURCES } from "../gen/params";
 import { traits } from "../gen/races";
@@ -10,6 +10,7 @@ import { neighborPairs, pairKey } from "./helpers";
 import { fightingPower } from "./manpower";
 import { SIM } from "./params";
 import { cellValue, effectiveCapacity, grainBonuses } from "./resources";
+import { greatBonus } from "./rulers";
 import { occupationCounts, occupationScore } from "./siege";
 import { chooseGoal, claimYears, goalAchieved, payTribute, takeLand } from "./warGoals";
 
@@ -47,7 +48,7 @@ export function warChance(state: WorldState, attacker: Nation, defender: Nation,
   const mood = Math.max(0, 1 - opinion(state, attacker.id, defender.id) * SIM.OPINION_WAR_K);
   return Math.min(
     SIM.WAR_MAX_PROB,
-    SIM.WAR_BASE_PROB * traits(attacker.race).aggression * blessing(attacker, Faith.RedHunger) * ratio ** SIM.WAR_STRENGTH_EXP * (1 - attacker.warWeariness) * mood * motive,
+    SIM.WAR_BASE_PROB * traits(attacker.race).aggression * blessing(attacker, Faith.RedHunger) * greatBonus(attacker, RulerType.Conqueror, SIM.GREAT_CONQUEROR_WAR) * ratio ** SIM.WAR_STRENGTH_EXP * (1 - attacker.warWeariness) * mood * motive,
   );
 }
 

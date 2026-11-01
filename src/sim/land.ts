@@ -1,6 +1,6 @@
 // Step 2, second half (SPEC §4.11): each cell's slow-changing memory of what has happened to it.
 import type { Rng } from "../core/rng";
-import { Faith, Settlement, type CellId, type SimEvent, type WorldState } from "../core/types";
+import { Faith, RulerType, Settlement, type CellId, type SimEvent, type WorldState } from "../core/types";
 import { clamp } from "../core/math";
 import { blessing, faithInfo } from "../gen/faiths";
 import { nameNationAt } from "../gen/nations";
@@ -9,6 +9,7 @@ import { traits } from "../gen/races";
 import { cityFoundedEvent } from "./events";
 import { isCore, takenNames } from "./helpers";
 import { SIM } from "./params";
+import { greatBonus } from "./rulers";
 import { effectiveCapacity, grainBonuses } from "./resources";
 
 /** Development needed for each settlement level. */
@@ -78,7 +79,7 @@ export function updateLand(state: WorldState, control: Float32Array, rng: Rng): 
     const occupied = occupier[c] !== 0 ? SIM.UNREST_OCCUPIED : 0;
     // A realm in crisis loses its hold everywhere, even on calm home provinces.
     const crisis = Math.max(0, 1 - nation.stability / SIM.REBEL_THRESHOLD) * SIM.UNREST_CRISIS_K;
-    const decay = SIM.UNREST_DECAY * (isCore(state, c) ? 2 : 1);
+    const decay = SIM.UNREST_DECAY * (isCore(state, c) ? 2 : 1) * greatBonus(nation, RulerType.Lawgiver, SIM.GREAT_LAWGIVER_CALM);
     unrest[c] = clamp(
       unrest[c]! + SIM.UNREST_CONTROL_K * (1 - control[c]!) + foreign + kin + heresy + occupied + crisis + SIM.UNREST_DEVASTATION_K * devastation[c]! - decay,
       0,
@@ -92,7 +93,7 @@ export function updateLand(state: WorldState, control: Float32Array, rng: Rng): 
     const capacity = effectiveCapacity(state, c, grain);
     const full = capacity > 0 ? Math.min(1, pop[c]! / capacity) : 0;
     development[c] = clamp(
-      development[c]! + SIM.DEV_GROWTH * blessing(nation, Faith.AnvilOath) * full * control[c]! * (1 - devastation[c]!) - SIM.DEV_DEVASTATION_LOSS * devastation[c]!,
+      development[c]! + SIM.DEV_GROWTH * blessing(nation, Faith.AnvilOath) * greatBonus(nation, RulerType.Builder, SIM.GREAT_BUILDER_DEV) * full * control[c]! * (1 - devastation[c]!) - SIM.DEV_DEVASTATION_LOSS * devastation[c]!,
       0,
       1,
     );

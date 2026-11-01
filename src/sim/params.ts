@@ -244,6 +244,16 @@ export const SIM = {
   REBEL_START_STABILITY: 0.6,
 
   // --- Rulers and dynasties ---
+  /** Chance a ruler is great (× the race's odds for the type). */
+  GREAT_RULER_CHANCE: 0.05,
+  GREAT_CONQUEROR_POWER: 1.25,
+  GREAT_CONQUEROR_WAR: 1.5,
+  GREAT_LAWGIVER_CAP: 2,
+  GREAT_LAWGIVER_CALM: 1.5,
+  GREAT_BUILDER_DEV: 2,
+  GREAT_PROPHET_SPREAD: 3,
+  /** Stability a Schemer's most hated neighbor loses each year. */
+  GREAT_SCHEMER_STAB: 0.01,
   /** Chance the same dynasty keeps the throne when a reign ends. */
   HEIR_CHANCE: 0.75,
   /** Stability lost when a dynasty ends. */
