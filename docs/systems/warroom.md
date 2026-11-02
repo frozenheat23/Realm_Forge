@@ -1,6 +1,6 @@
 # War Room (M16)
 
-> SPEC §5.6, in its own file because SPEC.md is past the ~700-line limit in §9. Code: `sim/warRecords.ts`, `ui/warRoom.ts`, `render/warFocus.ts`. Decisions taken with the user on 2026-11-02 (decision log).
+> SPEC §5.4j, in its own file because SPEC.md is past the ~700-line limit in §9. Code: `sim/warRecords.ts`, `ui/warRoom.ts`, `render/warFocus.ts`. Decisions taken with the user on 2026-11-02 (decision log).
 
 **Goal.** Make wars something you can follow: see which wars are on, pick one, watch it play out, and read what happened when it ends. Nothing about *how* wars are fought changes (that's M18), and history stays the same: the records only watch.
 

@@ -9,3 +9,5 @@ export const SIM_YEARS = 1000;
 export const EVENT_LOG_MAX = 300;
 /** How long nations stay highlighted after clicking an event. */
 export const HIGHLIGHT_SECONDS = 4;
+/** While following a war, playback goes no faster than this (years per second). */
+export const FOLLOW_SPEED = 5;

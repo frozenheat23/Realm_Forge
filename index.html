@@ -48,16 +48,69 @@
       #log.hide-capital_moved .event-capital_moved, #log.hide-alliance .event-alliance,
       #log.hide-alliance_ended .event-alliance_ended, #log.hide-city_founded .event-city_founded,
       #log.hide-battle .event-battle, #log.hide-faith .event-faith { display: none; }
+
+      /* Side panel (M16 War Room): beside the map on wide screens, below it on narrow ones. */
+      #panel { border-top: 1px solid #2c3340; display: flex; flex-direction: column; }
+      .tabs { display: flex; gap: 4px; padding: 8px 12px 0; border-bottom: 1px solid #2c3340; }
+      .tabs button { border-radius: 4px 4px 0 0; border-bottom: none; }
+      .tab { display: none; height: 420px; overflow-y: auto; }
+      .tab.shown { display: block; }
+      #tab-log.shown { display: flex; flex-direction: column; }
+      #tab-log #log { flex: 1; height: auto; margin-bottom: 0; }
+      @media (min-width: 1200px) {
+        .wrap { max-width: 2000px; display: grid; grid-template-columns: minmax(0, 1fr) 380px; }
+        #panel { border-top: none; border-left: 1px solid #2c3340; position: sticky; top: 0; height: 100vh; }
+        .tab { height: auto; flex: 1; }
+      }
+
+      .wars-empty, .room-note { padding: 12px; font: 13px/1.5 system-ui, sans-serif; color: #8f8a7e; }
+      .room-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; font: 13px system-ui, sans-serif; color: #c9b26b; border-bottom: 1px solid #2c3340; }
+      .war-row { padding: 8px 12px; border-bottom: 1px solid #222833; cursor: pointer; font: 13px/1.45 system-ui, sans-serif; }
+      .war-row:hover { background: #1f2530; }
+      .war-row.followed { background: #2a2a1e; box-shadow: inset 3px 0 0 #c9b26b; }
+      .war-sides { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-family: Georgia, serif; font-size: 14px; color: #e8e2d4; }
+      .war-sides .vs { color: #8f8a7e; font-size: 12px; }
+      .war-sides .allies { color: #8f8a7e; font: 11px system-ui, sans-serif; }
+      .war-meta { color: #a9a395; font-size: 12px; }
+      .score { position: relative; height: 6px; margin: 6px 0 4px; background: #262c37; border-radius: 3px; overflow: hidden; }
+      .score .fill { position: absolute; top: 0; bottom: 0; }
+      .score .mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: #8f8a7e; }
+      .war-numbers { display: flex; justify-content: space-between; color: #a9a395; font-size: 12px; }
+      .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; }
+      .sort { display: flex; gap: 4px; padding: 8px 12px; flex-wrap: wrap; }
+      .sort button { font-size: 12px; padding: 3px 8px; }
+      .report { padding: 10px 14px 16px; font: 13px/1.55 system-ui, sans-serif; color: #d8d2c4; }
+      .report h3 { margin: 4px 0 2px; font: 18px Georgia, serif; color: #e8e2d4; }
+      .report .years { color: #a9a395; margin-bottom: 8px; }
+      .report dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 8px 0; }
+      .report dt { color: #8f8a7e; }
+      .report dd { margin: 0; }
+      .report h4 { margin: 12px 0 4px; font: 600 12px system-ui, sans-serif; color: #c9b26b; text-transform: uppercase; letter-spacing: 0.06em; }
+      .report ul { margin: 0; padding-left: 18px; }
+      .report svg { display: block; width: 100%; height: 60px; background: #1b2029; border-radius: 4px; }
     </style>
   </head>
   <body>
     <div class="wrap">
-      <canvas id="map"></canvas>
-      <div id="bar" class="bar"></div>
-      <div id="info">Hover the map to inspect a cell · Space play/pause · → step · C cells · N nations · R races · A alliances · M resources · T towns · H heatmaps · E effects · W armies · click an event to highlight it</div>
-      <details id="settings"><summary>Settings</summary></details>
-      <div id="log-filters"></div>
-      <div id="log"></div>
+      <main>
+        <canvas id="map"></canvas>
+        <div id="bar" class="bar"></div>
+        <div id="info">Hover the map to inspect a cell · Space play/pause · → step · C cells · N nations · R races · A alliances · M resources · T towns · H heatmaps · E effects · W armies · click an event to highlight it, or a war to follow it</div>
+        <details id="settings"><summary>Settings</summary></details>
+      </main>
+      <aside id="panel">
+        <nav class="tabs">
+          <button data-tab="wars">Wars</button>
+          <button data-tab="past">Past wars</button>
+          <button data-tab="log">Log</button>
+        </nav>
+        <section id="tab-wars" class="tab"></section>
+        <section id="tab-past" class="tab"></section>
+        <section id="tab-log" class="tab">
+          <div id="log-filters"></div>
+          <div id="log"></div>
+        </section>
+      </aside>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

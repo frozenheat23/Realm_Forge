@@ -686,6 +686,9 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | `SIM_YEARS` | 1000 | 200–5000 | Default length of a run |
 | `EVENT_LOG_MAX` | 300 | 50–2000 | Most lines kept in the on-screen event log |
 | `HIGHLIGHT_SECONDS` | 4 | 1–15 | How long nations stay highlighted after clicking an event |
+| `FOLLOW_SPEED` | 5 | 1–20 | While following a war, playback goes no faster than this; the old speed comes back when you stop |
+| `FOCUS_GOAL_COLOR`, `FOCUS_GOAL_RADIUS` | #e0b84a, 4 | — | Gold ring on goal land the attacker hasn't taken yet (`render/palette.ts`) |
+| `FOCUS_HELD_SIZE`, `FOCUS_EDGE` | 5, dark brown | — | Diamond in the occupier's color on occupied land (`render/palette.ts`) |
 
 ---
 

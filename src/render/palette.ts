@@ -414,3 +414,11 @@ export const LOOK_ATLAS: MapLook = {
   siegeColor: "#a32a1e",
   emberColor: "196, 92, 32",
 };
+
+// --- Following a war (M16, docs/systems/warroom.md) ---
+/** Ring around goal land the attacker hasn't taken yet. */
+export const FOCUS_GOAL_COLOR = "#e0b84a";
+export const FOCUS_GOAL_RADIUS = 4;
+/** Mark on land a side occupies, in the occupier's color, with a dark edge. */
+export const FOCUS_HELD_SIZE = 5;
+export const FOCUS_EDGE = "rgba(30, 24, 18, 0.85)";

@@ -139,3 +139,7 @@ New concepts as we meet them, with where they show up in our code.
 | **Golden test** | A test that compares output with a fingerprint recorded earlier, to prove a refactor changed nothing. | `tests/golden.test.ts` |
 | **Refactor** | Changing how code is organized without changing what it does. | M15 steps 1–4 |
 | **Chaos (sensitive dependence)** | Tiny changes early grow into completely different histories. Why a fair change to the dice can swing a 5-world average a lot. | M15 decision log |
+| **Write-only record** | Data the simulation writes for others to read but never reads itself, so it can't change what happens. | `sim/warRecords.ts` |
+| **CSS grid / media query** | Laying a page out in columns, and switching layout by screen width (`@media (min-width: 1200px)`). | side panel in `index.html` |
+| **Sticky position** | An element that scrolls with the page until it reaches the top, then stays in view. | `#panel` in `index.html` |
+| **SVG polyline** | A line through a list of points, drawn by the browser from a few numbers: the war report's score line. | `sparkline()` in `src/ui/warRoom.ts` |

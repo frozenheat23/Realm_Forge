@@ -797,6 +797,10 @@ Hovering over an army (or next to it, since banners are wider than a cell) shows
 
 Two more tints like the Races layer (§5.4b), and only one of the three shows at a time. **Cultures** (key K) tints land by the color of the culture's founding realm, so a dead realm's people still show in its color. **Faiths** (key F) tints land by `FAITH_COLORS`. The hover info names both.
 
+### 5.4j War Room (M16)
+
+The side panel (Wars, Past wars, Log), following a war, its map marks and the war report: see [`systems/warroom.md`](systems/warroom.md). It reads the war records the simulation keeps (`WorldState.warRecords`, saved).
+
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 10 ms, smooth at 50 years per second. Measured after M13: overlay 1.4 ms, effects 0.2 ms, tick ~4.6 ms in the browser, a whole new-year frame ~21 ms.
 - Run the sim on the main thread until M6; move it to a Web Worker only if it slows the screen.

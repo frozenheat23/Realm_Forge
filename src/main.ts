@@ -25,14 +25,16 @@ import { drawRivers } from "./render/rivers";
 import { renderAtlasTerrain } from "./render/terrainAtlas";
 import { renderCelTerrain } from "./render/terrainCel";
 import { renderPaintedTerrain } from "./render/terrainPainted";
+import { drawWarFocus } from "./render/warFocus";
 import { fromSnapshot, type Snapshot } from "./sim/snapshot";
 import { tick } from "./sim/tick";
-import { HIGHLIGHT_SECONDS, SIM_YEARS } from "./ui/config";
+import { FOLLOW_SPEED, HIGHLIGHT_SECONDS, SIM_YEARS } from "./ui/config";
 import { createControls, makeButton } from "./ui/controls";
 import { onKey, showCellOnHover } from "./ui/debugInfo";
 import { createEventLog } from "./ui/eventLog";
 import { createRecorder, pickSnapshot, saveSnapshot } from "./ui/files";
 import { applyParams, createSettings, type Layers } from "./ui/settings";
+import { createWarRoom, nationsOf } from "./ui/warRoom";
 
 // --- Page elements ---
 function element<T extends HTMLElement>(selector: string): T {
@@ -46,6 +48,7 @@ const infoPanel = element("#info");
 const settingsPanel = element("#settings");
 const logFilters = element("#log-filters");
 const logList = element("#log");
+const panel = element("#panel");
 
 // --- Generate the world (or restore a loaded save) ---
 const query = new URLSearchParams(location.search);
@@ -115,8 +118,18 @@ function overlayTint(): OverlayTint {
   if (layers.cultures) return "culture";
   return layers.races ? "race" : "nation";
 }
-let highlight = new Set<NationId>();
+/** Nations of a clicked event, kept bright for a few seconds. */
+let eventHighlight = new Set<NationId>();
 let highlightTimer = 0;
+/** The war being followed (its id), or null (M16 War Room). */
+let followed: number | null = null;
+const followedRecord = () => (followed === null ? undefined : state.warRecords.find((r) => r.id === followed));
+/** Nations to keep bright: a clicked event's for a moment, otherwise the followed war's. */
+function highlight(): Set<NationId> {
+  if (eventHighlight.size > 0) return eventHighlight;
+  const record = followedRecord();
+  return record ? new Set(nationsOf(record)) : new Set();
+}
 /** Which heatmap is showing (H cycles through them), or null for none. */
 let heat: HeatKind | null = null;
 
@@ -130,7 +143,7 @@ const overlay = createNationOverlay(world, displayCells, cellPixels, look);
 // Shares the overlay's memory, so it never needs rebuilding.
 const nationImage = new ImageData(new Uint8ClampedArray(overlay.pixels.buffer), world.width, world.height);
 function redrawNations(): void {
-  overlay.update(state, highlight, overlayTint());
+  overlay.update(state, highlight(), overlayTint());
   nationCtx.putImageData(nationImage, 0, 0);
   if (heat) heatCtx.putImageData(renderHeatmap(world, displayCells, state, heat), 0, 0);
   if (layers.effects) effects.refresh(state);
@@ -148,6 +161,8 @@ function draw(): void {
   if (layers.settlements) drawSettlements(baseCtx, world, state, look);
   if (layers.resources) drawResources(baseCtx, world, look);
   if (layers.alliances) drawAlliances(baseCtx, world, state, look);
+  const record = followedRecord();
+  if (record) drawWarFocus(baseCtx, world, state, record);
   if (layers.nations && layers.labels) drawLabels(baseCtx, world, state, look);
   if (chart) {
     drawChartFrame(baseCtx, world);
@@ -167,17 +182,51 @@ function present(now: number): void {
 
 // --- Event log (click an event → its nations light up for a few seconds) ---
 const eventLog = createEventLog(logFilters, logList, (nations) => {
-  highlight = new Set(nations);
+  eventHighlight = new Set(nations);
   redrawNations();
   draw();
   clearTimeout(highlightTimer);
   highlightTimer = window.setTimeout(() => {
-    highlight = new Set();
+    eventHighlight = new Set();
     redrawNations();
     draw();
   }, HIGHLIGHT_SECONDS * 1000);
 });
 eventLog.add(state.events, state);
+
+// --- War Room (M16): the side panel's wars, and following one ---
+/** The speed before following slowed playback down, to go back to afterwards. */
+let speedBefore: number | null = null;
+const warRoom = createWarRoom(panel, () => followed, follow);
+
+/** Starts following a war (dimming everyone else and slowing time), or stops with null. */
+function follow(id: number | null): void {
+  if (id !== null && followed === null && controls.speed > FOLLOW_SPEED) {
+    speedBefore = controls.speed;
+    controls.setSpeed(FOLLOW_SPEED);
+  }
+  if (id === null && speedBefore !== null) {
+    controls.setSpeed(speedBefore);
+    speedBefore = null;
+  }
+  followed = id;
+  warRoom.update(state);
+  redrawNations();
+  draw();
+}
+
+/** After a year: pause on the followed war's big moments, and show its report when it ends. */
+function watchFollowed(): void {
+  const record = followedRecord();
+  if (!record) return;
+  if (record.end !== undefined) {
+    controls.pause();
+    follow(null);
+    warRoom.showReport(record, state);
+    return;
+  }
+  if (record.moments.some((m) => m.year === state.year && m.kind !== "joined")) controls.pause();
+}
 
 // --- History playback ---
 const simRng = createRng(seed).fork("sim");
@@ -190,12 +239,14 @@ function advanceYear(): void {
   yearStart = performance.now();
   eventLog.add(events, state);
   effects.noteYear(state, events, performance.now());
+  watchFollowed();
 }
 
 const controls = createControls(bar, () => {
   advanceYear();
   redrawNations();
   draw();
+  warRoom.update(state);
 });
 
 // Runs every screen frame (~60 times a second). Works out how many years are
@@ -208,7 +259,8 @@ function frame(now: number): void {
   if (controls.playing) {
     yearsDue += seconds * controls.speed;
     let ran = 0;
-    while (yearsDue >= 1 && state.year < SIM_YEARS) {
+    // Something in a year can pause playback (the followed war's big moments): stop there.
+    while (yearsDue >= 1 && state.year < SIM_YEARS && controls.playing) {
       advanceYear();
       yearsDue -= 1;
       ran++;
@@ -217,6 +269,7 @@ function frame(now: number): void {
     if (ran > 0) {
       redrawNations();
       draw();
+      warRoom.update(state);
     }
   } else {
     yearsDue = 0;
@@ -325,6 +378,7 @@ showCellOnHover(canvas, infoPanel, world, () => state);
 
 redrawNations();
 draw();
+warRoom.update(state);
 requestAnimationFrame(frame);
 // Canvas text can't wait for a font, so draw again once the parchment map's fonts arrive.
 if (chart) void Promise.all(ATLAS_FONTS.map((font) => document.fonts.load(font))).then(draw);

@@ -154,4 +154,5 @@ Any player UI or player controller; the command log and saves (M17); AI personal
 | M16 | War Room | Panel of current wars (goal, score, casualties), follow a war on the map, war report at peace, fix "taking 0 provinces", tidy the battle log |
 | M17 | Sandbox | God-mode commands (start or end a war, move an army, crown a ruler); command log and saves; replay from a save with different seeds to show odds |
 | M18 | Real war | Generals (from ruler types), stronger underdog defense, maybe a second army per side; tuned with the sandbox's odds |
-| M19 | Play as a nation | Start screen (race, nation or custom realm), auto-pause on decisions, orders and standing policies, "play a people" succession, legacy score at year 1000 |
+| M19 | Map zoom | Zoom and pan, labels and markers included (added 2026-11-02, from the War Room talk) |
+| M20 | Play as a nation | Start screen (race, nation or custom realm), auto-pause on decisions, orders and standing policies, "play a people" succession, legacy score at year 1000 |

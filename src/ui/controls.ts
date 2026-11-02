@@ -6,6 +6,8 @@ export interface Controls {
   readonly playing: boolean;
   /** Current speed in years per second. */
   readonly speed: number;
+  /** Changes the speed, as if its button were pressed. */
+  setSpeed(speed: number): void;
   /** Stops playback (e.g. at the final year). */
   pause(): void;
 }
@@ -44,10 +46,11 @@ export function createControls(bar: HTMLElement, onStep: () => void): Controls {
     onStep();
   });
 
+  const showSpeed = () => speedButtons.forEach((b, i) => b.classList.toggle("active", SPEEDS[i] === speed));
   const speedButtons = SPEEDS.map((s) => {
     const b = makeButton(`${s}×`, `${s} years per second`, () => {
       speed = s;
-      speedButtons.forEach((other) => other.classList.toggle("active", other === b));
+      showSpeed();
     });
     b.classList.toggle("active", s === speed);
     return b;
@@ -72,6 +75,10 @@ export function createControls(bar: HTMLElement, onStep: () => void): Controls {
     },
     get speed() {
       return speed;
+    },
+    setSpeed(s) {
+      speed = s;
+      showSpeed();
     },
     pause() {
       playing = false;
