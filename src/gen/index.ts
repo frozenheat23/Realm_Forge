@@ -1,13 +1,14 @@
 // Runs every generation step in order (SPEC §3) and returns the finished world.
 import type { Delaunay } from "d3-delaunay";
-import { Biome, Resource, type Cell, type WorldState } from "../core/types";
+import { Biome, Resource, type Cell, type StartOptions, type WorldState } from "../core/types";
 import { createRng } from "../core/rng";
 import { cellCapacity, classifyBiome } from "./biomes";
 import { buildCellGraph, jitteredGrid } from "./cells";
 import { moistureForCells, stepsFromWater, temperatureAt } from "./climate";
 import { generateHeightmap, type Heightmap } from "./heightmap";
 import { CELL_COUNT, MAP_HEIGHT, MAP_WIDTH, MOUNTAIN_H } from "./params";
-import { createStartingNations } from "./nations";
+import { createKingdoms } from "./kingdoms";
+import { createStartingNations, type StartingNations } from "./nations";
 import { placeProvinces } from "./provinces";
 import { placeRaceHomes } from "./races";
 import { defensibilityOf, placeResources } from "./resources";
@@ -31,7 +32,8 @@ export interface Generated {
   state: WorldState;
 }
 
-export function generateWorld(seed: string, width = MAP_WIDTH, height = MAP_HEIGHT): Generated {
+/** The map for `seed`, and history at year 0: by default the open start (small nations in an empty world). */
+export function generateWorld(seed: string, width = MAP_WIDTH, height = MAP_HEIGHT, startOptions: StartOptions = { kind: "open" }): Generated {
   const rng = createRng(seed);
 
   // 1. Terrain
@@ -106,7 +108,10 @@ export function generateWorld(seed: string, width = MAP_WIDTH, height = MAP_HEIG
 
   // 8. Race homelands, then starting nations
   const raceHomes = placeRaceHomes(rng.fork("races"), cells);
-  const start = createStartingNations(rng.fork("nations"), cells, width, height, raceHomes);
+  const start: StartingNations & { ownedSince?: Int32Array } =
+    startOptions.kind === "settled"
+      ? createKingdoms(rng.fork("kingdoms"), cells, width, height, raceHomes, startOptions.kingdoms)
+      : createStartingNations(rng.fork("nations"), cells, width, height, raceHomes);
 
   const world: GeneratedWorld = { seed, width, height, heightmap, cells, pixelToCell, delaunay };
   const state: WorldState = {
@@ -121,7 +126,7 @@ export function generateWorld(seed: string, width = MAP_WIDTH, height = MAP_HEIG
       faith: start.faith,
       unrest: new Float32Array(cells.length),
       devastation: new Float32Array(cells.length),
-      ownedSince: new Int32Array(cells.length),
+      ownedSince: start.ownedSince ?? new Int32Array(cells.length),
       prevOwner: new Int32Array(cells.length),
       occupier: new Int32Array(cells.length),
       siege: new Float32Array(cells.length),

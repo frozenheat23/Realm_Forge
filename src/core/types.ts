@@ -430,3 +430,6 @@ export interface WorldState {
   /** Names of cells that have grown into cities (kept if the city shrinks, so it keeps its name if it regrows). */
   cityNames: Map<CellId, string>;
 }
+
+/** How history opens (docs/systems/start.md): small nations in an empty world, or old kingdoms sharing all of it. */
+export type StartOptions = { kind: "open" } | { kind: "settled"; kingdoms: number };

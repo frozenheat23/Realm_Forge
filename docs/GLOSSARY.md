@@ -143,3 +143,6 @@ New concepts as we meet them, with where they show up in our code.
 | **CSS grid / media query** | Laying a page out in columns, and switching layout by screen width (`@media (min-width: 1200px)`). | side panel in `index.html` |
 | **Sticky position** | An element that scrolls with the page until it reaches the top, then stays in view. | `#panel` in `index.html` |
 | **SVG polyline** | A line through a list of points, drawn by the browser from a few numbers: the war report's score line. | `sparkline()` in `src/ui/warRoom.ts` |
+| **Round-robin region growing** | Several regions grow from their seeds in turns, one cell each per round, each taking its cheapest next cell. Fair shares, but terrain still shapes the borders. | `growKingdoms()` in `src/gen/kingdoms.ts` |
+| **Farthest-first selection** | Picking each new point as far as possible from the ones already picked, so they spread evenly. | `kingdomHomes()` in `src/gen/kingdoms.ts` |
+| **Discriminated union** | A type that is one of several shapes, told apart by a field like `kind`. TypeScript then knows `kingdoms` exists only when `kind` is `"settled"`. | `StartOptions` in `src/core/types.ts` |

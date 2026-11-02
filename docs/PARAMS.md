@@ -115,6 +115,13 @@ Base capacity is relative (1.0 = grassland). Move cost affects expansion and con
 | `START_HOME_RANGE` | 4 | 0–8 | Steps a capital can shift at year 0 toward land its race likes | Races sit deep in their homelands | Capitals stay where they were placed (0) |
 | `START_POP_FRACTION` | 0.3 | 0.1–0.8 | Starting pop as share of capacity | Strong from day one | Slow early growth |
 | `START_STABILITY` | 0.8 | 0.3–1.0 | Stability every starting nation begins with | Long early calm | Early rebellions |
+| `START_KINGDOMS` | 10 | 5–10 | Old kingdoms at year 0 in a settled start (picked in the toolbar; `MIN_KINGDOMS`–`MAX_KINGDOMS`) | Smaller realms, more of them | A few vast empires |
+| `SETTLED_POP_FRACTION` | 0.9 | 0.5–1.0 | Settled start: people as share of capacity | Strong old realms from day one | Room to grow |
+| `OLD_REALM_YEARS` | 200 | 0–500 | How long old kingdoms have held their land at year 0 (core land) | All of it core from the start | Land feels freshly conquered |
+| `KINGDOM_SPACING` | 14 | 6–25 | Min cell-steps between old kingdoms' capitals | Even shares | Capitals crowd, some kingdoms boxed in |
+| `KINGDOM_MIN_LAND` | 100 | 0–500 | Smallest body of land an old kingdom's capital may stand on | No island kingdoms | Kingdoms on small islands |
+| `KINGDOM_ROOM` | 6 | 0–12 | Steps a capital may move toward open country | Fewer peninsula kingdoms | Capitals stay at their homelands |
+| `SETTLED_DEV` | 0.85 | 0.3–1.0 | Settled start: development × control at year 0 | More towns and cities | Thinly settled old realms |
 | `NATION_SATURATION` | 0.7 | 0.3–0.9 | How vivid nation colors are | Bold, game-like colors | Muted, pastel colors |
 | `NATION_LIGHTNESS` | 0.52 | 0.35–0.7 | How light nation colors are | Pastel | Dark, heavy |
 

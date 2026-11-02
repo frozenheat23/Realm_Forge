@@ -236,6 +236,9 @@ Place `START_NATIONS` capitals on the highest-capacity land cells, at least `STA
 
 Each starting nation's race is the race of the nearest race homeland (§4.10); its core cells are settled by that race. If a race ends up with no starting nation, the capital nearest to that race's homeland switches to it, so every race is on the map at year 0.
 
+### 3.8b Settled start: old kingdoms
+The default start since M16b: 5–10 old kingdoms share all the habitable land at year 0, with subject peoples, core land, towns and cities. Picked in the toolbar or with `?start=5`…`10`; `?start=open` gives §3.8. See [`systems/start.md`](systems/start.md).
+
 ### 3.9 Names
 A Markov-chain name generator (order `NAME_ORDER`) trained on invented example names, one list per culture (`gen/nameCorpus.ts`). Each culture gets a random home point on the map; a nation uses the culture of the nearest home point, so nearby nations sound related. Names never repeat and never copy an example.
 

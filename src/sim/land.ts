@@ -13,7 +13,7 @@ import { greatBonus } from "./rulers";
 import { effectiveCapacity, grainBonuses } from "./resources";
 
 /** Development needed for each settlement level. */
-function threshold(level: number): number {
+export function threshold(level: number): number {
   if (level === Settlement.Village) return SIM.SETTLE_VILLAGE;
   if (level === Settlement.Town) return SIM.SETTLE_TOWN;
   if (level === Settlement.City) return SIM.SETTLE_CITY;
@@ -21,7 +21,7 @@ function threshold(level: number): number {
 }
 
 /** Marks every cell closer to `city` than CITY_MIN_SPACING (over land or water). */
-function markCityArea(state: WorldState, city: CellId, nearCity: Uint8Array): void {
+export function markCityArea(state: WorldState, city: CellId, nearCity: Uint8Array): void {
   const seen = new Set<CellId>([city]);
   let ring = [city];
   for (let step = 1; step < SIM.CITY_MIN_SPACING; step++) {

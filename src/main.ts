@@ -6,7 +6,7 @@ import "@fontsource/im-fell-english/400-italic.css";
 import "@fontsource/im-fell-english-sc/400.css";
 import { createRng } from "./core/rng";
 import type { NationId, WorldState } from "./core/types";
-import { generateWorld } from "./gen";
+
 import { drawAlliances } from "./render/alliances";
 import { drawArmies } from "./render/armies";
 import { drawChartFrame, drawSailingLines, drawTitlePanel, planChart } from "./render/atlasChart";
@@ -27,6 +27,7 @@ import { renderCelTerrain } from "./render/terrainCel";
 import { renderPaintedTerrain } from "./render/terrainPainted";
 import { drawWarFocus } from "./render/warFocus";
 import { fromSnapshot, type Snapshot } from "./sim/snapshot";
+import { createWorld, startFromText, startToText } from "./sim/start";
 import { tick } from "./sim/tick";
 import { FOLLOW_SPEED, HIGHLIGHT_SECONDS, SIM_YEARS } from "./ui/config";
 import { createControls, makeButton } from "./ui/controls";
@@ -56,6 +57,8 @@ const seed = query.get("seed") ?? "realm-forge";
 const styleParam = query.get("style");
 const style = styleParam === "painted" || styleParam === "cel" ? styleParam : "atlas";
 const look = style === "atlas" ? LOOK_ATLAS : LOOK_STANDARD;
+// ?start=open for the old empty-land start, ?start=5 to 10 for that many old kingdoms (docs/systems/start.md).
+const start = startFromText(query.get("start"));
 
 // A save file picked with "Load" waits in sessionStorage while the page reloads with its seed.
 const LOAD_KEY = "realm-forge-load";
@@ -69,7 +72,7 @@ function takePendingLoad(): Snapshot | null {
   }
 }
 
-const generated = generateWorld(seed);
+const generated = createWorld(seed, start);
 const world = generated.world;
 let state: WorldState = generated.state;
 const pending = takePendingLoad();
@@ -279,9 +282,10 @@ function frame(now: number): void {
 }
 
 // --- Toolbar: world, save/load, video ---
-function goTo(newSeed: string, newStyle: string = style): void {
+function goTo(newSeed: string, newStyle: string = style, newStart: string = startToText(start)): void {
   const params = new URLSearchParams({ seed: newSeed });
   if (newStyle !== "atlas") params.set("style", newStyle);
+  params.set("start", newStart);
   location.search = params.toString();
 }
 
@@ -303,8 +307,21 @@ const recordButton = makeButton("Record", "Record the map as a WebM video", () =
   recordButton.classList.toggle("recording", recorder.recording);
 });
 
+// How history opens: old kingdoms (5 to 10) sharing the land, or small nations in empty land.
+const startPicker = document.createElement("select");
+startPicker.title = "How history opens (restarts this world from year 0)";
+for (const value of ["5", "6", "7", "8", "9", "10", "open"]) {
+  const option = document.createElement("option");
+  option.value = value;
+  option.textContent = value === "open" ? "Open land" : `${value} kingdoms`;
+  startPicker.append(option);
+}
+startPicker.value = startToText(start);
+startPicker.addEventListener("change", () => goTo(seed, style, startPicker.value));
+
 bar.append(
   spacer,
+  startPicker,
   seedBox,
   makeButton("New world", "Generate the world for the seed in the box", () => goTo(seedBox.value.trim() || seed)),
   makeButton("Random", "Generate a world from a new random seed", () => goTo(`world-${Date.now().toString(36)}`)),

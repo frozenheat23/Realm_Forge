@@ -126,6 +126,24 @@ export const START_HOME_RANGE = 4;
 export const START_POP_FRACTION = 0.3;
 /** Stability every starting nation begins with (0..1). */
 export const START_STABILITY = 0.8;
+
+// --- Settled start: old kingdoms (docs/systems/start.md) ---
+/** Kingdoms sharing the land at year 0 in a settled start (5 = one per race, 10 = one per homeland). */
+export const START_KINGDOMS = 10;
+export const MIN_KINGDOMS = 5;
+export const MAX_KINGDOMS = 10;
+/** People in each cell of an old kingdom, as a share of what it can hold. */
+export const SETTLED_POP_FRACTION = 0.9;
+/** How long the old kingdoms have held their land at year 0 (well past CORE_YEARS, so it is all core). */
+export const OLD_REALM_YEARS = 200;
+/** Fewest cell-steps between two kingdoms' capitals, so none is squeezed in beside another. */
+export const KINGDOM_SPACING = 14;
+/** A capital only stands on a body of habitable land at least this big, so no kingdom starts on a speck of an island. */
+export const KINGDOM_MIN_LAND = 100;
+/** A capital moves up to this many steps toward open country (the most land within this many steps), so none starts at the tip of a peninsula. */
+export const KINGDOM_ROOM = 6;
+/** Development of a fully controlled cell at year 0; it falls off with control toward the edges. */
+export const SETTLED_DEV = 0.85;
 /** Nation colors: hue is spread around the color wheel; these fix how vivid and bright they are. */
 export const NATION_SATURATION = 0.7;
 export const NATION_LIGHTNESS = 0.52;
