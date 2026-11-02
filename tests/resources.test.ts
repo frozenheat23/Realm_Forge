@@ -11,6 +11,7 @@ import { updateTotals } from "../src/sim/totals";
 import { campaign } from "../src/sim/armies";
 import { declareWars, endWars } from "../src/sim/war";
 import { makeNation, makeState, row } from "./tinyWorld";
+import { everyoneAI } from "../src/sim/ai/default";
 
 describe("generation", () => {
   const { world } = generateWorld("resources");
@@ -87,10 +88,10 @@ describe("value and war", () => {
     const war: War = { id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: SIM.PEACE_SCORE, goal: "conquer" as const, goalCells: [] };
     state.wars.push(war);
     state.armies.push({ id: 1, owner: 1, war: 1, cell: 0, size: 5, morale: 1, target: -1, path: [], trail: [0] });
-    campaign(state, createRng("v"));
+    campaign(state, createRng("v"), everyoneAI);
     expect(state.state.occupier[2]).toBe(1);
     state.state.occupier[1] = 0; // keep the capital out of it: that would win the whole nation
-    expect(endWars(state)[0]!.text).toContain("iron");
+    expect(endWars(state, everyoneAI)[0]!.text).toContain("iron");
   });
 
   it("the log says when a race goes to war over a resource it prizes", () => {
@@ -100,7 +101,7 @@ describe("value and war", () => {
         makeNation(1, 0, { reserve: 100, race: Race.Dwarf }),
         makeNation(2, 3, { reserve: 1 }),
       ]);
-      const events = declareWars(state, createRng(`r${trial}`));
+      const events = declareWars(state, createRng(`r${trial}`), everyoneAI);
       if (events.length === 0) continue;
       expect(events[0]!.text).toContain("coveting its iron");
       return;

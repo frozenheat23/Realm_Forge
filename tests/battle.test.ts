@@ -7,6 +7,7 @@ import { pairKey } from "../src/sim/helpers";
 import { SIM } from "../src/sim/params";
 import { besiege, liberate, releaseOccupations, siegeSteps } from "../src/sim/siege";
 import { makeNation, makeState, row } from "./tinyWorld";
+import { everyoneAI } from "../src/sim/ai/default";
 
 // Nation 1 owns 0–9, nation 2 owns 10–19, in a row, at war.
 function atWar() {
@@ -145,7 +146,7 @@ describe("a campaign", () => {
   it("a lone army takes land year after year", () => {
     const state = atWar();
     state.armies.push(army(1, 1, 9, 5));
-    for (let y = 0; y < 3; y++) campaign(state, createRng(`y${y}`));
+    for (let y = 0; y < 3; y++) campaign(state, createRng(`y${y}`), everyoneAI);
     expect(state.state.occupier.filter((id) => id === 1).length).toBeGreaterThan(3);
   });
 
@@ -153,7 +154,7 @@ describe("a campaign", () => {
     const state = atWar();
     state.state.settlement[2] = 1;
     state.armies.push(army(1, 1, 8, 0.2), army(2, 2, 12, 5));
-    campaign(state, createRng("flee"));
+    campaign(state, createRng("flee"), everyoneAI);
     expect(state.armies.find((a) => a.owner === 1)?.target ?? 2).toBeLessThan(10);
   });
 
@@ -161,14 +162,14 @@ describe("a campaign", () => {
     const state = atWar();
     state.state.settlement.fill(Settlement.City); // cities hold out, so the land stays hostile for a while
     state.armies.push(army(1, 1, 15, 5));
-    campaign(state, createRng("hungry"));
+    campaign(state, createRng("hungry"), everyoneAI);
     expect(state.armies[0]!.size).toBeLessThan(5);
   });
 
   it("morale recovers at home", () => {
     const state = atWar();
     state.armies.push(army(1, 1, 5, 1, 0.5));
-    campaign(state, createRng("rest"));
+    campaign(state, createRng("rest"), everyoneAI);
     expect(state.armies[0]!.morale).toBeGreaterThan(0.5);
   });
 });

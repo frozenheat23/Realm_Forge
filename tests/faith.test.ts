@@ -10,6 +10,7 @@ import { SIM } from "../src/sim/params";
 import { updateStability } from "../src/sim/stability";
 import { claimYears } from "../src/sim/warGoals";
 import { makeNation, makeState, row } from "./tinyWorld";
+import { everyoneAI } from "../src/sim/ai/default";
 
 /** Run spreading for `years` and return the state. */
 function run(state: ReturnType<typeof makeState>, years: number) {
@@ -112,7 +113,7 @@ describe("a realm changes faith", () => {
   it("when most of its people follow another", () => {
     const state = drifted(Faith.BoneDrums);
     const restore = always();
-    const events = convertRealms(state, createRng("c"));
+    const events = convertRealms(state, createRng("c"), everyoneAI);
     restore();
     expect(state.nations.get(1)!.faith).toBe(Faith.BoneDrums);
     expect(state.state.faith[0]).toBe(Faith.BoneDrums); // the capital goes with it
@@ -122,7 +123,7 @@ describe("a realm changes faith", () => {
   it("says it turned to the Old Gods", () => {
     const state = drifted(Faith.OldGods);
     const restore = always();
-    const events = convertRealms(state, createRng("c"));
+    const events = convertRealms(state, createRng("c"), everyoneAI);
     restore();
     expect(events[0]!.text).toContain("Kethar turns to the Old Gods");
   });
@@ -130,7 +131,7 @@ describe("a realm changes faith", () => {
   it("not while its faith still holds half the people", () => {
     const state = drifted(Faith.BoneDrums, [4, 1, 1]);
     const restore = always();
-    convertRealms(state, createRng("c"));
+    convertRealms(state, createRng("c"), everyoneAI);
     restore();
     expect(state.nations.get(1)!.faith).toBe(Faith.RadiantCovenant);
   });

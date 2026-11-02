@@ -4,6 +4,7 @@ import { SIM } from "../src/sim/params";
 import { declareWars, endWars, frontCells, neighborPairs } from "../src/sim/war";
 import { releaseOccupations } from "../src/sim/siege";
 import { makeNation, makeState, row } from "./tinyWorld";
+import { everyoneAI } from "../src/sim/ai/default";
 
 // Two nations side by side on a row of 10 cells: nation 1 owns 0–4, nation 2 owns 5–9.
 //   [1][1][1][1][1] | [2][2][2][2][2]
@@ -31,7 +32,7 @@ describe("declareWars", () => {
     let wars = 0;
     for (let trial = 0; trial < 500; trial++) {
       const state = twoNations(100, 1);
-      const events = declareWars(state, createRng(`d${trial}`));
+      const events = declareWars(state, createRng(`d${trial}`), everyoneAI);
       if (events.length > 0) {
         wars++;
         expect(state.wars[0]!.attacker).toBe(1);
@@ -41,7 +42,7 @@ describe("declareWars", () => {
 
     const truce = twoNations(100, 1);
     truce.truces.push({ a: 1, b: 2, until: 50 });
-    for (let trial = 0; trial < 200; trial++) declareWars(truce, createRng(`t${trial}`));
+    for (let trial = 0; trial < 200; trial++) declareWars(truce, createRng(`t${trial}`), everyoneAI);
     expect(truce.wars).toHaveLength(0);
   });
 });
@@ -51,7 +52,7 @@ describe("endWars", () => {
     const state = twoNations();
     state.year = 5;
     state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: SIM.PEACE_SCORE, goal: "conquer" as const, goalCells: [] });
-    const events = endWars(state);
+    const events = endWars(state, everyoneAI);
     expect(state.wars).toHaveLength(0);
     expect(events[0]!.type).toBe("peace");
     expect(state.truces[0]!.until).toBe(5 + SIM.TRUCE_YEARS);
@@ -61,7 +62,7 @@ describe("endWars", () => {
     const state = twoNations();
     state.year = SIM.MAX_WAR_YEARS + 1;
     state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [] });
-    endWars(state);
+    endWars(state, everyoneAI);
     expect(state.wars).toHaveLength(0);
   });
 
@@ -69,7 +70,7 @@ describe("endWars", () => {
     const state = twoNations();
     state.nations.get(2)!.alive = false;
     state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [] });
-    endWars(state);
+    endWars(state, everyoneAI);
     expect(state.wars).toHaveLength(0);
   });
 
@@ -79,7 +80,7 @@ describe("endWars", () => {
     state.state.occupier[6] = 1;
     state.state.occupier[3] = 2; // the loser's foothold
     state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: SIM.PEACE_SCORE, goal: "conquer" as const, goalCells: [] });
-    const events = endWars(state);
+    const events = endWars(state, everyoneAI);
     expect(state.state.owner[5]).toBe(1);
     expect(state.state.owner[6]).toBe(1);
     expect(state.state.unrest[5]).toBeCloseTo(SIM.UNREST_CONQUEST);
@@ -95,7 +96,7 @@ describe("endWars", () => {
     state.year = SIM.MAX_WAR_YEARS + 1;
     state.state.occupier[5] = 1; // worth too little for a clear win
     state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [] });
-    endWars(state);
+    endWars(state, everyoneAI);
     releaseOccupations(state);
     expect(state.state.owner[5]).toBe(2);
     expect(state.state.occupier[5]).toBe(0);
@@ -105,7 +106,7 @@ describe("endWars", () => {
     const state = twoNations();
     state.state.occupier[9] = 1; // nation 2's capital
     state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 2, goal: "conquer" as const, goalCells: [] });
-    endWars(state);
+    endWars(state, everyoneAI);
     expect(state.wars[0]!.score).toBe(2 + SIM.SCORE_PER_OCCUPIED + SIM.CAPITAL_SCORE);
   });
 });

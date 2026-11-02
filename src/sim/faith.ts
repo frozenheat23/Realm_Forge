@@ -3,6 +3,8 @@ import type { Rng } from "../core/rng";
 import { Faith, RulerType, type CellId, type FaithId, type Nation, type NationId, type SimEvent, type WorldState } from "../core/types";
 import { faithInfo } from "../gen/faiths";
 import { traits } from "../gen/races";
+import { carryOut, done, refuse, type Controllers } from "./ai/controller";
+import type { CommandOf, CommandResult } from "./commands";
 import { conversionEvent, oldGodsEvent } from "./events";
 import { livingNations } from "./helpers";
 import { SIM } from "./params";
@@ -56,7 +58,19 @@ export function spreadFaith(state: WorldState, rng: Rng): SimEvent[] {
 }
 
 /** A nation whose people have mostly left its faith may follow them (SPEC §4.14). */
-export function convertRealms(state: WorldState, rng: Rng): SimEvent[] {
+/** The "adoptFaith" command: the realm takes up `faith`, and its throne first. */
+export function applyAdoptFaith(state: WorldState, cmd: CommandOf<"adoptFaith">): CommandResult {
+  const nation = state.nations.get(cmd.nation);
+  if (!nation?.alive) return refuse("there's no such nation");
+  if (!(cmd.faith > Faith.None && cmd.faith < FAITH_COUNT)) return refuse("there's no such faith");
+  if (cmd.faith === nation.faith) return refuse("it already holds that faith");
+  nation.faith = cmd.faith;
+  state.state.faith[nation.capital] = cmd.faith; // the throne goes first; capitals don't change on their own
+  return done([conversionEvent(state.year, nation)]);
+}
+
+/** A realm where another faith holds the majority is asked whether to adopt it. */
+export function convertRealms(state: WorldState, rng: Rng, controllers: Controllers): SimEvent[] {
   const events: SimEvent[] = [];
   const { owner, faith, pop } = state.state;
   // People per faith in each nation.
@@ -73,10 +87,12 @@ export function convertRealms(state: WorldState, rng: Rng): SimEvent[] {
     // The biggest faith, if it isn't already the realm's.
     let rival: number = nation.faith;
     for (let f = 1; f < FAITH_COUNT; f++) if (tally[f]! > tally[rival]!) rival = f;
-    if (rival === nation.faith || tally[rival]! < total * SIM.FAITH_MAJORITY || !rng.chance(SIM.FAITH_ADOPT)) continue;
-    nation.faith = rival as FaithId;
-    faith[nation.capital] = rival; // the throne goes first; capitals don't change on their own
-    events.push(conversionEvent(state.year, nation));
+    if (rival === nation.faith || tally[rival]! < total * SIM.FAITH_MAJORITY) continue;
+    const controller = controllers(id);
+    if (!controller.adoptFaith(state, nation, rival as FaithId, rng)) continue;
+    const cmd: CommandOf<"adoptFaith"> = { kind: "adoptFaith", nation: id, faith: rival as FaithId };
+    const result = applyAdoptFaith(state, cmd);
+    if (carryOut(controller, cmd, result)) events.push(...result.events);
   }
   return events;
 }

@@ -8,6 +8,7 @@ import { SIM } from "../src/sim/params";
 import { fromSnapshot, toSnapshot } from "../src/sim/snapshot";
 import { tick } from "../src/sim/tick";
 import { makeNation, makeState, row } from "./tinyWorld";
+import { everyoneAI } from "../src/sim/ai/default";
 
 const war = (id = 1) => ({ id, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [] });
 
@@ -29,19 +30,19 @@ function army(extra: Partial<Army> = {}): Army {
 describe("raising armies", () => {
   it("each side raises one army per war, out of its reserve", () => {
     const state = atWar();
-    musterArmies(state);
+    musterArmies(state, everyoneAI);
     expect(state.armies.map((a) => a.owner)).toEqual([1, 2]);
     // Raised soldiers still count: they've only moved from the reserve to the army.
     expect(soldiers(state, state.nations.get(1)!)).toBeCloseTo(10);
     expect(state.armies[0]!.size).toBeGreaterThan(state.nations.get(1)!.reserve);
-    musterArmies(state);
+    musterArmies(state, everyoneAI);
     expect(state.armies).toHaveLength(2); // no second army for the same war
   });
 
   it("splits the reserve between two new wars", () => {
     const state = atWar();
     state.wars.push({ ...war(2), attacker: 2, defender: 1 });
-    musterArmies(state);
+    musterArmies(state, everyoneAI);
     const mine = state.armies.filter((a) => a.owner === 1);
     expect(mine).toHaveLength(2);
     expect(mine[0]!.size).toBeCloseTo(mine[1]!.size);
@@ -51,14 +52,14 @@ describe("raising armies", () => {
   it("doesn't raise an army too small to matter", () => {
     const state = atWar();
     state.nations.get(1)!.reserve = SIM.MIN_ARMY_SIZE / 2;
-    musterArmies(state);
+    musterArmies(state, everyoneAI);
     expect(state.armies.filter((a) => a.owner === 1)).toHaveLength(0);
   });
 
   it("only armies in supply get fresh soldiers", () => {
     const state = atWar();
     state.armies.push(army({ cell: 2, size: 1 }), army({ id: 2, war: 1, owner: 2, cell: 2, size: 1 }));
-    musterArmies(state);
+    musterArmies(state, everyoneAI);
     expect(state.armies[0]!.size).toBeGreaterThan(1); // nation 1, at home
     expect(state.armies[1]!.size).toBe(1); // nation 2, deep in enemy land
   });
@@ -77,7 +78,7 @@ describe("marching", () => {
   it("heads for the enemy and walks at most ARMY_MOVE per season", () => {
     const state = atWar();
     state.armies.push(army({ cell: 0 }));
-    campaign(state, createRng("march"));
+    campaign(state, createRng("march"), everyoneAI);
     const a = state.armies[0]!;
     expect(a.target).toBeGreaterThanOrEqual(10);
     expect(a.cell).toBe(Math.min(SIM.ARMY_MOVE * SIM.CAMPAIGN_STEPS, a.target));
@@ -91,7 +92,7 @@ describe("marching", () => {
     const state = makeState(spec, owners, [makeNation(1, 0), makeNation(2, 19)]);
     state.wars.push(war());
     state.armies.push(army({ cell: 0 }));
-    campaign(state, createRng("march"));
+    campaign(state, createRng("march"), everyoneAI);
     const walked = state.armies[0]!.cell;
     expect(walked).toBeLessThan(SIM.ARMY_MOVE * SIM.CAMPAIGN_STEPS);
     expect(walked).toBeGreaterThanOrEqual(SIM.CAMPAIGN_STEPS);
@@ -121,7 +122,7 @@ describe("marching", () => {
     const state = atWar();
     state.armies.push(army({ cell: 12, target: 12 }));
     state.state.owner[12] = 1;
-    campaign(state, createRng("march"));
+    campaign(state, createRng("march"), everyoneAI);
     expect(state.armies[0]!.target).not.toBe(12);
   });
 });
@@ -129,7 +130,7 @@ describe("marching", () => {
 describe("disbanding", () => {
   it("soldiers go home when the war ends", () => {
     const state = atWar();
-    musterArmies(state);
+    musterArmies(state, everyoneAI);
     state.wars = [];
     disbandArmies(state);
     expect(state.armies).toHaveLength(0);
@@ -138,7 +139,7 @@ describe("disbanding", () => {
 
   it("a dead nation's army melts away", () => {
     const state = atWar();
-    musterArmies(state);
+    musterArmies(state, everyoneAI);
     state.nations.get(1)!.alive = false;
     disbandArmies(state);
     expect(state.armies.map((a) => a.owner)).toEqual([2]);

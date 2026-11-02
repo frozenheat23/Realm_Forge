@@ -12,6 +12,7 @@ import { adminCap } from "../src/sim/stability";
 import { crisisChance, succession } from "../src/sim/succession";
 import { spreadFaith } from "../src/sim/faith";
 import { makeCells, makeNation, makeState, row } from "./tinyWorld";
+import { everyoneAI } from "../src/sim/ai/default";
 
 describe("making a ruler", () => {
   it("reigns about as long as the race's trait says", () => {
@@ -60,14 +61,14 @@ describe("the throne passing on", () => {
     const { state, nation } = dyingWorld();
     state.year = 4;
     const ruler = nation.ruler;
-    succession(state, createRng("wait"));
+    succession(state, createRng("wait"), everyoneAI);
     expect(nation.ruler).toBe(ruler);
   });
 
   it("crowns the heir of the same dynasty", () => {
     const { state, nation } = dyingWorld();
     SIM.HEIR_CHANCE = 1;
-    succession(state, createRng("heir"));
+    succession(state, createRng("heir"), everyoneAI);
     SIM.HEIR_CHANCE = SIM_DEFAULTS.HEIR_CHANCE;
     expect(nation.ruler.dynasty).toBe("House Test");
     expect(nation.ruler.crowned).toBe(5);
@@ -77,7 +78,7 @@ describe("the throne passing on", () => {
   it("gives a new dynasty the throne when there's no heir", () => {
     const { state, nation } = dyingWorld();
     SIM.HEIR_CHANCE = 0;
-    succession(state, createRng("no heir"));
+    succession(state, createRng("no heir"), everyoneAI);
     SIM.HEIR_CHANCE = SIM_DEFAULTS.HEIR_CHANCE;
     expect(nation.ruler.dynasty).not.toBe("House Test");
   });
@@ -115,7 +116,7 @@ describe("a succession crisis", () => {
   it("shakes a small realm without breaking it", () => {
     const { state, nation } = dyingRealm(10);
     withParams({ CRISIS_BASE: 10, CIVIL_WAR_MIN_AREA: 40 }, () => {
-      const events = succession(state, createRng("small crisis"));
+      const events = succession(state, createRng("small crisis"), everyoneAI);
       expect(events.map((e) => e.text).join()).toContain("succession crisis");
     });
     expect(nation.stability).toBeCloseTo(0.9 - SIM.CRISIS_STAB_HIT);
@@ -125,7 +126,7 @@ describe("a succession crisis", () => {
   it("splits a large realm between pretenders, and the capital stays", () => {
     const { state } = dyingRealm(60);
     withParams({ CRISIS_BASE: 10, CIVIL_WAR_MIN_AREA: 40, CIVIL_WAR_CELLS_PER_SPLIT: 20, CIVIL_WAR_MAX_SPLITS: 2, CIVIL_WAR_SHARE: 0.25, REBEL_WAR_PROB: 0 }, () => {
-      const events = succession(state, createRng("civil war"));
+      const events = succession(state, createRng("civil war"), everyoneAI);
       expect(events[0]!.text).toContain("civil war");
     });
     expect(state.nations.size).toBeGreaterThan(1);
@@ -206,7 +207,7 @@ describe("great rulers", () => {
     const state = makeState(makeCells(spec), [1, 2, 2, 3], [schemer, friend, enemy]);
     state.relations.set(100002, 0.5);
     state.relations.set(100003, -0.9);
-    succession(state, createRng("scheme"));
+    succession(state, createRng("scheme"), everyoneAI);
     expect(enemy.stability).toBeCloseTo(0.8 - SIM.GREAT_SCHEMER_STAB);
     expect(friend.stability).toBeCloseTo(0.8);
   });
@@ -217,7 +218,7 @@ describe("great rulers", () => {
     state.year = 5;
     SIM.CRISIS_BASE = 0;
     SIM.GREAT_RULER_CHANCE = 1;
-    const texts = succession(state, createRng("great")).map((e) => e.text).join();
+    const texts = succession(state, createRng("great"), everyoneAI).map((e) => e.text).join();
     Object.assign(SIM, SIM_DEFAULTS);
     expect(texts).toContain("dies after 5 years");
     expect(texts).toContain("rises in Nation1");

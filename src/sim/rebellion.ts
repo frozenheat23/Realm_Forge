@@ -3,6 +3,8 @@ import type { Rng } from "../core/rng";
 import type { CellId, FaithId, Nation, RaceId, SimEvent, WorldState } from "../core/types";
 import { traits } from "../gen/races";
 import { raiseArmy } from "./armies";
+import { carryOut, done, refuse, type Controllers } from "./ai/controller";
+import type { CommandOf, CommandResult } from "./commands";
 import { commonFaith } from "./faith";
 import { rebellionEvent, rebornEvent, warEvent } from "./events";
 import { cellsByNation, hopsFromCapital, livingNations, pairKey, setOwner, weightedPick } from "./helpers";
@@ -98,14 +100,14 @@ export function rebel(state: WorldState, nation: Nation, cells: CellId[], rng: R
   return rebelNation;
 }
 
-/**
- * Part of the old nation's soldiers go over to the rebels. The old nation may fight at
- * once to take the land back, and then the rebels stand up an army of their own.
- * Returns the war event, if it comes to that.
- */
-function takeUpArms(state: WorldState, nation: Nation, rebels: Nation, rng: Rng): SimEvent | null {
-  nation.reserve *= 1 - SIM.REBEL_LEVY;
-  if (warsOf(state, nation.id) >= SIM.MAX_WARS_PER_NATION || !rng.chance(SIM.REBEL_WAR_PROB)) return null;
+/** The "crushRevolt" command: the old nation goes to war to take back land that broke away, and the rebels stand up an army of their own. */
+export function applyCrushRevolt(state: WorldState, cmd: CommandOf<"crushRevolt">): CommandResult {
+  const nation = state.nations.get(cmd.nation);
+  const rebels = state.nations.get(cmd.rebels);
+  if (!nation?.alive || !rebels?.alive) return refuse("there's no such pair of nations");
+  if (rebels.parent !== nation.id) return refuse("they didn't break away from it");
+  if (state.wars.some((w) => pairKey(w.attacker, w.defender) === pairKey(nation.id, rebels.id))) return refuse("they're already at war");
+  if (warsOf(state, nation.id) >= SIM.MAX_WARS_PER_NATION) return refuse("it has too many wars");
 
   const region = claimedCells(state, nation, rebels);
   const war = startWar(state, nation, rebels, "reclaim", region);
@@ -113,19 +115,33 @@ function takeUpArms(state: WorldState, nation: Nation, rebels: Nation, rng: Rng)
   const levy = region.reduce((sum, c) => sum + pop[c]! * traits(race[c]!).martial, 0) * SIM.REBEL_LEVY;
   rebels.reserve += levy;
   raiseArmy(state, rebels, war, nation, levy);
-  return warEvent(state.year, nation, rebels, " to crush the rebellion");
+  return done([warEvent(state.year, nation, rebels, " to crush the rebellion")], war);
+}
+
+/**
+ * Part of the old nation's soldiers go over to the rebels. The old nation may fight at
+ * once to take the land back (its controller decides). Returns the war event, if it comes to that.
+ */
+function takeUpArms(state: WorldState, nation: Nation, rebels: Nation, rng: Rng, controllers: Controllers): SimEvent | null {
+  nation.reserve *= 1 - SIM.REBEL_LEVY;
+  if (warsOf(state, nation.id) >= SIM.MAX_WARS_PER_NATION) return null;
+  const controller = controllers(nation.id);
+  if (!controller.crushRevolt(state, nation, rebels, rng)) return null;
+  const cmd: CommandOf<"crushRevolt"> = { kind: "crushRevolt", nation: nation.id, rebels: rebels.id };
+  const result = applyCrushRevolt(state, cmd);
+  return carryOut(controller, cmd, result) ? result.events[0]! : null;
 }
 
 /**
  * One region of `nation` rises and takes up arms, if it can. Returns what happened,
  * or null if no region could break away. `rng` should be new to this uprising.
  */
-export function uprising(state: WorldState, nation: Nation, cells: CellId[], rng: Rng, maxCells = SIM.REBEL_MAX_CELLS): SimEvent[] | null {
+export function uprising(state: WorldState, nation: Nation, cells: CellId[], rng: Rng, controllers: Controllers, maxCells = SIM.REBEL_MAX_CELLS): SimEvent[] | null {
   const rebelNation = rebel(state, nation, cells, rng.fork("revolt"), maxCells);
   if (!rebelNation) return null;
   const yearsGone = yearsSinceFall(state, rebelNation);
   const rose = yearsGone === null ? rebellionEvent(state.year, rebelNation, nation) : rebornEvent(state.year, rebelNation, nation, yearsGone);
-  const war = takeUpArms(state, nation, rebelNation, rng.fork("arms"));
+  const war = takeUpArms(state, nation, rebelNation, rng.fork("arms"), controllers);
   return war ? [rose, war] : [rose];
 }
 
@@ -135,7 +151,7 @@ function revoltChance(state: WorldState, nation: Nation, cells: CellId[]): numbe
   return SIM.REBEL_PROB * nation.unrest * (restlessLand / SIM.REBEL_RESTLESS_CELLS);
 }
 
-export function rebellions(state: WorldState, rng: Rng): SimEvent[] {
+export function rebellions(state: WorldState, rng: Rng, controllers: Controllers): SimEvent[] {
   const events: SimEvent[] = [];
   const groups = cellsByNation(state);
   // Only nations that existed at the start of this step can rebel (not this year's rebels).
@@ -146,7 +162,7 @@ export function rebellions(state: WorldState, rng: Rng): SimEvent[] {
     let chance = revoltChance(state, nation, cells);
     // One revolt can set off the next: this is how a great empire falls in a few bad years.
     for (let revolt = 0; revolt < SIM.REBEL_MAX_SPREAD && nationRng.chance(chance); revolt++) {
-      const happened = uprising(state, nation, cells, nationRng.fork(`revolt-${revolt}`));
+      const happened = uprising(state, nation, cells, nationRng.fork(`revolt-${revolt}`), controllers);
       if (!happened) break;
       events.push(...happened);
       cells = cells.filter((c) => state.state.owner[c] === nation.id);
