@@ -706,6 +706,12 @@ Measured on 20 seeds never used for tuning, each 1,000 years, against the same s
 
 Every nation has a named ruler and dynasty. A few rulers are great (Conqueror, Lawgiver, Builder, Prophet, Schemer): each race leans toward one type, and bigger realms draw them more often. When a reign ends, a crisis can strike, and big nations fall into civil war, worst after a great ruler. One new tick step: 7b Succession. Golden ages are designed in the same file but not built.
 
+### 4.16 Controllers and commands (planned, M15)
+
+> Design only. The full description is in [`systems/controllers.md`](systems/controllers.md).
+
+Every choice a nation makes (declare war and its goal, join an ally, form or break an alliance, accept peace, mobilize, campaign orders, crush a revolt, adopt a faith) is asked of the nation's **controller** and comes back as a **command** that the rules validate and apply. The AI controller is today's logic, moved; a player controller can replace it for one nation later (M19). Battle rolls, revolts, spreading, succession and everything else stay rules. No new tick step.
+
 ---
 
 ## 5. Rendering (`render/`)

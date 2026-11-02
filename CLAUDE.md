@@ -46,7 +46,7 @@ I'm new to coding and learning TypeScript through this project. Every session is
 - Show it as a good-looking map with play / pause / speed controls, a year counter and an event log.
 - Same seed + same settings = same history (in the same browser).
 
-**Not now:** player control, economy, trade, multiplayer, servers or accounts. (Ideas are parked in SPEC.md §8 and PARAMS.md "Candidate parameters".)
+**Not now:** player control (planned for M19; M15–M18 prepare for it), economy, trade, multiplayer, servers or accounts. (Ideas are parked in SPEC.md §8 and PARAMS.md "Candidate parameters".)
 
 ---
 
@@ -100,6 +100,11 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | M12 ✅ | Culture and faith | Cells hold a culture (inside a race) and a faith (across races); both spread by neighbor rule; conquered people assimilate; rebels are one culture and dead realms return; nine faiths with reach, fervor and a blessing; realms can convert; Cultures and Faiths layers; checks in SPEC §4.14 pass on unseen seeds | §2, §4.14, §5.4i, §6 |
 | M13 ✅ | Rulers and dynasties | Every nation has a named ruler and dynasty; five types of great ruler, with each race leaning toward one; titles with female variants; succession crises and civil wars, worst after a great ruler; crowns on the map; checks in `docs/systems/rulers.md` measured on unseen seeds | §4.15, `docs/systems/rulers.md` |
 | M14 ✅ | Parchment map | Default old-chart style: paper, ink outlines, terrain symbols, compass, frame and title panel; capitals, cities, resources, armies and effects drawn to match; history unchanged | §5.1b |
+| M15 | Controllers (planned) | Every nation choice goes through a controller and comes back as a command the rules apply; history identical through step 4; per-decision dice in step 5 with balance numbers within noise; tick ≤ 10% slower | §4.16, `docs/systems/controllers.md` |
+| M16 | War Room (planned) | Panel of current wars, follow a war, war report at peace, tidier battle log | `controllers.md` roadmap |
+| M17 | Sandbox (planned) | God-mode commands, command log in saves, replay a moment with different seeds to show odds | `controllers.md` roadmap |
+| M18 | Real war (planned) | Generals, stronger underdog defense, less certain wars, tuned with sandbox odds | `controllers.md` roadmap |
+| M19 | Play as a nation (planned) | Pick a race and nation, play 1,000 years with auto-pause and orders; when your realm falls you carry on as your people | `controllers.md` roadmap |
 | Later | Backlog | See SPEC.md §8 | §8 |
 
 ---
@@ -235,3 +240,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-11-01 | `MapLook` (`render/palette.ts`) carries a style's choices into the shared overlay, labels and settlements. Rivers and symbols sit on a layer above nation colors. Title panel replaces the year counter on this style. IM Fell fonts bundled through Fontsource (OFL), credited in the README. Sea names and a scale bar left out; seas have no names yet |
 | 2026-11-01 | Parchment is now the default (user's choice), which replaces the grand-strategy visual target above; `?style=cel` or the Classic map button gives the old look. Markers redrawn to match (`render/atlasMarkers.ts`): castles flying the realm's color on capitals, spires on cities, ink icons on resources, sepia-leaning armies and effects, ink alliance lines. Towns stay hidden, as in the Balanced mockup |
 | 2026-11-01 | "Easier to play" meant easier to open, not faster, so no Rust. Repo made public (user's choice, Gmail left visible in old commits) and the game hosted on GitHub Pages, published on every push to `main` once tests pass. Vite `base` is `./` so it works from `/Realm_Forge/` |
+| 2026-11-02 | Review after M14 (5 seeds × 1,000 years): ~35 wars a century, ~2 at a time, median 4 years, attacker wins 77%, 83% of log events are battles, 7% of wars end "taking 0 provinces". Good history generator, thin war simulator: wars are short, predictable and can't be followed or steered |
+| 2026-11-02 | Direction: focus on the simulator now, with playing one nation through 1,000 years later. Roadmap M15 Controllers → M16 War Room → M17 Sandbox → M18 Real war → M19 Play as a nation |
+| 2026-11-02 | Agreed principles for player-ready design (`docs/systems/controllers.md`): every nation choice goes through a controller; choices become commands (history = seed + non-AI commands); only rules change the world; strategic decisions only; same rules and information for player and AI; the player plays a people, not just a state (half of starting nations die by year 1000, but 71% still have their culture ruling somewhere) |
+| 2026-11-02 | M15 specced first, as a pure refactor: history identical through step 4 (checked against a golden fingerprint recorded before the refactor), then per-decision dice in step 5 so one nation's choice can't shift another's rolls |
