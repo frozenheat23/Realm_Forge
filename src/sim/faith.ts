@@ -89,7 +89,7 @@ export function convertRealms(state: WorldState, rng: Rng, controllers: Controll
     for (let f = 1; f < FAITH_COUNT; f++) if (tally[f]! > tally[rival]!) rival = f;
     if (rival === nation.faith || tally[rival]! < total * SIM.FAITH_MAJORITY) continue;
     const controller = controllers(id);
-    if (!controller.adoptFaith(state, nation, rival as FaithId, rng)) continue;
+    if (!controller.adoptFaith(state, nation, rival as FaithId, rng.fork(`faith-${id}`))) continue;
     const cmd: CommandOf<"adoptFaith"> = { kind: "adoptFaith", nation: id, faith: rival as FaithId };
     const result = applyAdoptFaith(state, cmd);
     if (carryOut(controller, cmd, result)) events.push(...result.events);

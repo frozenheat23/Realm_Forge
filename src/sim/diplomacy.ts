@@ -146,7 +146,7 @@ export function updateAlliances(state: WorldState, pairs: [NationId, NationId][]
     const na = state.nations.get(a)!;
     const nb = state.nations.get(b)!;
     const proposer = controllers(a);
-    if (!proposer.proposeAlliance(state, na, nb, rng) || !controllers(b).acceptAlliance(state, nb, na)) continue;
+    if (!proposer.proposeAlliance(state, na, nb, rng.fork(`alliance-${a}-${b}`)) || !controllers(b).acceptAlliance(state, nb, na)) continue;
     const cmd: CommandOf<"formAlliance"> = { kind: "formAlliance", a, b };
     const result = applyFormAlliance(state, cmd);
     if (carryOut(proposer, cmd, result)) events.push(...result.events);

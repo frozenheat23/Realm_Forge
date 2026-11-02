@@ -198,7 +198,8 @@ export function declareWars(state: WorldState, rng: Rng, controllers: Controller
         theirHelpers: helpers(state, lookups, them.id, me.id),
       };
       const controller = controllers(me.id);
-      const goal = controller.declareWar(state, me, them, why, rng);
+      // Each choice rolls its own dice, so one nation's choice can't shift another's.
+      const goal = controller.declareWar(state, me, them, why, rng.fork(`war-${me.id}-${them.id}`));
       if (goal === null) continue;
       const cmd: CommandOf<"declareWar"> = { kind: "declareWar", nation: me.id, target: them.id, goal };
       const result = applyDeclareWar(state, cmd, lookups);
@@ -212,7 +213,7 @@ export function declareWars(state: WorldState, rng: Rng, controllers: Controller
       for (const { ally, side, friend, enemy } of calls) {
         if (!free(state, ally.id, enemy.id)) continue;
         const allyController = controllers(ally.id);
-        if (!allyController.joinWar(state, ally, friend, enemy, side, rng)) continue;
+        if (!allyController.joinWar(state, ally, friend, enemy, side, rng.fork(`join-${ally.id}-${friend.id}-${enemy.id}`))) continue;
         const join: CommandOf<"joinWar"> = { kind: "joinWar", nation: ally.id, war: result.war!.id, side };
         const joined = applyJoinWar(state, join, lookups);
         if (carryOut(allyController, join, joined)) events.push(...joined.events);

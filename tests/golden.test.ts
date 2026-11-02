@@ -32,11 +32,12 @@ function fingerprint(seed: string, years: number, width?: number, height?: numbe
   );
 }
 
-// Recorded 2026-11-02, before M15 step 1 (commit a9cbfab).
+// Recorded 2026-11-02 after M15 step 5 (each choice rolls its own dice). The first
+// recording, before M15 (a9cbfab), held unchanged through steps 1–4.
 const GOLDEN = {
-  full: "7818a4a6",
-  smallA: "c1eb07ef",
-  smallB: "917ce8e6",
+  full: "0dd0c628",
+  smallA: "0be1e327",
+  smallB: "f9c0e64a",
 };
 
 describe("golden history", () => {
