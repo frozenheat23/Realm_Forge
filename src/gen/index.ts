@@ -134,6 +134,7 @@ export function generateWorld(seed: string, width = MAP_WIDTH, height = MAP_HEIG
     nextArmyId: 1,
     nextWarId: 1,
     battles: [],
+    warRecords: [],
     truces: [],
     events: start.events,
     cultureHomes: start.cultureHomes,

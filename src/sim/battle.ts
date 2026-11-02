@@ -9,6 +9,7 @@ import { pairKey } from "./helpers";
 import { armyPower, battleLosses, loseSoldiers } from "./manpower";
 import { SIM } from "./params";
 import { resourceBonus } from "./resources";
+import { recordBattle } from "./warRecords";
 
 /** Who holds the ground: the army that stood still, then the one at home, then the larger. */
 function defenderOf(state: WorldState, a: Army, b: Army, moved: Set<number>): [Army, Army] {
@@ -92,7 +93,9 @@ function fight(state: WorldState, a: Army, b: Army, moved: Set<number>, rng: Rng
     const points = SIM.BATTLE_SCORE + (routed ? SIM.ROUT_SCORE : 0);
     war.battleScore += war.attacker === winner.owner ? points : -points;
   }
-  state.battles.push({ cell: site, winner: winner.owner, loser: loser.owner, lost: winnerDead + loserDead, routed });
+  const report = { cell: site, winner: winner.owner, loser: loser.owner, lost: winnerDead + loserDead, routed };
+  state.battles.push(report);
+  if (war) recordBattle(state, war.id, report, routed ? battlePlace(state, site) : "");
 }
 
 /** Season step: every hostile pair of armies in or next to the same cell fights, each army once. */

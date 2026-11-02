@@ -1,6 +1,6 @@
 // Steps 5 and 6b (SPEC §4.5): neighbors go to war (allies may join), and wars end in peace and a truce.
 import type { Rng } from "../core/rng";
-import type { CellId, Nation, NationId, ResourceKind, SimEvent, War, WarGoal, WorldState } from "../core/types";
+import type { CellId, Nation, NationId, ResourceKind, SimEvent, War, WarGoal, WarOutcome, WorldState } from "../core/types";
 import { RESOURCES } from "../gen/params";
 import { traits } from "../gen/races";
 import { carryOut, done, refuse, type Controllers, type WarContext } from "./ai/controller";
@@ -12,6 +12,7 @@ import { fightingPower } from "./manpower";
 import { SIM } from "./params";
 import { cellValue, effectiveCapacity, grainBonuses } from "./resources";
 import { occupationCounts, occupationScore } from "./siege";
+import { closeRecord, openRecord, recordScore } from "./warRecords";
 import { claimedCells, claimYears, conquestCells, goalAchieved, payTribute, takeLand } from "./warGoals";
 
 // They used to live here; other files still import them from war.ts.
@@ -85,6 +86,7 @@ export function startWar(state: WorldState, attacker: Nation, defender: Nation, 
   const war: War = { id: state.nextWarId++, attacker: attacker.id, defender: defender.id, startYear: state.year, score: 0, battleScore: 0, goal, goalCells };
   if (joined !== undefined) war.joined = joined;
   state.wars.push(war);
+  openRecord(state, war);
   state.relations.set(pairKey(attacker.id, defender.id), Math.max(-1, opinion(state, attacker.id, defender.id) - SIM.WAR_OPINION_HIT));
   return war;
 }
@@ -255,11 +257,16 @@ export function endWars(state: WorldState, controllers: Controllers): SimEvent[]
   const counts = occupationCounts(state);
 
   for (const war of state.wars) {
-    const attacker = state.nations.get(war.attacker);
-    const defender = state.nations.get(war.defender);
+    const attacker = state.nations.get(war.attacker)!;
+    const defender = state.nations.get(war.defender)!;
     // A side has died (conquered or collapsed): the war simply ends.
-    if (!attacker?.alive || !defender?.alive) continue;
+    if (!attacker.alive || !defender.alive) {
+      const fallen = !attacker.alive ? attacker : defender;
+      closeRecord(state, war, { how: "side fell", raid: false, cells: 0, wholeRealm: false, text: `${fallen.name} fell, and the war with it.` });
+      continue;
+    }
     war.score = war.battleScore + occupationScore(state, war, counts);
+    recordScore(state, war);
     const mainOver = war.joined !== undefined && !ongoingIds.has(war.joined);
 
     const reason = peaceReason(state, war, attacker, defender);
@@ -275,14 +282,19 @@ export function endWars(state: WorldState, controllers: Controllers): SimEvent[]
     const taken = winner && !raided ? takeLand(state, war, winner, loser) : [];
     state.truces.push({ a: attacker.id, b: defender.id, until: state.year + SIM.TRUCE_YEARS });
     if (mainOver) continue; // allies go home quietly when the war they joined is over
+
+    let event: SimEvent;
     if (raided) {
-      events.push(raidEvent(state.year, attacker, defender));
-      continue;
+      event = raidEvent(state.year, attacker, defender);
+    } else {
+      // Name a deposit the winner took, if any.
+      const prize = taken.find((c) => state.cells[c]!.resource !== 0);
+      const prizeName = prize !== undefined ? RESOURCES[state.cells[prize]!.resource as ResourceKind].name : undefined;
+      event = !loser.alive ? conquestEvent(state.year, winner!, loser, taken.length) : peaceEvent(state.year, attacker, defender, winner, taken.length, prizeName);
     }
-    // Name a deposit the winner took, if any.
-    const prize = taken.find((c) => state.cells[c]!.resource !== 0);
-    const prizeName = prize !== undefined ? RESOURCES[state.cells[prize]!.resource as ResourceKind].name : undefined;
-    events.push(!loser.alive ? conquestEvent(state.year, winner!, loser, taken.length) : peaceEvent(state.year, attacker, defender, winner, taken.length, prizeName));
+    events.push(event);
+    const how = (reason ?? "too long") as WarOutcome["how"];
+    closeRecord(state, war, { how, ...(winner ? { winner: winner.id } : {}), raid: raided, cells: taken.length, wholeRealm: !loser.alive, text: event.text });
   }
 
   state.wars = ongoing;

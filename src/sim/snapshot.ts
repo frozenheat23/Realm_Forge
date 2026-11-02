@@ -3,12 +3,12 @@
 // `Map` and typed arrays don't survive JSON.stringify, so they're converted to plain
 // arrays here. The map itself (cells, terrain) isn't saved: it's rebuilt from the seed,
 // which always gives the same map.
-import type { Alliance, Army, CellState, Nation, RaceHome, SimEvent, War, WorldState } from "../core/types";
+import type { Alliance, Army, CellState, Nation, RaceHome, SimEvent, War, WarRecord, WorldState } from "../core/types";
 import type { GeneratedWorld } from "../gen";
 import type { SimParams } from "./params";
 
-/** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9), 5 armies (M11), 8 culture and faith (M12), 9 rulers (M13). */
-export const SNAPSHOT_VERSION = 9;
+/** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9), 5 armies (M11), 8 culture and faith (M12), 9 rulers (M13), 10 war records (M16). */
+export const SNAPSHOT_VERSION = 10;
 
 /** Why older saves can't be loaded, by version. */
 const TOO_OLD: Record<number, string> = {
@@ -20,6 +20,7 @@ const TOO_OLD: Record<number, string> = {
   6: "rebel armies were added",
   7: "cultures and faiths were added",
   8: "rulers were added",
+  9: "war records were added",
 };
 
 export interface Snapshot {
@@ -44,6 +45,7 @@ export interface Snapshot {
   alliances: Alliance[];
   /** [cell, name] pairs. */
   cityNames: [number, string][];
+  warRecords: WarRecord[];
 }
 
 export function toSnapshot(state: WorldState, params: SimParams): Snapshot {
@@ -81,6 +83,7 @@ export function toSnapshot(state: WorldState, params: SimParams): Snapshot {
     relations: [...state.relations],
     alliances: state.alliances,
     cityNames: [...state.cityNames],
+    warRecords: state.warRecords,
   };
 }
 
@@ -117,6 +120,7 @@ export function fromSnapshot(snapshot: Snapshot, world: GeneratedWorld): WorldSt
     nextArmyId: snapshot.nextArmyId,
     nextWarId: snapshot.nextWarId,
     battles: [],
+    warRecords: structuredClone(snapshot.warRecords),
     truces: snapshot.truces.map((t) => ({ ...t })),
     events: [...snapshot.events],
     cultureHomes: snapshot.cultureHomes,
