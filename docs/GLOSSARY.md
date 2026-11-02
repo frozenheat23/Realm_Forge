@@ -132,3 +132,10 @@ New concepts as we meet them, with where they show up in our code.
 | **Canvas transform** | Moving or scaling the canvas's drawing position, so a picture can be drawn around (0, 0) and placed anywhere at any size. `save()` and `restore()` undo it afterwards. | `atPlace()` in `src/render/atlasMarkers.ts` |
 | **Static site** | A website that's only files sent to the browser, with no program running on a server. The game all runs in your browser, so it can be hosted for free. | `npm run build` makes it, in `dist/` |
 | **CI workflow (GitHub Actions)** | A recipe GitHub runs for you on its own computers whenever you push. Ours tests the game, builds it and publishes it, and a failed test stops the publish. | `.github/workflows/publish.yml` |
+| **Interface (as a contract)** | A promise of which functions something has, without saying how they work. Any object that has them can stand in: the AI today, a player later. | `Controller` in `src/sim/ai/controller.ts` |
+| **Command pattern** | Turning a choice into a small piece of data ("declare war on Kethar to reclaim") that something else checks and carries out. Easy to log, replay and refuse. | `Command` in `src/sim/commands.ts` |
+| **Passing dependencies in** | Giving a function the things it uses (here, who makes each nation's choices) as a parameter, instead of it reaching for a fixed one. Lets tests and later a player swap them. | `controllers` parameter of `tick()` and the rule steps |
+| **Circular import** | Two files that import each other. It can half-work and break in confusing ways, so the AI imports the rule files but never the other way round. | `sim/ai/default.ts`, `sim/marching.ts` |
+| **Golden test** | A test that compares output with a fingerprint recorded earlier, to prove a refactor changed nothing. | `tests/golden.test.ts` |
+| **Refactor** | Changing how code is organized without changing what it does. | M15 steps 1–4 |
+| **Chaos (sensitive dependence)** | Tiny changes early grow into completely different histories. Why a fair change to the dice can swing a 5-world average a lot. | M15 decision log |

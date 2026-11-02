@@ -1,6 +1,6 @@
 # Controllers and commands (M15)
 
-> **Design, not built yet.** This is SPEC §4.16, in its own file because SPEC.md is past the ~700-line limit in §9. M15 adds no new parameters. Code will live in `sim/ai/` and `sim/commands.ts`.
+> **Built in M15.** This is SPEC §4.16, in its own file because SPEC.md is past the ~700-line limit in §9. M15 adds no new parameters. Code: `sim/ai/controller.ts`, `sim/ai/default.ts`, `sim/commands.ts`, and an `apply…` function next to each rule (`applyDeclareWar` in `war.ts` and so on). Where the build differs from the design below, "As built" at the end says so.
 
 **Goal.** Separate the **rules** of the world from the **choices** nations make, so that later a player can make one nation's choices (M19) without the simulation being rewritten. Today about twenty choices are random rolls woven through `war.ts`, `warGoals.ts`, `armies.ts`, `diplomacy.ts`, `rebellion.ts` and `faith.ts`. After M15 every one of them is asked of the nation's **controller**, and the answer comes back as a **command** that the rules check and carry out.
 
@@ -44,33 +44,34 @@ One plain interface, one function per choice. No plugin system.
 interface Controller {
   declareWar(view: View, me: Nation, target: Nation, why: WarContext, rng: Rng): WarGoal | null;
   joinWar(view: View, me: Nation, friend: Nation, enemy: Nation, side: "attack" | "defend", rng: Rng): boolean;
-  proposeAlliance(view: View, me: Nation, other: Nation, rng: Rng): boolean;   // both sides are asked
+  proposeAlliance(view: View, me: Nation, other: Nation, rng: Rng): boolean;
+  acceptAlliance(view: View, me: Nation, other: Nation): boolean;
   keepAlliance(view: View, me: Nation, other: Nation): boolean;
   acceptPeace(view: View, me: Nation, war: War, reason: "goal" | "decisive"): boolean;
-  mobilize(view: View, me: Nation, war: War): number;                          // share of reserve, 0..1
-  orderArmy(view: View, army: Army, situation: ArmySituation): CellId;          // NO_TARGET = stand still
+  mobilize(view: View, me: Nation, wars: War[]): number[];                     // soldiers for each war without an army
+  orderArmy(view: View, army: Army, orders: ArmyOrders): CellId;             // NO_TARGET = stand still; orders.reach(cell) checks a cell can be reached
+  refused?(command: Command, reason: string): void;                          // told when the rules turn a command down
   crushRevolt(view: View, me: Nation, rebels: Nation, rng: Rng): boolean;
   adoptFaith(view: View, me: Nation, faith: FaithId, rng: Rng): boolean;
 }
 ```
 
 - **`View`** is the world as a controller may see it: `Readonly<WorldState>` for now, plus the yearly lookups the rules already compute (claims, border prizes, helpers' power), so controllers don't recompute them. A controller must never change it.
-- **Context objects** (`WarContext`, `ArmySituation`) carry what the decision needs: the power ratio, whether there's a claim, the border prize, nearby hostile armies, open goal cells. Built by the rules, read by the controller.
+- **Context objects** (`WarContext`, `ArmyOrders`) carry what the decision needs: the power ratio, whether there's a claim, the border prize, nearby hostile armies, open goal cells. Built by the rules, read by the controller.
 - **Synchronous and pure.** A controller answers immediately from the view and its own `rng`. A player's answers will come from orders and standing policies set beforehand, with the game pausing when a decision is due (M19). M15 doesn't design that, but it mustn't rule it out.
 - **Who controls whom** is passed to `tick(state, rng, controllers)` as a function `NationId → Controller`, defaulting to the AI for every nation. It isn't stored in `WorldState` (functions can't be saved). M19 will save *which* nations a player holds.
 
 ## Commands
 
-Every answer becomes a command, and `applyCommand(state, command)` is the only way a choice changes the world. It **validates** first, using today's rules (you can't declare war during a truce, join a war you can't reach, raise more soldiers than your reserve…), and returns why it refused.
+Every answer becomes a command, and only the rules carry it out: each rule file has an `apply…` function for its commands, and `applyCommand(state, command)` is the one door for callers outside the yearly steps. It **validates** first, using today's rules (you can't declare war during a truce, join a war you can't reach, raise more soldiers than your reserve…), and returns why it refused.
 
 ```ts
 type Command =
   | { kind: "declareWar"; nation: NationId; target: NationId; goal: WarGoal }
-  | { kind: "joinWar"; nation: NationId; war: number }
+  | { kind: "joinWar"; nation: NationId; war: number; side: "attack" | "defend" }
   | { kind: "formAlliance"; a: NationId; b: NationId }
   | { kind: "breakAlliance"; nation: NationId; other: NationId }
-  | { kind: "makePeace"; war: number }
-  | { kind: "mobilize"; nation: NationId; war: number; share: number }
+  | { kind: "mobilize"; nation: NationId; war: number; size: number }
   | { kind: "orderArmy"; army: number; target: CellId }
   | { kind: "crushRevolt"; nation: NationId; rebels: NationId }
   | { kind: "adoptFaith"; nation: NationId; faith: FaithId };
@@ -89,7 +90,8 @@ So in **step 5**, each decision rolls from its own fork, named after who decides
 ```
 src/sim/ai/controller.ts   the Controller interface, View, context types
 src/sim/ai/default.ts      the AI: today's logic, moved (warChance, goal choice, joining, alliances, peace, mobilizing, the army ladder, revolts, faith)
-src/sim/commands.ts        Command type, validate, applyCommand
+src/sim/commands.ts        Command type and applyCommand (each rule file validates and applies its own commands)
+src/sim/marching.ts        read-only map questions for armies (paths, march rights, targets), shared by rules and AI
 ```
 
 The rule files keep the rules: `war.ts` still starts and ends wars, `warGoals.ts` still works out goal cells and terms, `armies.ts` still marches, `battle.ts`, `siege.ts` and the rest are untouched.
@@ -121,6 +123,24 @@ Each step ends with the full test suite green.
 - Tick time no more than 10% slower.
 - The `Passive` and isolation tests pass.
 - Docs: SPEC §4.16 links here; CLAUDE.md milestone row and decision log; glossary (interface, command, golden test, dependency passing).
+
+## As built
+
+- **Interface changes.**
+  - `mobilize` returns the number of soldiers for each war, not a share, so the AI can keep raising the same share of the year's starting reserve for each war.
+  - An alliance is `proposeAlliance` (which may roll) plus `acceptAlliance` (which doesn't), so asking both sides costs no extra dice.
+  - An optional `refused(command, reason)` tells a controller when the rules turn it down. Later this is how a player hears "you can't do that".
+- **Peace has no command.** `acceptPeace` is a yes/no answered inside the peace step (6b), because peace terms need that year's final score. A sandbox "force peace" comes in M17.
+- **Controllers are a required parameter of the rule steps.** `tick(state, rng, controllers = everyoneAI)` defaults to the AI, but `declareWars`, `endWars`, `musterArmies`, `campaign`, `updateAlliances`, `convertRealms`, `rebellions` and `succession` all take the controllers explicitly. So the rule files never import the AI, and the AI can read any rule file without a circular import. Tests pass `everyoneAI`.
+- **Files moved.** The read-only map questions armies need (`findPath`, `marchRights`, `homeCell`, `nearestHostile`, `goalCell`…) moved from `armies.ts` to a new `marching.ts`; `frontCells` moved to `helpers.ts`; `warChance` and the goal choice (`chooseGoal`) moved to the AI. Old import paths still work where tests used them.
+- **Dice (step 5).** Each choice now rolls from its own stream: `war-<me>-<them>`, `join-<ally>-<friend>-<enemy>`, `alliance-<a>-<b>`, `faith-<nation>`. Crushing a revolt already had its own stream per uprising. **Rule dice still share streams**: battles (one stream per season), expansion, and the spread of culture and faith. A choice that changes the map can therefore still shift rolls far away within a few years. Isolate those too in M17 if the sandbox's odds need it.
+
+**Measured.**
+- **Steps 1–4:** golden history identical on all 3 seeds.
+- **Step 5 vs the review**, on its 5 seeds: wars per century 35.1 → 34.6, attacker wins 77% → 80%, median war 4 → 4 years, peak empire 26% → 30%.
+- **Within noise.** On other seeds the numbers swung more (e.g. 26.7 → 36.7 wars per century). But simply renaming the *old* code's random stream gives 36–38 on those seeds, so that swing is how chaotic the history is, not a change in the odds. First draws of forked streams were checked separately: they're uniform, and the same pair's draws don't correlate year to year.
+- **Race balance:** biggest race 43%, no takeovers.
+- **Speed:** a 600-year full-size run takes 8.3 s, against 8.6–9.1 s before M15.
 
 ## Not in M15
 

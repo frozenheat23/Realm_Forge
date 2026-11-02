@@ -706,9 +706,9 @@ Measured on 20 seeds never used for tuning, each 1,000 years, against the same s
 
 Every nation has a named ruler and dynasty. A few rulers are great (Conqueror, Lawgiver, Builder, Prophet, Schemer): each race leans toward one type, and bigger realms draw them more often. When a reign ends, a crisis can strike, and big nations fall into civil war, worst after a great ruler. One new tick step: 7b Succession. Golden ages are designed in the same file but not built.
 
-### 4.16 Controllers and commands (planned, M15)
+### 4.16 Controllers and commands
 
-> Design only. The full description is in [`systems/controllers.md`](systems/controllers.md).
+> Built in M15. The full description is in [`systems/controllers.md`](systems/controllers.md).
 
 Every choice a nation makes (declare war and its goal, join an ally, form or break an alliance, accept peace, mobilize, campaign orders, crush a revolt, adopt a faith) is asked of the nation's **controller** and comes back as a **command** that the rules validate and apply. The AI controller is today's logic, moved; a player controller can replace it for one nation later (M19). Battle rolls, revolts, spreading, succession and everything else stay rules. No new tick step.
 
@@ -820,6 +820,7 @@ Two more tints like the Races layer (§5.4b), and only one of the three shows at
 
 - Same seed + same parameters = identical history **in the same browser**. JavaScript's `Math.exp`, `Math.pow` and similar functions can differ very slightly between browsers, so cross-browser results may drift.
 - **Key test:** run 1,000 years twice with the same seed; the event lists must be identical.
+- **Golden history** (`tests/golden.test.ts`, M15): fingerprints of three long runs, recorded once. The key test only compares the code with itself; this one catches a change that was meant to leave history alone but didn't. If history is *meant* to change, record new fingerprints and say why in the decision log.
 - Each sim step gets unit tests on a tiny hand-built map (e.g. 6 cells, 2 nations).
 - No `Math.random()` anywhere in `gen/` or `sim/`.
 
