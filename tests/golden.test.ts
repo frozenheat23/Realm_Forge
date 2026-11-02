@@ -33,11 +33,12 @@ function fingerprint(seed: string, years: number, width?: number, height?: numbe
 }
 
 // Recorded 2026-11-02 after M15 step 5 (each choice rolls its own dice). The first
-// recording, before M15 (a9cbfab), held unchanged through steps 1–4.
+// recording, before M15 (a9cbfab), held unchanged through steps 1–4. Re-recorded in M16 for
+// the new wording of a victory that took no land (history itself unchanged).
 const GOLDEN = {
-  full: "0dd0c628",
-  smallA: "0be1e327",
-  smallB: "f9c0e64a",
+  full: "e444562c",
+  smallA: "b35b1a27",
+  smallB: "ed131370",
 };
 
 describe("golden history", () => {

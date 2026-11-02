@@ -1,6 +1,7 @@
 // The scrolling event log: newest events at the top, filterable by type.
 // Click a line to highlight the nations involved on the map.
-import type { NationId, SimEvent, WorldState } from "../core/types";
+import type { BattleReport, NationId, SimEvent, WorldState } from "../core/types";
+import { menText } from "../sim/events";
 import { EVENT_LOG_MAX } from "./config";
 
 // A small symbol per event type, so the log is easy to scan.
@@ -76,21 +77,23 @@ export function createEventLog(
 
   return {
     add(events, state) {
-      for (const event of events) {
-        if (event.type === "battle" && !showBattles) continue;
+      const addLine = (type: SimEvent["type"], actors: NationId[], text: string) => {
         const line = document.createElement("div");
-        line.className = `event event-${event.type}`;
-        line.dataset.actors = event.actors.join(",");
+        line.className = `event event-${type}`;
+        line.dataset.actors = actors.join(",");
         line.title = "Click to highlight on the map";
 
         // A color swatch for the main nation involved.
         const swatch = document.createElement("span");
         swatch.className = "swatch";
-        swatch.style.background = state.nations.get(event.actors[0]!)?.color ?? "transparent";
+        swatch.style.background = state.nations.get(actors[0]!)?.color ?? "transparent";
 
-        line.append(swatch, `${ICONS[event.type]} ${event.text}`);
+        line.append(swatch, `${ICONS[type]} ${text}`);
         list.prepend(line);
-      }
+      };
+      for (const event of events) if (event.type !== "battle") addLine(event.type, event.actors, event.text);
+      // A year's battles between the same two nations read as one line.
+      if (showBattles) for (const g of groupBattles(events, state.battles, state.year)) addLine("battle", [g.a, g.b], battleGroupText(g, state));
       // Keep the page light: drop the oldest lines past the limit.
       while (list.childElementCount > EVENT_LOG_MAX) list.lastElementChild?.remove();
     },
@@ -98,4 +101,43 @@ export function createEventLog(
       list.replaceChildren();
     },
   };
+}
+
+/** One line in the log for all the battles two nations fought in a year. */
+export interface BattleGroup {
+  year: number;
+  a: NationId;
+  b: NationId;
+  count: number;
+  /** Soldiers who fell, if known (only for the year just played). */
+  lost?: number;
+}
+
+/**
+ * Folds battle events into one group per year and pair of nations, in the order
+ * they first appear. `battles` (this year's reports) adds up who fell.
+ */
+export function groupBattles(events: SimEvent[], battles: BattleReport[] = [], year?: number): BattleGroup[] {
+  const groups = new Map<string, BattleGroup>();
+  for (const e of events) {
+    if (e.type !== "battle") continue;
+    const [a, b] = [Math.min(e.actors[0]!, e.actors[1]!), Math.max(e.actors[0]!, e.actors[1]!)];
+    const key = `${e.year}-${a}-${b}`;
+    const group = groups.get(key) ?? { year: e.year, a, b, count: 0 };
+    group.count++;
+    groups.set(key, group);
+  }
+  for (const r of battles) {
+    const group = groups.get(`${year}-${Math.min(r.winner, r.loser)}-${Math.max(r.winner, r.loser)}`);
+    if (group) group.lost = (group.lost ?? 0) + r.lost;
+  }
+  return [...groups.values()];
+}
+
+/** How a battle group reads in the log. */
+export function battleGroupText(group: BattleGroup, state: WorldState): string {
+  const name = (id: NationId) => state.nations.get(id)?.name ?? "?";
+  const fights = group.count === 1 ? "a battle" : `${group.count} battles`;
+  const fell = group.lost === undefined ? "" : ` (${menText(group.lost)} fell)`;
+  return `Year ${group.year}: ${fights} between ${name(group.a)} and ${name(group.b)}${fell}.`;
 }
