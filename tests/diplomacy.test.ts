@@ -8,8 +8,9 @@ import { neighborPairs, pairKey } from "../src/sim/helpers";
 import { SIM, SIM_DEFAULTS } from "../src/sim/params";
 import { rebel } from "../src/sim/rebellion";
 import { fromSnapshot, toSnapshot } from "../src/sim/snapshot";
-import { declareWars, endWars, warChance } from "../src/sim/war";
+import { declareWars, endWars } from "../src/sim/war";
 import { makeNation, makeState, row } from "./tinyWorld";
+import { everyoneAI, warChance } from "../src/sim/ai/default";
 
 // Some tests turn chances up to 1 so the outcome is certain; put them back afterwards.
 afterEach(() => {
@@ -41,7 +42,7 @@ function triangle(): WorldState {
 function untilWar(make: () => WorldState): WorldState {
   for (let trial = 0; trial < 2000; trial++) {
     const state = make();
-    if (declareWars(state, createRng(`w${trial}`)).length > 0) return state;
+    if (declareWars(state, createRng(`w${trial}`), everyoneAI).length > 0) return state;
   }
   throw new Error("no war in 2000 tries");
 }
@@ -111,7 +112,7 @@ describe("alliances", () => {
     SIM.ALLIANCE_PROB = 1;
     const state = twoNations();
     state.relations.set(pairKey(1, 2), 0.5);
-    const events = updateAlliances(state, neighborPairs(state), createRng("a"));
+    const events = updateAlliances(state, neighborPairs(state), createRng("a"), everyoneAI);
     expect(alliesOf(state, 1)).toEqual([2]);
     expect(events[0]!.type).toBe("alliance");
     expect(events[0]!.text).toContain("kinship");
@@ -121,7 +122,7 @@ describe("alliances", () => {
     const state = twoNations();
     state.alliances.push({ a: 1, b: 2, since: 0 });
     state.relations.set(pairKey(1, 2), -0.5);
-    const events = updateAlliances(state, neighborPairs(state), createRng("b"));
+    const events = updateAlliances(state, neighborPairs(state), createRng("b"), everyoneAI);
     expect(state.alliances).toHaveLength(0);
     expect(events[0]!.type).toBe("alliance_ended");
   });
@@ -131,7 +132,7 @@ describe("alliances", () => {
     SIM.MAX_ALLIES = 1;
     const state = triangle();
     for (const key of [pairKey(1, 2), pairKey(1, 3), pairKey(2, 3)]) state.relations.set(key, 0.9);
-    updateAlliances(state, neighborPairs(state), createRng("m"));
+    updateAlliances(state, neighborPairs(state), createRng("m"), everyoneAI);
     for (const id of [1, 2, 3]) expect(alliesOf(state, id).length).toBeLessThanOrEqual(1);
   });
 
@@ -140,7 +141,7 @@ describe("alliances", () => {
       const state = twoNations();
       state.nations.get(1)!.reserve = 1000;
       state.alliances.push({ a: 1, b: 2, since: 0 });
-      declareWars(state, createRng(`n${trial}`));
+      declareWars(state, createRng(`n${trial}`), everyoneAI);
       expect(state.wars).toHaveLength(0);
     }
   });
@@ -181,7 +182,7 @@ describe("alliances", () => {
         makeNation(4, 3, { reserve: 1 }),
       ]);
       state.alliances.push({ a: 2, b: 4, since: 0 });
-      declareWars(state, createRng(`f${trial}`));
+      declareWars(state, createRng(`f${trial}`), everyoneAI);
       expect(state.wars.some((w) => pairKey(w.attacker, w.defender) === pairKey(1, 4))).toBe(false);
     }
   });
@@ -191,7 +192,7 @@ describe("alliances", () => {
     state.year = 5;
     state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: SIM.PEACE_SCORE, goal: "conquer" as const, goalCells: [] });
     state.wars.push({ id: 2, attacker: 1, defender: 3, startYear: 1, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [], joined: 1 });
-    endWars(state);
+    endWars(state, everyoneAI);
     expect(state.wars).toHaveLength(0);
     expect(state.truces).toHaveLength(2);
   });
@@ -201,7 +202,7 @@ describe("alliances", () => {
     state.year = 2;
     state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [] });
     state.wars.push({ id: 2, attacker: 1, defender: 3, startYear: 1, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [], joined: 1 });
-    endWars(state);
+    endWars(state, everyoneAI);
     expect(state.wars.map((w) => w.id)).toEqual([1, 2]);
   });
 });

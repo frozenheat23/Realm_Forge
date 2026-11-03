@@ -3,6 +3,8 @@ import type { Rng } from "../core/rng";
 import type { Nation, NationId, RaceId, SimEvent, WorldState } from "../core/types";
 import { faithInfo } from "../gen/faiths";
 import { RACE_ATTITUDES } from "../gen/params";
+import { carryOut, done, refuse, type Controllers } from "./ai/controller";
+import type { CommandOf, CommandResult } from "./commands";
 import { allianceEndedEvent, allianceEvent } from "./events";
 import { neighborPairs, pairKey } from "./helpers";
 import { SIM } from "./params";
@@ -92,34 +94,68 @@ export function updateOpinions(state: WorldState, pairs: [NationId, NationId][])
   }
 }
 
-/** Ends alliances that have soured (or lost a member), then lets friendly neighbors ally. */
-export function updateAlliances(state: WorldState, pairs: [NationId, NationId][], rng: Rng): SimEvent[] {
+/** The "formAlliance" command: `a` and `b` pledge to fight beside each other. */
+export function applyFormAlliance(state: WorldState, cmd: CommandOf<"formAlliance">): CommandResult {
+  const a = state.nations.get(cmd.a);
+  const b = state.nations.get(cmd.b);
+  if (!a?.alive || !b?.alive || a === b) return refuse("there's no such pair of nations");
+  if (allied(state, a.id, b.id)) return refuse("they're already allies");
+  if (enemiesOf(state).get(a.id)?.has(b.id)) return refuse("they're at war with each other");
+  if (alliesOf(state, a.id).length >= SIM.MAX_ALLIES || alliesOf(state, b.id).length >= SIM.MAX_ALLIES) return refuse("one of them has as many allies as it can keep");
+  state.alliances.push({ a: Math.min(a.id, b.id), b: Math.max(a.id, b.id), since: state.year });
+  return done([allianceEvent(state.year, a, b)]);
+}
+
+/** The "breakAlliance" command: `nation` leaves its alliance with `other`. */
+export function applyBreakAlliance(state: WorldState, cmd: CommandOf<"breakAlliance">): CommandResult {
+  const key = pairKey(cmd.nation, cmd.other);
+  const index = state.alliances.findIndex((al) => pairKey(al.a, al.b) === key);
+  if (index < 0) return refuse("they aren't allies");
+  const al = state.alliances[index]!;
+  state.alliances.splice(index, 1);
+  return done([allianceEndedEvent(state.year, state.nations.get(al.a)!, state.nations.get(al.b)!)]);
+}
+
+/** Alliances lapse when a member dies, and break if either member wants out; then friendly neighbors may ally. */
+export function updateAlliances(state: WorldState, pairs: [NationId, NationId][], rng: Rng, controllers: Controllers): SimEvent[] {
   const events: SimEvent[] = [];
 
-  state.alliances = state.alliances.filter((al) => {
+  for (const al of [...state.alliances]) {
     const a = state.nations.get(al.a);
     const b = state.nations.get(al.b);
-    if (!a?.alive || !b?.alive) return false; // a member is gone: the alliance just lapses
-    if (opinion(state, al.a, al.b) >= SIM.ALLIANCE_BREAK_OPINION) return true;
-    events.push(allianceEndedEvent(state.year, a, b));
-    return false;
-  });
+    if (!a?.alive || !b?.alive) {
+      state.alliances.splice(state.alliances.indexOf(al), 1); // a member is gone: the alliance just lapses
+      continue;
+    }
+    // Either member may leave; the first to say so breaks it.
+    for (const [me, other] of [[a, b], [b, a]]) {
+      const controller = controllers(me!.id);
+      if (controller.keepAlliance(state, me!, other!)) continue;
+      const cmd: CommandOf<"breakAlliance"> = { kind: "breakAlliance", nation: me!.id, other: other!.id };
+      const result = applyBreakAlliance(state, cmd);
+      if (carryOut(controller, cmd, result)) events.push(...result.events);
+      break;
+    }
+  }
 
   const enemies = enemiesOf(state);
   const allyCount = (id: NationId) => alliesOf(state, id).length;
   for (const [a, b] of pairs) {
     if (allied(state, a, b) || enemies.get(a)?.has(b)) continue;
     if (allyCount(a) >= SIM.MAX_ALLIES || allyCount(b) >= SIM.MAX_ALLIES) continue;
-    if (opinion(state, a, b) < SIM.ALLIANCE_MIN_OPINION) continue;
-    if (!rng.chance(SIM.ALLIANCE_PROB)) continue;
-    state.alliances.push({ a, b, since: state.year });
-    events.push(allianceEvent(state.year, state.nations.get(a)!, state.nations.get(b)!));
+    const na = state.nations.get(a)!;
+    const nb = state.nations.get(b)!;
+    const proposer = controllers(a);
+    if (!proposer.proposeAlliance(state, na, nb, rng.fork(`alliance-${a}-${b}`)) || !controllers(b).acceptAlliance(state, nb, na)) continue;
+    const cmd: CommandOf<"formAlliance"> = { kind: "formAlliance", a, b };
+    const result = applyFormAlliance(state, cmd);
+    if (carryOut(proposer, cmd, result)) events.push(...result.events);
   }
   return events;
 }
 
-export function diplomacy(state: WorldState, rng: Rng): SimEvent[] {
+export function diplomacy(state: WorldState, rng: Rng, controllers: Controllers): SimEvent[] {
   const pairs = neighborPairs(state);
   updateOpinions(state, pairs);
-  return updateAlliances(state, pairs, rng);
+  return updateAlliances(state, pairs, rng, controllers);
 }

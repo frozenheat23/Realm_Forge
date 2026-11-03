@@ -115,6 +115,13 @@ Base capacity is relative (1.0 = grassland). Move cost affects expansion and con
 | `START_HOME_RANGE` | 4 | 0–8 | Steps a capital can shift at year 0 toward land its race likes | Races sit deep in their homelands | Capitals stay where they were placed (0) |
 | `START_POP_FRACTION` | 0.3 | 0.1–0.8 | Starting pop as share of capacity | Strong from day one | Slow early growth |
 | `START_STABILITY` | 0.8 | 0.3–1.0 | Stability every starting nation begins with | Long early calm | Early rebellions |
+| `START_KINGDOMS` | 10 | 5–10 | Old kingdoms at year 0 in a settled start (picked in the toolbar; `MIN_KINGDOMS`–`MAX_KINGDOMS`) | Smaller realms, more of them | A few vast empires |
+| `SETTLED_POP_FRACTION` | 0.9 | 0.5–1.0 | Settled start: people as share of capacity | Strong old realms from day one | Room to grow |
+| `OLD_REALM_YEARS` | 200 | 0–500 | How long old kingdoms have held their land at year 0 (core land) | All of it core from the start | Land feels freshly conquered |
+| `KINGDOM_SPACING` | 14 | 6–25 | Min cell-steps between old kingdoms' capitals | Even shares | Capitals crowd, some kingdoms boxed in |
+| `KINGDOM_MIN_LAND` | 100 | 0–500 | Smallest body of land an old kingdom's capital may stand on | No island kingdoms | Kingdoms on small islands |
+| `KINGDOM_ROOM` | 6 | 0–12 | Steps a capital may move toward open country | Fewer peninsula kingdoms | Capitals stay at their homelands |
+| `SETTLED_DEV` | 0.85 | 0.3–1.0 | Settled start: development × control at year 0 | More towns and cities | Thinly settled old realms |
 | `NATION_SATURATION` | 0.7 | 0.3–0.9 | How vivid nation colors are | Bold, game-like colors | Muted, pastel colors |
 | `NATION_LIGHTNESS` | 0.52 | 0.35–0.7 | How light nation colors are | Pastel | Dark, heavy |
 
@@ -574,7 +581,7 @@ All in `render/palette.ts`.
 | `SEA_GRID_ALPHA` | 0.08 | 0–0.2 | Visibility of the sea grid | Obvious grid | Invisible (0) |
 | `LAND_RAMP` / `WATER_RAMP` | see code | — | Height → color stops (`?style=painted` only) | — | — |
 
-### Parchment style (`?style=atlas`)
+### Parchment style (default)
 
 An old chart: aged paper, pale sea, thin ink outlines, drawn terrain symbols. Colors and sizes are the `ATLAS_*` values in `render/palette.ts`; how it changes realms, names and towns is the `LOOK_ATLAS` object below them.
 
@@ -592,11 +599,15 @@ An old chart: aged paper, pale sea, thin ink outlines, drawn terrain symbols. Co
 | `ATLAS_COAST_WIDTH` | 1.7 | 1–4 | Coastline thickness in pixels | Heavier | Finer |
 | `ATLAS_STAIN` | 0.07 | 0–0.15 | Paper stains | Older paper | Clean paper |
 | `ATLAS_EDGE_DARKEN` | 0.2 | 0–0.4 | Darkening at the sheet's edge | Stronger | None |
+| `ATLAS_CASTLE_SCALE` | 1 | 0.6–1.6 | Size of capital castles | Bigger castles, can cover names | Smaller castles |
+| `ATLAS_CITY_SCALE` | 1 | 0.6–1.6 | Size of city spires | Cities stand out | Quieter cities |
+| `ATLAS_RESOURCE_GROWTH` | 1.6 | 1–2.5 | Resource disc size, as a multiple of the classic marker | Icons easier to read | Less clutter |
+| `ATLAS_RESOURCE_PAPER` | 0.55 | 0–1 | How far resource discs lean toward paper | Paler discs | Stronger colors |
 | `ATLAS_SAILING_RAYS` | 16 | 8–32 | Sailing lines from each hub | Denser net | Sparser |
 
-### Cel-shaded style (default)
+### Cel-shaded style (Classic map, `?style=cel`)
 
-Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shading and ink lines. Kept light and muted so nation colors read on top. Pick another style with `?style=painted` or `?style=atlas`.
+Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shading and ink lines. Kept light and muted so nation colors read on top. Pick it with the Classic map button, or `?style=painted` for the painted style.
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
@@ -695,6 +706,9 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | `SIM_YEARS` | 1000 | 200–5000 | Default length of a run |
 | `EVENT_LOG_MAX` | 300 | 50–2000 | Most lines kept in the on-screen event log |
 | `HIGHLIGHT_SECONDS` | 4 | 1–15 | How long nations stay highlighted after clicking an event |
+| `FOLLOW_SPEED` | 5 | 1–20 | While following a war, playback goes no faster than this; the old speed comes back when you stop |
+| `FOCUS_GOAL_COLOR`, `FOCUS_GOAL_RADIUS` | #e0b84a, 4 | — | Gold ring on goal land the attacker hasn't taken yet (`render/palette.ts`) |
+| `FOCUS_HELD_SIZE`, `FOCUS_EDGE` | 5, dark brown | — | Diamond in the occupier's color on occupied land (`render/palette.ts`) |
 | `RULER_CARD_SECONDS` | 5 | 2–15 | How long the ruler card stays up when a great ruler rises (`src/ui/config.ts`) |
 
 ---

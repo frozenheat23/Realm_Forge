@@ -2,10 +2,10 @@
 // Redrawn every year, so after the first paint it only repaints the cells that changed. Only reads the world.
 import type { GeneratedWorld } from "../gen";
 import type { CellId, NationId, WorldState } from "../core/types";
-import { hexToRgb, mixRgb, scaleRgb, type Rgb } from "./color";
+import { hexToRgb, lookTint, scaleRgb, type Rgb } from "./color";
 import type { CellPixels } from "./displayCells";
 import { pairKey } from "../sim/war";
-import { BORDER_DARKEN, FAITH_COLORS, HIGHLIGHT_DIM, LOOK_STANDARD, RACE_COLORS, WAR_FRONT_COLOR, type MapLook } from "./palette";
+import { BORDER_DARKEN, FAITH_COLORS, HIGHLIGHT_DIM, LOOK_STANDARD, RACE_COLORS, type MapLook } from "./palette";
 
 /** Packs a color and alpha into one 32-bit number, the way ImageData stores a pixel. */
 function packPixel(rgb: Rgb, alpha: number): number {
@@ -32,8 +32,7 @@ const REPAINT_RINGS = 2;
 export function createNationOverlay(world: GeneratedWorld, displayCells: Int32Array, cellPixels: CellPixels, look: MapLook = LOOK_STANDARD): NationOverlay {
   const { width, height, cells } = world;
   const edge = look.overlayEdgeWidth;
-  const tintToward = hexToRgb(look.tintToward);
-  const tinted = (hex: string) => mixRgb(hexToRgb(hex), tintToward, look.tintShare);
+  const tinted = (hex: string) => lookTint(hex, look);
   const pixels = new Uint32Array(width * height);
   // Owner of every pixel: 0 = unowned land, −1 = water.
   const pixelOwner = new Int32Array(width * height);
@@ -48,7 +47,7 @@ export function createNationOverlay(world: GeneratedWorld, displayCells: Int32Ar
 
   const raceFill = RACE_COLORS.map((hex, r) => (r === 0 ? 0 : packPixel(tinted(hex), Math.round(look.overlayAlpha * 255))));
   const faithFill = FAITH_COLORS.map((hex, f) => (f === 0 ? 0 : packPixel(tinted(hex), Math.round(look.overlayAlpha * 255))));
-  const warFront = packPixel(hexToRgb(WAR_FRONT_COLOR), 255);
+  const warFront = packPixel(hexToRgb(look.warColor), 255);
 
   /** All of `cell`'s pixels get the owner it has now. */
   function setPixelOwner(cell: CellId, owner: number): void {

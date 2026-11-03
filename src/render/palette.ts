@@ -118,8 +118,6 @@ export const ALLIANCE_DASH = [6, 4];
 export const TOWN_RADIUS = 1.8;
 export const TOWN_FILL = "#3a2f25";
 export const CITY_SIZE = 5;
-/** Radius of the city marker on the parchment map. */
-export const CITY_RING_RADIUS = 3.8;
 export const CITY_FILL = "#fbf6e9";
 export const CITY_FONT = "italic 10px Georgia, serif";
 /** Resources layer (SPEC §5.4e): a marker per deposit, colored by type (indexed by ResourceId; 0 unused). */
@@ -157,9 +155,8 @@ export const LABEL_COLOR = "#2b2620";
 export const LABEL_HALO = "rgba(250, 246, 235, 0.85)";
 export const CAPITAL_RADIUS = 3;
 export const CAPITAL_FILL = "#fbf6e9";
-/** The castle marking capitals on the parchment map. */
+/** Pale fill of the parchment map's castles and compass. */
 export const CASTLE_WALL = "#f0e2c0";
-export const CASTLE_FLAG = "#8c2f22";
 /** The crown over the capital of a realm with a great ruler. */
 export const CROWN_FILL = "#f2c744";
 export const CROWN_WIDTH = 22;
@@ -267,9 +264,25 @@ export interface MapLook {
   capital: "dot" | "castle";
   /** Height of the capital marker above its cell center, so the crown clears it. */
   capitalHeight: number;
+  crownFill: string;
   townDots: boolean;
-  cityMarker: "square" | "ring";
+  cityMarker: "square" | "spire";
   cityFont: string;
+  /** How far a capital's city name sits from the middle of its marker. */
+  capitalNameGap: number;
+  resourceMarker: "letter" | "icon";
+  warColor: string;
+  allianceColor: string;
+  allianceOutline: string;
+  allianceWidth: number;
+  allianceDash: number[];
+  armyOutline: string;
+  armyFont: string;
+  armyLabelColor: string;
+  armyLabelHalo: string;
+  siegeColor: string;
+  /** "R, G, B", so alpha can be added. */
+  emberColor: string;
 }
 
 /** The look of the cel-shaded and painted styles. */
@@ -289,9 +302,23 @@ export const LOOK_STANDARD: MapLook = {
   labelHalo: LABEL_HALO,
   capital: "dot",
   capitalHeight: CAPITAL_RADIUS,
+  crownFill: CROWN_FILL,
   townDots: true,
   cityMarker: "square",
   cityFont: CITY_FONT,
+  capitalNameGap: CITY_SIZE,
+  resourceMarker: "letter",
+  warColor: WAR_FRONT_COLOR,
+  allianceColor: ALLIANCE_COLOR,
+  allianceOutline: ALLIANCE_OUTLINE,
+  allianceWidth: ALLIANCE_WIDTH,
+  allianceDash: ALLIANCE_DASH,
+  armyOutline: CEL_INK_COLOR,
+  armyFont: "bold 10px Georgia, serif",
+  armyLabelColor: ARMY_LABEL_COLOR,
+  armyLabelHalo: CEL_INK_COLOR,
+  siegeColor: SIEGE_RING_COLOR,
+  emberColor: EMBER_COLOR,
 };
 
 // =====================================================================
@@ -346,6 +373,12 @@ export const ATLAS_TITLE_FONT = "34px 'IM Fell English SC', Georgia, serif";
 export const ATLAS_NOTE_FONT = "italic 16px 'IM Fell English', Georgia, serif";
 /** Bundled with the game; the map redraws once they've loaded. */
 export const ATLAS_FONTS = [ATLAS_TITLE_FONT, ATLAS_NOTE_FONT, "italic 13px 'IM Fell English'"];
+/** Size of the castle on capitals and the spire on cities (1 = as drawn). */
+export const ATLAS_CASTLE_SCALE = 1;
+export const ATLAS_CITY_SCALE = 1;
+/** Resource discs: how far their fill leans toward paper, and how much bigger than the classic markers. */
+export const ATLAS_RESOURCE_PAPER = 0.55;
+export const ATLAS_RESOURCE_GROWTH = 1.6;
 
 export const LOOK_ATLAS: MapLook = {
   overlayAlpha: 0.38,
@@ -362,13 +395,34 @@ export const LOOK_ATLAS: MapLook = {
   labelColor: ATLAS_INK,
   labelHalo: "rgba(236, 220, 182, 0.8)",
   capital: "castle",
-  capitalHeight: 16,
+  capitalHeight: 21 * ATLAS_CASTLE_SCALE,
+  crownFill: "#c9a14a",
   townDots: false,
-  cityMarker: "ring",
+  cityMarker: "spire",
   cityFont: "italic 13px 'IM Fell English', Georgia, serif",
+  capitalNameGap: 13,
+  resourceMarker: "icon",
+  warColor: "#a32a1e",
+  allianceColor: "rgba(42, 28, 16, 0.75)",
+  allianceOutline: "rgba(236, 220, 182, 0.55)",
+  allianceWidth: 1.3,
+  allianceDash: [7, 4],
+  armyOutline: ATLAS_INK,
+  armyFont: "13px 'IM Fell English SC', Georgia, serif",
+  armyLabelColor: ATLAS_INK,
+  armyLabelHalo: "rgba(236, 220, 182, 0.85)",
+  siegeColor: "#a32a1e",
+  emberColor: "196, 92, 32",
 };
 
-// --- Ruler card (SPEC §5.4j): portrait + frame tinted in the nation's color ---
+// --- Following a war (M16, docs/systems/warroom.md) ---
+/** Ring around goal land the attacker hasn't taken yet. */
+export const FOCUS_GOAL_COLOR = "#e0b84a";
+export const FOCUS_GOAL_RADIUS = 4;
+/** Mark on land a side occupies, in the occupier's color, with a dark edge. */
+export const FOCUS_HELD_SIZE = 5;
+export const FOCUS_EDGE = "rgba(30, 24, 18, 0.85)";
+// --- Ruler card (SPEC §5.4k): portrait + frame tinted in the nation's color ---
 /** Card width on the page, in CSS pixels. It is drawn at 512 × 768 and shrunk, so it stays sharp. */
 export const RULER_CARD_WIDTH = 180;
 /** How strongly the grey metal frame takes the nation's color, 0..1. */

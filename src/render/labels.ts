@@ -2,12 +2,11 @@
 import type { GeneratedWorld } from "../gen";
 import type { CellId, NationId, WorldState } from "../core/types";
 import { clamp } from "../core/math";
+import { drawCastle } from "./atlasMarkers";
+import { cssColor, lookTint } from "./color";
 import {
   CAPITAL_FILL,
   CAPITAL_RADIUS,
-  CASTLE_FLAG,
-  CASTLE_WALL,
-  CROWN_FILL,
   CROWN_GAP,
   CROWN_HEIGHT,
   CROWN_WIDTH,
@@ -71,32 +70,10 @@ function drawCapitalDot(ctx: CanvasRenderingContext2D, x: number, y: number, ink
   ctx.stroke();
 }
 
-/** Capital marker for the parchment map: a tiny castle with a red flag. */
-function drawCastle(ctx: CanvasRenderingContext2D, x: number, y: number, ink: string): void {
-  ctx.fillStyle = CASTLE_WALL;
-  ctx.strokeStyle = ink;
-  ctx.lineWidth = 1.4;
-  ctx.beginPath();
-  ctx.rect(x - 6, y - 5, 12, 7);
-  ctx.rect(x - 7, y - 11, 4, 13);
-  ctx.rect(x + 3, y - 11, 4, 13);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = CASTLE_FLAG;
-  ctx.beginPath();
-  ctx.moveTo(x - 5, y - 11);
-  ctx.lineTo(x - 5, y - 16);
-  ctx.lineTo(x - 1, y - 14.5);
-  ctx.lineTo(x - 5, y - 13);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-}
-
 /** A small three-pointed crown above a capital marker `height` pixels tall. */
-function drawCrown(ctx: CanvasRenderingContext2D, x: number, y: number, height: number, ink: string): void {
+function drawCrown(ctx: CanvasRenderingContext2D, x: number, y: number, look: MapLook): void {
   const half = CROWN_WIDTH / 2;
-  const base = y - height - CROWN_GAP;
+  const base = y - look.capitalHeight - CROWN_GAP;
   const top = base - CROWN_HEIGHT;
   const dip = base - CROWN_HEIGHT * 0.45; // how far down the crown dips between its points
   ctx.beginPath();
@@ -108,10 +85,10 @@ function drawCrown(ctx: CanvasRenderingContext2D, x: number, y: number, height: 
   ctx.lineTo(x + half, top);
   ctx.lineTo(x + half, base);
   ctx.closePath();
-  ctx.fillStyle = CROWN_FILL;
+  ctx.fillStyle = look.crownFill;
   ctx.fill();
   ctx.lineWidth = 1;
-  ctx.strokeStyle = ink;
+  ctx.strokeStyle = look.labelColor;
   ctx.stroke();
 }
 
@@ -140,9 +117,9 @@ export function drawLabels(ctx: CanvasRenderingContext2D, world: GeneratedWorld,
     const cells = owned.get(nation.id) ?? [];
 
     const [capX, capY] = world.cells[nation.capital]!.site;
-    if (look.capital === "castle") drawCastle(ctx, capX, capY, look.labelColor);
+    if (look.capital === "castle") drawCastle(ctx, capX, capY, cssColor(lookTint(nation.color, look)));
     else drawCapitalDot(ctx, capX, capY, look.labelColor);
-    if (nation.ruler.great !== undefined) drawCrown(ctx, capX, capY, look.capitalHeight, look.labelColor);
+    if (nation.ruler.great !== undefined) drawCrown(ctx, capX, capY, look);
 
     if (cells.length < LABEL_MIN_AREA) continue;
     const size = clamp(Math.sqrt(cells.length) * LABEL_SIZE_PER_SQRT_AREA, LABEL_MIN_SIZE, LABEL_MAX_SIZE);

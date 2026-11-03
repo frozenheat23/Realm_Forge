@@ -5,6 +5,7 @@ import { clamp } from "../core/math";
 import { blessing } from "../gen/faiths";
 import { SIM } from "./params";
 import { greatBonus } from "./rulers";
+import { recordLoss } from "./warRecords";
 
 /**
  * Sets the nation's cap from the fighting population it controls (`levyPop`:
@@ -56,6 +57,7 @@ export function armyPower(state: WorldState, army: Army): number {
  */
 export function loseSoldiers(state: WorldState, nation: Nation, lost: number, warId?: number): void {
   const dead = Math.min(lost, soldiers(state, nation));
+  if (warId !== undefined) recordLoss(state, warId, nation.id, dead);
   let left = dead;
   const armies = armiesOf(state, nation.id);
   const fromArmy = (army: Army) => {

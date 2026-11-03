@@ -5,6 +5,7 @@ import { allied } from "./diplomacy";
 import { pairKey, warPairs } from "./helpers";
 import { SIM } from "./params";
 import { goalsHeld } from "./warGoals";
+import { recordCapital } from "./warRecords";
 
 /** Seasons an army needs to take `cell`: empty land falls fast, cities and capitals hold out. */
 export function siegeSteps(state: WorldState, cell: CellId): number {
@@ -26,7 +27,10 @@ function occupy(state: WorldState, cell: CellId, id: NationId): void {
 
   // Losing the capital shakes the whole realm, though it only changes hands at peace.
   const holder = state.nations.get(owner[cell]!)!;
-  if (holder.capital === cell) holder.stability = Math.max(0, holder.stability - SIM.CAPITAL_LOSS_STAB_HIT);
+  if (holder.capital === cell) {
+    holder.stability = Math.max(0, holder.stability - SIM.CAPITAL_LOSS_STAB_HIT);
+    recordCapital(state, id, holder.id, cell);
+  }
 
   if (settlement[cell]! < Settlement.Town) return;
   for (const n of state.cells[cell]!.neighbors) {

@@ -10,6 +10,7 @@ import { effectiveCapacity } from "../src/sim/resources";
 import { rebel } from "../src/sim/rebellion";
 import { claims, declareWars } from "../src/sim/war";
 import { makeNation, makeState, row } from "./tinyWorld";
+import { everyoneAI } from "../src/sim/ai/default";
 
 // [1][1][1] | [2][2][2]
 function twoNations(soldiers1 = 10, soldiers2 = 10) {
@@ -41,7 +42,7 @@ describe("ownership history", () => {
     for (let trial = 0; trial < 2000; trial++) {
       const state = twoNations(100, 1);
       state.state.prevOwner[3] = 1; // nation 2 holds land nation 1 lost
-      const events = declareWars(state, createRng(`c${trial}`));
+      const events = declareWars(state, createRng(`c${trial}`), everyoneAI);
       if (events.length === 0) continue;
       expect(events[0]!.text).toContain("reclaim");
       return;

@@ -129,3 +129,19 @@ export function nextNationId(state: WorldState): NationId {
   for (const id of state.nations.keys()) max = Math.max(max, id);
   return max + 1;
 }
+
+/** Cells of `side` that touch a cell of `enemy`: where fighting happens. */
+export function frontCells(state: WorldState, side: NationId, enemy: NationId): CellId[] {
+  const owner = state.state.owner;
+  const front: CellId[] = [];
+  for (let c = 0; c < owner.length; c++) {
+    if (owner[c] !== side) continue;
+    for (const n of state.cells[c]!.neighbors) {
+      if (owner[n] === enemy) {
+        front.push(c);
+        break;
+      }
+    }
+  }
+  return front;
+}

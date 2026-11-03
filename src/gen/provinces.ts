@@ -6,7 +6,7 @@ import { BIOME_STATS, MOUNTAIN_COST_MULT, PROVINCE_SIZE, RIVER_COST_MULT } from 
 import { MinHeap } from "./rivers";
 
 /** How hard a cell is to cross (the same rule the simulation uses, without race). */
-function travelCost(cell: Cell): number {
+export function travelCost(cell: Cell): number {
   return BIOME_STATS[cell.biome].moveCost * (cell.mountain ? MOUNTAIN_COST_MULT : 1) * (cell.river ? RIVER_COST_MULT : 1);
 }
 

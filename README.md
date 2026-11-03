@@ -24,7 +24,7 @@ npm install
 npm run dev
 ```
 
-Then open the link shown in the terminal (usually http://localhost:5173). Add `?seed=anything` to the address to get a different world, `?style=painted` for the painted look, or `?style=atlas` for the parchment map (also on the **Parchment map** button). Press **Space** to play/pause, **→** to step a year, **C** to see the cells, **N** to hide/show nations, and hover to inspect a cell. Open **Settings** to tune the simulation live, click an event to highlight its nations, and use **Save / Load / Record** to keep a history or export a video.
+Then open the link shown in the terminal (usually http://localhost:5173). Add `?seed=anything` to the address to get a different world, or `?style=painted` for the painted look. The map is parchment by default; the **Classic map** button (or `?style=cel`) gives the older look. Press **Space** to play/pause, **→** to step a year, **C** to see the cells, **N** to hide/show nations, and hover to inspect a cell. Open **Settings** to tune the simulation live, click an event to highlight its nations, and use **Save / Load / Record** to keep a history or export a video.
 
 Run the tests with:
 

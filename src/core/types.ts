@@ -297,6 +297,56 @@ export interface War {
   joined?: number;
 }
 
+/** One battle, as a war remembers it. */
+export interface BattleRecord {
+  year: number;
+  cell: CellId;
+  winner: NationId;
+  loser: NationId;
+  /** Soldiers killed on both sides. */
+  lost: number;
+  routed: boolean;
+}
+
+/** How a war ended. */
+export interface WarOutcome {
+  how: "goal" | "decisive" | "exhausted" | "too long" | "side fell";
+  /** Missing for a white peace, or when a side fell. */
+  winner?: NationId;
+  /** The attacker won a raid: spoils, no land. */
+  raid: boolean;
+  /** Cells the winner took. */
+  cells: number;
+  /** The loser's whole realm fell with its capital. */
+  wholeRealm: boolean;
+  /** How the end read in the log. */
+  text: string;
+}
+
+/**
+ * Everything a war leaves behind, for the War Room (docs/systems/warroom.md).
+ * Written as the war goes on; the simulation never reads it.
+ */
+export interface WarRecord {
+  /** The war's id. Allies' joined wars fold into the record of the war they joined. */
+  id: number;
+  attacker: NationId;
+  defender: NationId;
+  allies: { nation: NationId; side: "attack" | "defend"; year: number }[];
+  goal: WarGoal;
+  start: number;
+  /** Set when the war ends. */
+  end?: number;
+  /** The score at the end of each year (positive = attacker winning). */
+  scores: number[];
+  battles: BattleRecord[];
+  /** Soldiers lost by each side, allies included. */
+  fallen: { attack: number; defend: number };
+  /** Turning points worth stopping for. */
+  moments: { year: number; kind: "joined" | "rout" | "capital"; text: string }[];
+  outcome?: WarOutcome;
+}
+
 /** Two nations pledged to fight beside each other (SPEC §4.12). `a` < `b`. */
 export interface Alliance {
   a: NationId;
@@ -364,6 +414,8 @@ export interface WorldState {
   nextWarId: number;
   /** This year's battles (not saved: only the map needs them). */
   battles: BattleReport[];
+  /** Every war declared so far, ongoing and over (docs/systems/warroom.md). Saved; never read by the simulation. */
+  warRecords: WarRecord[];
   truces: { a: NationId; b: NationId; until: number }[];
   events: SimEvent[];
   /** Each name culture's home point on the map; new nations take the nearest one's names. */
@@ -378,3 +430,6 @@ export interface WorldState {
   /** Names of cells that have grown into cities (kept if the city shrinks, so it keeps its name if it regrows). */
   cityNames: Map<CellId, string>;
 }
+
+/** How history opens (docs/systems/start.md): small nations in an empty world, or old kingdoms sharing all of it. */
+export type StartOptions = { kind: "open" } | { kind: "settled"; kingdoms: number };

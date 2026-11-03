@@ -1,4 +1,4 @@
-// The ruler card (SPEC §5.4j): a portrait in a frame tinted with the nation's color,
+// The ruler card (SPEC §5.4k): a portrait in a frame tinted with the nation's color,
 // with the ruler's name on the nameplate. Hover a nation to see its ruler; a great
 // ruler's rise holds the card up for a few seconds.
 import type { Nation } from "../core/types";

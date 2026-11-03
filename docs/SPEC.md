@@ -33,7 +33,7 @@ src/
   core/    rng.ts, types.ts, math.ts, graph.ts
   gen/     params.ts, heightmap.ts, climate.ts, biomes.ts, rivers.ts, cells.ts, races.ts, resources.ts, provinces.ts, nations.ts, names.ts, index.ts
   sim/     params.ts, tick.ts, population.ts, totals.ts, manpower.ts, control.ts, land.ts, resources.ts, stability.ts, expansion.ts, diplomacy.ts, war.ts, armies.ts, rebellion.ts, collapse.ts, emergence.ts, events.ts, snapshot.ts
-  render/  palette.ts, terrain*.ts, atlasChart.ts, atlasSymbols.ts, overlay.ts, labels.ts, alliances.ts, armies.ts, heatmap.ts, resources.ts, settlements.ts, hud.ts
+  render/  palette.ts, terrain*.ts, atlasChart.ts, atlasMarkers.ts, atlasSymbols.ts, overlay.ts, labels.ts, alliances.ts, armies.ts, heatmap.ts, resources.ts, settlements.ts, hud.ts
   ui/      controls.ts, eventLog.ts, timeline.ts, export.ts
   main.ts
 tests/
@@ -235,6 +235,9 @@ Each cell also gets `defensibility`, maybe a resource deposit (stream `resources
 Place `START_NATIONS` capitals on the highest-capacity land cells, at least `START_MIN_SPACING` cell-steps apart. Once a capital has its race (below) it may shift up to `START_HOME_RANGE` steps to the free land that race likes best. Each claims a core of `START_CORE_SIZE × startSize` cells (race trait), cheapest terrain for its race first, so elves spread along their forests. Starting population is `START_POP_FRACTION` × capacity, stability `START_STABILITY`. Colors step round the color wheel by the golden angle (~137.5°) so no two are alike. Each nation logs a `founded` event at year 0.
 
 Each starting nation's race is the race of the nearest race homeland (§4.10); its core cells are settled by that race. If a race ends up with no starting nation, the capital nearest to that race's homeland switches to it, so every race is on the map at year 0.
+
+### 3.8b Settled start: old kingdoms
+The default start since M16b: 5–10 old kingdoms share all the habitable land at year 0, with subject peoples, core land, towns and cities. Picked in the toolbar or with `?start=5`…`10`; `?start=open` gives §3.8. See [`systems/start.md`](systems/start.md).
 
 ### 3.9 Names
 A Markov-chain name generator (order `NAME_ORDER`) trained on invented example names, one list per culture (`gen/nameCorpus.ts`). Each culture gets a random home point on the map; a nation uses the culture of the nearest home point, so nearby nations sound related. Names never repeat and never copy an example.
@@ -706,6 +709,12 @@ Measured on 20 seeds never used for tuning, each 1,000 years, against the same s
 
 Every nation has a named ruler and dynasty. A few rulers are great (Conqueror, Lawgiver, Builder, Prophet, Schemer): each race leans toward one type, and bigger realms draw them more often. When a reign ends, a crisis can strike, and big nations fall into civil war, worst after a great ruler. One new tick step: 7b Succession. Golden ages are designed in the same file but not built.
 
+### 4.16 Controllers and commands
+
+> Built in M15. The full description is in [`systems/controllers.md`](systems/controllers.md).
+
+Every choice a nation makes (declare war and its goal, join an ally, form or break an alliance, accept peace, mobilize, campaign orders, crush a revolt, adopt a faith) is asked of the nation's **controller** and comes back as a **command** that the rules validate and apply. The AI controller is today's logic, moved; a player controller can replace it for one nation later (M19). Battle rolls, revolts, spreading, succession and everything else stay rules. No new tick step.
+
 ---
 
 ## 5. Rendering (`render/`)
@@ -718,14 +727,15 @@ Every nation has a named ruler and dynasty. A few rulers are great (Conqueror, L
 - **Grain:** faint noise texture at `TERRAIN_GRAIN`.
 - **Water:** deep-to-shallow gradient with a lighter coastal band.
 
-### 5.1b Parchment style (`?style=atlas`)
+### 5.1b Parchment style (default)
 
-An old chart, chosen from mockups by the user: aged paper, a pale sea with engraved lines along the shore, and thin ink outlines. A "Parchment map" button switches style, which reloads and restarts the world. It only changes drawing, so history is the same in every style.
+An old chart, chosen from mockups by the user: aged paper, a pale sea with engraved lines along the shore, and thin ink outlines. A "Classic map" button switches to the cel-shaded style (`?style=cel`), which reloads and restarts the world. It only changes drawing, so history is the same in every style.
 
 - **Terrain layer:** paper and sea (`terrainAtlas.ts`), then sailing lines over water only, a faint grid and the compass rose (`atlasChart.ts`).
 - **Symbol layer:** rivers, mountains, hills, trees and desert dots (`atlasSymbols.ts`). They sit on their own layer above the nation colors, so tinting doesn't fade the ink.
 - **Nation colors:** the same overlay, given `LOOK_ATLAS`: pale colors leaning toward sepia, a stronger band along borders, and one ink for every border. War borders stay red.
-- **Labels and places:** IM Fell fonts (bundled, SIL Open Font License), castles for capitals, rings for cities, no town dots.
+- **Labels and places:** IM Fell fonts (bundled, SIL Open Font License), no town dots. `atlasMarkers.ts` draws a castle flying the realm's color for capitals, a spire for cities and an ink picture on each resource.
+- **Armies, alliances and effects:** the same layers, given the look: colors leaning toward sepia, ink outlines and lines, red-brown war borders and siege rings.
 - **Frame and title panel:** drawn with the labels each year. The panel takes the corner with the least land and carries the year and heatmap name, replacing `hud.ts`.
 
 `MapLook` in `palette.ts` holds what a style changes in the shared layers. A new style adds one more look.
@@ -790,7 +800,11 @@ Hovering over an army (or next to it, since banners are wider than a cell) shows
 
 Two more tints like the Races layer (§5.4b), and only one of the three shows at a time. **Cultures** (key K) tints land by the color of the culture's founding realm, so a dead realm's people still show in its color. **Faiths** (key F) tints land by `FAITH_COLORS`. The hover info names both.
 
-### 5.4j Ruler card
+### 5.4j War Room (M16)
+
+The side panel (Wars, Past wars, Log), following a war, its map marks and the war report: see [`systems/warroom.md`](systems/warroom.md). It reads the war records the simulation keeps (`WorldState.warRecords`, saved).
+
+### 5.4k Ruler card
 
 A portrait card floats at the map's top right (`src/ui/rulerCard.ts`), toggled with key P. Hovering over a nation shows its ruler; unowned land hides it. When a great ruler rises, the card shows them and stays up for `RULER_CARD_SECONDS`, ignoring hover meanwhile.
 
@@ -822,6 +836,7 @@ A portrait card floats at the map's top right (`src/ui/rulerCard.ts`), toggled w
 
 - Same seed + same parameters = identical history **in the same browser**. JavaScript's `Math.exp`, `Math.pow` and similar functions can differ very slightly between browsers, so cross-browser results may drift.
 - **Key test:** run 1,000 years twice with the same seed; the event lists must be identical.
+- **Golden history** (`tests/golden.test.ts`, M15): fingerprints of three long runs, recorded once. The key test only compares the code with itself; this one catches a change that was meant to leave history alone but didn't. If history is *meant* to change, record new fingerprints and say why in the decision log.
 - Each sim step gets unit tests on a tiny hand-built map (e.g. 6 cells, 2 nations).
 - No `Math.random()` anywhere in `gen/` or `sim/`.
 

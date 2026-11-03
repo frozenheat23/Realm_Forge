@@ -1,8 +1,6 @@
 // War goals (SPEC §4.13): what a war is fought for, and what the winner gets at peace.
-import type { Rng } from "../core/rng";
-import { Faith, type CellId, type Nation, type War, type WarGoal, type WorldState } from "../core/types";
+import { Faith, type CellId, type Nation, type War, type WorldState } from "../core/types";
 import { blessing } from "../gen/faiths";
-import { traits } from "../gen/races";
 import { clamp } from "../core/math";
 import { setOwner } from "./helpers";
 import { fightingPower } from "./manpower";
@@ -28,7 +26,7 @@ export function claimedCells(state: WorldState, attacker: Nation, defender: Nati
  * The defender's land in the province around `prize`, and in as many nearby provinces
  * as the attacker's strength lets it aim for: a much stronger nation wants far more.
  */
-function conquestCells(state: WorldState, attacker: Nation, defender: Nation, prize: CellId): CellId[] {
+export function conquestCells(state: WorldState, attacker: Nation, defender: Nation, prize: CellId): CellId[] {
   const { cells } = state;
   const owner = state.state.owner;
   const ratio = fightingPower(state, attacker) / Math.max(fightingPower(state, defender), 1e-6);
@@ -54,20 +52,6 @@ function conquestCells(state: WorldState, attacker: Nation, defender: Nation, pr
   // Far stronger? Then it goes for the throne: holding the capital at peace wins the whole nation.
   if (ratio >= SIM.SUBJUGATE_RATIO && !goal.includes(defender.capital)) goal.push(defender.capital);
   return goal;
-}
-
-/** Picks a war's goal. `prize` is the defender's most valuable border cell, as the attacker sees it. */
-export function chooseGoal(
-  state: WorldState,
-  attacker: Nation,
-  defender: Nation,
-  claim: boolean,
-  prize: CellId | undefined,
-  rng: Rng,
-): { goal: WarGoal; goalCells: CellId[] } {
-  if (claim) return { goal: "reclaim", goalCells: claimedCells(state, attacker, defender) };
-  if (prize === undefined || rng.chance(SIM.RAID_CHANCE * traits(attacker.race).aggression)) return { goal: "raid", goalCells: [] };
-  return { goal: "conquer", goalCells: conquestCells(state, attacker, defender, prize) };
 }
 
 /** Goal cells the defender still owns. A cell that broke away to rebels no longer counts. */

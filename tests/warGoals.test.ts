@@ -4,9 +4,10 @@ import { NO_TARGET, type War, type WarGoal } from "../src/core/types";
 import { campaign } from "../src/sim/armies";
 import { SIM } from "../src/sim/params";
 import { endWars } from "../src/sim/war";
-import { chooseGoal, goalAchieved, payTribute, takeLand } from "../src/sim/warGoals";
+import { goalAchieved, payTribute, takeLand } from "../src/sim/warGoals";
 import { occupationCounts, occupationScore } from "../src/sim/siege";
 import { makeNation, makeState, row } from "./tinyWorld";
+import { chooseGoal, everyoneAI } from "../src/sim/ai/default";
 
 const war = (goal: WarGoal, goalCells: number[] = [], extra: Partial<War> = {}): War => ({
   id: 1, attacker: 1, defender: 2, startYear: 0, score: 0, battleScore: 0, goal, goalCells, ...extra,
@@ -89,7 +90,7 @@ describe("marching on the goal", () => {
     const state = neighbors();
     state.wars.push(war("conquer", [18]));
     state.armies.push({ id: 1, owner: 1, war: 1, cell: 9, size: 1, morale: 1, target: NO_TARGET, path: [], trail: [9] });
-    oneSeason(() => campaign(state, createRng("g")));
+    oneSeason(() => campaign(state, createRng("g"), everyoneAI));
     expect(state.armies[0]!.target).toBe(18);
   });
 });
@@ -117,7 +118,7 @@ describe("reaching the goal", () => {
     const state = neighbors();
     state.state.occupier[10] = 1;
     state.wars.push(war("conquer", [10], { battleScore: -5 }));
-    const events = endWars(state);
+    const events = endWars(state, everyoneAI);
     expect(state.wars).toHaveLength(0);
     expect(state.state.owner[10]).toBe(1);
     expect(events[0]!.text).toContain("defeats");
@@ -144,7 +145,7 @@ describe("taking the capital", () => {
     const state = neighbors();
     state.wars.push(war("conquer", [19]));
     state.state.occupier[19] = 1;
-    const events = endWars(state);
+    const events = endWars(state, everyoneAI);
     expect(state.state.owner.slice(10, 20).every((o) => o === 1)).toBe(true);
     expect(state.nations.get(2)!.alive).toBe(false);
     expect(events[0]!.text).toContain("whole realm");
@@ -154,7 +155,7 @@ describe("taking the capital", () => {
     const state = neighbors();
     state.wars.push(war("conquer", [10]));
     state.state.occupier[10] = 1;
-    endWars(state);
+    endWars(state, everyoneAI);
     expect(state.state.owner[10]).toBe(1);
     expect(state.nations.get(2)!.alive).toBe(true);
   });
@@ -167,7 +168,7 @@ describe("who won", () => {
     state.year = SIM.MAX_WAR_YEARS;
     state.wars.push(war("raid", [], { goal: "conquer", goalCells: [], battleScore: 0 }));
     for (let c = 10; c < 10 + held; c++) state.state.occupier[c] = 1;
-    return { state, events: endWars(state) };
+    return { state, events: endWars(state, everyoneAI) };
   }
 
   it("a war below WIN_SCORE is a white peace and everything goes back", () => {
@@ -210,7 +211,7 @@ describe("peace terms", () => {
     const winner = state.nations.get(1)!;
     const loser = state.nations.get(2)!;
     winner.stability = loser.stability = 0.5;
-    const events = endWars(state);
+    const events = endWars(state, everyoneAI);
     expect(state.state.owner[10]).toBe(2);
     expect(winner.stability).toBeCloseTo(0.5 + SIM.RAID_TRIBUTE);
     expect(loser.stability).toBeCloseTo(0.5 - SIM.RAID_TRIBUTE);
@@ -234,7 +235,7 @@ describe("allies in support", () => {
     state.state.occupier[13] = 1;
     state.wars.push(war("conquer", [13]), war("support", [], { id: 2, defender: 3, joined: 1 }));
     state.armies.push({ id: 1, owner: 3, war: 2, cell: 7, size: 1, morale: 1, target: NO_TARGET, path: [], trail: [7] });
-    oneSeason(() => campaign(state, createRng("g")));
+    oneSeason(() => campaign(state, createRng("g"), everyoneAI));
     expect(state.armies[0]!.target).toBe(13);
   });
 });

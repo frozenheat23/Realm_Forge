@@ -20,7 +20,7 @@ import {
 } from "./params";
 
 /** Marks every cell fewer than `steps` steps from `start` (breadth-first). */
-function markNearby(start: CellId, steps: number, cells: Cell[], marked: Uint8Array): void {
+export function markNearby(start: CellId, steps: number, cells: Cell[], marked: Uint8Array): void {
   const dist = new Map<CellId, number>([[start, 0]]);
   const queue = [start];
   marked[start] = 1;

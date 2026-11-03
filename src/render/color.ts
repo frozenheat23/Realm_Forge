@@ -1,9 +1,19 @@
 // Color helpers shared by the renderers.
 import { clamp, lerp } from "../core/math";
-import type { ColorStop } from "./palette";
+import type { ColorStop, MapLook } from "./palette";
 
 /** A color as [red, green, blue], each 0..255. */
 export type Rgb = [number, number, number];
+
+/** A color pulled toward a map style's tint, so it sits on that map. */
+export function lookTint(hex: string, look: MapLook): Rgb {
+  return mixRgb(hexToRgb(hex), hexToRgb(look.tintToward), look.tintShare);
+}
+
+/** The same color as a string canvases accept. */
+export function cssColor(c: Rgb): string {
+  return `rgb(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])})`;
+}
 
 /** Turns "#a8c47a" into [168, 196, 122]. */
 export function hexToRgb(hex: string): Rgb {

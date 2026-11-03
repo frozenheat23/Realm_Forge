@@ -16,6 +16,8 @@ import { updateStability } from "./stability";
 import { succession } from "./succession";
 import { updateTotals } from "./totals";
 import { releaseOccupations } from "./siege";
+import type { Controllers } from "./ai/controller";
+import { everyoneAI } from "./ai/default";
 import { declareWars, endWars } from "./war";
 
 /**
@@ -24,8 +26,10 @@ import { declareWars, endWars } from "./war";
  *
  * `rng` is the simulation's random stream. Each year (and each step within it)
  * gets its own fork, so adding randomness to one step never changes another.
+ *
+ * `controllers` says who makes each nation's choices: the AI unless told otherwise.
  */
-export function tick(state: WorldState, rng: Rng): SimEvent[] {
+export function tick(state: WorldState, rng: Rng, controllers: Controllers = everyoneAI): SimEvent[] {
   state.year += 1;
   const year = rng.fork(`year-${state.year}`);
   const events: SimEvent[] = [];
@@ -35,17 +39,17 @@ export function tick(state: WorldState, rng: Rng): SimEvent[] {
   events.push(...updateLand(state, control, year.fork("land"))); // … and each cell's land
   assimilate(state, control, year.fork("culture")); //    … and each cell's people
   events.push(...spreadFaith(state, year.fork("faith")));
-  events.push(...convertRealms(state, year.fork("conversion")));
+  events.push(...convertRealms(state, year.fork("conversion"), controllers));
   updateStability(state); //                              3. Stability
   expand(state, year.fork("expansion")); //               4. Expansion
-  events.push(...diplomacy(state, year.fork("diplomacy"))); // 4b. Diplomacy
-  events.push(...declareWars(state, year.fork("declare"))); //  5. War declared
-  musterArmies(state); //                                 5b. Armies raised and reinforced
-  campaign(state, year.fork("campaign")); //              6. Campaign: armies march, fight and besiege
+  events.push(...diplomacy(state, year.fork("diplomacy"), controllers)); // 4b. Diplomacy
+  events.push(...declareWars(state, year.fork("declare"), controllers)); //  5. War declared
+  musterArmies(state, controllers); //                                 5b. Armies raised and reinforced
+  campaign(state, year.fork("campaign"), controllers); //              6. Campaign: armies march, fight and besiege
   events.push(...battleEvents(state));
-  events.push(...endWars(state)); //                      6b. Peace
-  events.push(...rebellions(state, year.fork("rebellion"))); // 7. Rebellion
-  events.push(...succession(state, year.fork("succession"))); // 7b. Succession
+  events.push(...endWars(state, controllers)); //                      6b. Peace
+  events.push(...rebellions(state, year.fork("rebellion"), controllers)); // 7. Rebellion
+  events.push(...succession(state, year.fork("succession"), controllers)); // 7b. Succession
   events.push(...collapses(state)); //                    8. Collapse
   disbandArmies(state); //                                … armies whose war is over go home
   releaseOccupations(state); //                           … and occupations with no war behind them end

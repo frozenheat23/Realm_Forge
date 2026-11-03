@@ -6,7 +6,7 @@ import { pairKey } from "../sim/helpers";
 import { SIM } from "../sim/params";
 import { cellPhase, hotCells, restlessCells, siegeCells } from "./changes";
 import type { CellPixels } from "./displayCells";
-import { hexToRgb } from "./color";
+import { cssColor, lookTint } from "./color";
 import {
   BATTLE_RADIUS,
   BATTLE_RING_WIDTH,
@@ -15,7 +15,6 @@ import {
   BATTLE_SWORD_SIZE,
   CEL_INK_COLOR,
   COLLAPSE_COLOR,
-  EMBER_COLOR,
   EMBER_DENSITY,
   EMBER_FLICKER,
   EMBER_MIN_UNREST,
@@ -23,12 +22,12 @@ import {
   EVENT_BURST_RADIUS,
   EVENT_BURST_SECONDS,
   EVENT_RING_WIDTH,
+  LOOK_STANDARD,
   MAX_BURSTS,
   OCCUPIED_HATCH_ALPHA,
   OCCUPIED_HATCH_SPACING,
   OCCUPIED_HATCH_SPEED,
   OCCUPIED_HATCH_WIDTH,
-  SIEGE_RING_COLOR,
   SIEGE_RING_RADIUS,
   SIEGE_RING_WIDTH,
   SMOKE_ALPHA,
@@ -37,7 +36,7 @@ import {
   SMOKE_RISE,
   SMOKE_SECONDS,
   SMOKE_SIZE,
-  WAR_FRONT_COLOR,
+  type MapLook,
 } from "./palette";
 
 /** A short flash: a battle, or a nation rising or falling. `start` is in milliseconds. */
@@ -62,8 +61,10 @@ export interface Effects {
 
 const TAU = Math.PI * 2;
 
-export function createEffects(world: GeneratedWorld, cellPixels: CellPixels): Effects {
+export function createEffects(world: GeneratedWorld, cellPixels: CellPixels, look: MapLook = LOOK_STANDARD): Effects {
   const { width, height, cells } = world;
+  /** A realm's color as this map style shows it. */
+  const shown = (hex: string | undefined) => (hex === undefined ? look.warColor : cssColor(lookTint(hex, look)));
 
   let bursts: Burst[] = [];
 
@@ -84,7 +85,7 @@ export function createEffects(world: GeneratedWorld, cellPixels: CellPixels): Ef
   const maskPixels = new Uint32Array(maskImage.data.buffer);
   const stripes = hatchCtx.createPattern(stripeTile(), "repeat")!;
   const smokeSprite = glowSprite(SMOKE_COLOR);
-  const emberSprite = glowSprite(EMBER_COLOR);
+  const emberSprite = glowSprite(look.emberColor);
 
   function addBurst(burst: Burst): void {
     if (burst.key !== undefined) bursts = bursts.filter((b) => b.key !== burst.key);
@@ -94,7 +95,7 @@ export function createEffects(world: GeneratedWorld, cellPixels: CellPixels): Ef
 
   function noteYear(state: WorldState, events: SimEvent[], now: number): void {
     for (const battle of state.battles) {
-      const color = state.nations.get(battle.winner)?.color ?? WAR_FRONT_COLOR;
+      const color = shown(state.nations.get(battle.winner)?.color);
       const [x, y] = cells[battle.cell]!.site;
       addBurst({ kind: "battle", x, y, color, start: now, key: pairKey(battle.winner, battle.loser) });
     }
@@ -105,7 +106,7 @@ export function createEffects(world: GeneratedWorld, cellPixels: CellPixels): Ef
       const falls = event.type === "collapse" || event.type === "annexed";
       if (!falls && event.type !== "rebellion" && event.type !== "founded") continue;
       const [x, y] = cells[nation.capital]!.site;
-      addBurst({ kind: "event", x, y, color: falls ? COLLAPSE_COLOR : nation.color, start: now });
+      addBurst({ kind: "event", x, y, color: falls ? COLLAPSE_COLOR : shown(nation.color), start: now });
     }
   }
 
@@ -132,7 +133,7 @@ export function createEffects(world: GeneratedWorld, cellPixels: CellPixels): Ef
       changed = true;
       let color = 0;
       if (id !== 0) {
-        const [r, g, b] = hexToRgb(state.nations.get(id)?.color ?? WAR_FRONT_COLOR);
+        const [r, g, b] = lookTint(state.nations.get(id)?.color ?? look.warColor, look).map(Math.round) as [number, number, number];
         color = ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0; // pixels are stored as ABGR
       }
       for (let p = cellPixels.start[c]!; p < cellPixels.start[c + 1]!; p++) maskPixels[cellPixels.pixels[p]!] = color;
@@ -167,7 +168,7 @@ export function createEffects(world: GeneratedWorld, cellPixels: CellPixels): Ef
 
   /** A ring around each besieged cell, closing as the siege nears its end. */
   function drawSiegeRings(ctx: CanvasRenderingContext2D): void {
-    ctx.strokeStyle = SIEGE_RING_COLOR;
+    ctx.strokeStyle = look.siegeColor;
     ctx.lineWidth = SIEGE_RING_WIDTH;
     for (let i = 0; i < sieges.length; i++) {
       const [x, y] = cells[sieges[i]!]!.site;

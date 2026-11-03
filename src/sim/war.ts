@@ -1,55 +1,25 @@
 // Steps 5 and 6b (SPEC §4.5): neighbors go to war (allies may join), and wars end in peace and a truce.
 import type { Rng } from "../core/rng";
-import { Faith, RulerType, type CellId, type Nation, type NationId, type ResourceKind, type SimEvent, type War, type WarGoal, type WorldState } from "../core/types";
-import { blessing } from "../gen/faiths";
+import type { CellId, Nation, NationId, ResourceKind, SimEvent, War, WarGoal, WarOutcome, WorldState } from "../core/types";
 import { RESOURCES } from "../gen/params";
 import { traits } from "../gen/races";
+import { carryOut, done, refuse, type Controllers, type WarContext } from "./ai/controller";
+import type { CommandOf, CommandResult } from "./commands";
 import { allied, alliesOf, opinion } from "./diplomacy";
 import { conquestEvent, joinAttackEvent, joinDefenseEvent, peaceEvent, raidEvent, warEvent } from "./events";
-import { neighborPairs, pairKey } from "./helpers";
+import { frontCells, neighborPairs, pairKey } from "./helpers";
 import { fightingPower } from "./manpower";
 import { SIM } from "./params";
 import { cellValue, effectiveCapacity, grainBonuses } from "./resources";
-import { greatBonus } from "./rulers";
 import { occupationCounts, occupationScore } from "./siege";
-import { chooseGoal, claimYears, goalAchieved, payTribute, takeLand } from "./warGoals";
+import { closeRecord, openRecord, recordScore } from "./warRecords";
+import { claimedCells, claimYears, conquestCells, goalAchieved, payTribute, takeLand } from "./warGoals";
 
 // They used to live here; other files still import them from war.ts.
-export { neighborPairs, pairKey };
-
-/** Cells of `side` that touch a cell of `enemy`: where fighting happens. */
-export function frontCells(state: WorldState, side: NationId, enemy: NationId): CellId[] {
-  const owner = state.state.owner;
-  const front: CellId[] = [];
-  for (let c = 0; c < owner.length; c++) {
-    if (owner[c] !== side) continue;
-    for (const n of state.cells[c]!.neighbors) {
-      if (owner[n] === enemy) {
-        front.push(c);
-        break;
-      }
-    }
-  }
-  return front;
-}
+export { frontCells, neighborPairs, pairKey };
 
 function inTruce(state: WorldState, a: NationId, b: NationId): boolean {
   return state.truces.some((t) => pairKey(t.a, t.b) === pairKey(a, b) && t.until > state.year);
-}
-
-/**
- * Yearly chance that `attacker` declares war on `defender` (SPEC §4.5).
- * `attackHelp` / `defendHelp` = fighting power the allies on each side are expected to bring.
- * `motive` multiplies it for reasons to fight (claims on lost land).
- * A bigger gap makes war more tempting, and so do an aggressive ruling race and hatred.
- */
-export function warChance(state: WorldState, attacker: Nation, defender: Nation, attackHelp = 0, defendHelp = 0, motive = 1): number {
-  const ratio = (fightingPower(state, attacker) + attackHelp) / Math.max(fightingPower(state, defender) + defendHelp, 1e-6);
-  const mood = Math.max(0, 1 - opinion(state, attacker.id, defender.id) * SIM.OPINION_WAR_K);
-  return Math.min(
-    SIM.WAR_MAX_PROB,
-    SIM.WAR_BASE_PROB * traits(attacker.race).aggression * blessing(attacker, Faith.RedHunger) * greatBonus(attacker, RulerType.Conqueror, SIM.GREAT_CONQUEROR_WAR) * ratio ** SIM.WAR_STRENGTH_EXP * (1 - attacker.warWeariness) * mood * motive,
-  );
 }
 
 /** Key for "from → to": unlike pairKey, the order matters. */
@@ -116,6 +86,7 @@ export function startWar(state: WorldState, attacker: Nation, defender: Nation, 
   const war: War = { id: state.nextWarId++, attacker: attacker.id, defender: defender.id, startYear: state.year, score: 0, battleScore: 0, goal, goalCells };
   if (joined !== undefined) war.joined = joined;
   state.wars.push(war);
+  openRecord(state, war);
   state.relations.set(pairKey(attacker.id, defender.id), Math.max(-1, opinion(state, attacker.id, defender.id) - SIM.WAR_OPINION_HIT));
   return war;
 }
@@ -125,69 +96,137 @@ export function warsOf(state: WorldState, id: NationId): number {
   return state.wars.filter((w) => w.attacker === id || w.defender === id).length;
 }
 
-export function declareWars(state: WorldState, rng: Rng): SimEvent[] {
-  const events: SimEvent[] = [];
-  const pairs = neighborPairs(state);
-  const touching = new Set(pairs.map(([a, b]) => pairKey(a, b)));
-  const claimed = claims(state);
-  const prizes = borderPrizes(state);
-  const atWar = new Set(state.wars.map((w) => pairKey(w.attacker, w.defender)));
-  const warCount = new Map<NationId, number>();
-  for (const w of state.wars) {
-    warCount.set(w.attacker, (warCount.get(w.attacker) ?? 0) + 1);
-    warCount.set(w.defender, (warCount.get(w.defender) ?? 0) + 1);
+function atWar(state: WorldState, a: NationId, b: NationId): boolean {
+  return state.wars.some((w) => pairKey(w.attacker, w.defender) === pairKey(a, b));
+}
+
+/** Yearly facts the war choices need, worked out once per year (they scan the whole map). */
+export interface WarLookups {
+  claims: Set<number>;
+  prizes: Map<number, { cell: CellId; value: number }>;
+  /** Pair keys of nations whose land touches. */
+  touching: Set<number>;
+}
+
+export function warLookups(state: WorldState): WarLookups {
+  return { claims: claims(state), prizes: borderPrizes(state), touching: new Set(neighborPairs(state).map(([a, b]) => pairKey(a, b))) };
+}
+
+/** Free to start a war with `enemy`: not already fighting it, no truce, and not at the war limit. */
+function free(state: WorldState, id: NationId, enemy: NationId): boolean {
+  return !atWar(state, id, enemy) && !inTruce(state, id, enemy) && warsOf(state, id) < SIM.MAX_WARS_PER_NATION;
+}
+
+/** Allies of `friend` that could fight `enemy`: they border it or `friend`, aren't also its allies, and are free. */
+function helpers(state: WorldState, lookups: WarLookups, friend: NationId, enemy: NationId): Nation[] {
+  return alliesOf(state, friend)
+    .filter((id) => id !== enemy && (lookups.touching.has(pairKey(id, enemy)) || lookups.touching.has(pairKey(id, friend))) && !allied(state, id, enemy) && free(state, id, enemy))
+    .map((id) => state.nations.get(id)!);
+}
+
+/** The "declareWar" command: the rules check it's allowed, work out the goal cells, and start the war. */
+export function applyDeclareWar(state: WorldState, cmd: CommandOf<"declareWar">, lookups = warLookups(state)): CommandResult {
+  const me = state.nations.get(cmd.nation);
+  const them = state.nations.get(cmd.target);
+  if (!me?.alive || !them?.alive || me === them) return refuse("there's no such pair of nations");
+  if (!lookups.touching.has(pairKey(me.id, them.id))) return refuse("they don't share a border");
+  if (atWar(state, me.id, them.id)) return refuse("they're already at war");
+  if (allied(state, me.id, them.id)) return refuse("they're allies");
+  if (inTruce(state, me.id, them.id)) return refuse("there's a truce between them");
+  if (warsOf(state, me.id) >= SIM.MAX_WARS_PER_NATION || warsOf(state, them.id) >= SIM.MAX_WARS_PER_NATION) return refuse("one of them has too many wars");
+
+  const prize = lookups.prizes.get(directedKey(me.id, them.id));
+  let goalCells: CellId[];
+  if (cmd.goal === "reclaim") {
+    if (!lookups.claims.has(directedKey(me.id, them.id))) return refuse("there's no claim to reclaim");
+    goalCells = claimedCells(state, me, them);
+  } else if (cmd.goal === "conquer") {
+    if (!prize) return refuse("there's nothing to conquer");
+    goalCells = conquestCells(state, me, them, prize.cell);
+  } else if (cmd.goal === "raid") {
+    goalCells = [];
+  } else {
+    return refuse("a war can't be declared with that goal");
   }
-  const busy = (id: NationId) => (warCount.get(id) ?? 0) >= SIM.MAX_WARS_PER_NATION;
-  const free = (a: NationId, b: NationId) => !atWar.has(pairKey(a, b)) && !inTruce(state, a, b) && !busy(a);
+  const war = startWar(state, me, them, cmd.goal, goalCells);
+  return done([warEvent(state.year, me, them, warMotive(state, me, cmd.goal, goalCells, prize?.cell))], war);
+}
 
-  // Allies of `friend` that could fight `enemy`: they border it or `friend`, aren't also its allies, and are free.
-  const helpers = (friend: NationId, enemy: NationId): Nation[] =>
-    alliesOf(state, friend)
-      .filter((id) => id !== enemy && (touching.has(pairKey(id, enemy)) || touching.has(pairKey(id, friend))) && !allied(state, id, enemy) && free(id, enemy))
-      .map((id) => state.nations.get(id)!);
-  const help = (allies: Nation[], joinChance: number) => allies.reduce((sum, n) => sum + fightingPower(state, n) * joinChance, 0);
+/** The "joinWar" command: an ally of one side joins the war, with its own `support` war against the other side. */
+export function applyJoinWar(state: WorldState, cmd: CommandOf<"joinWar">, lookups = warLookups(state)): CommandResult {
+  const me = state.nations.get(cmd.nation);
+  const main = state.wars.find((w) => w.id === cmd.war && w.joined === undefined);
+  if (!me?.alive || !main) return refuse("there's no such war to join");
+  const friend = state.nations.get(cmd.side === "defend" ? main.defender : main.attacker)!;
+  const enemy = state.nations.get(cmd.side === "defend" ? main.attacker : main.defender)!;
+  if (me === friend || me === enemy) return refuse("it's already in that war");
+  if (!helpers(state, lookups, friend.id, enemy.id).includes(me)) return refuse("it isn't an ally that can reach the war, or it's busy");
+  if (cmd.side === "defend") {
+    startWar(state, enemy, me, "support", [], main.id);
+    return done([joinDefenseEvent(state.year, me, friend, enemy)]);
+  }
+  startWar(state, me, enemy, "support", [], main.id);
+  return done([joinAttackEvent(state.year, me, friend, enemy)]);
+}
 
-  const start = (attacker: Nation, defender: Nation, goal: WarGoal, goalCells: CellId[], joined?: number): War => {
-    const war = startWar(state, attacker, defender, goal, goalCells, joined);
-    atWar.add(pairKey(attacker.id, defender.id));
-    warCount.set(attacker.id, (warCount.get(attacker.id) ?? 0) + 1);
-    warCount.set(defender.id, (warCount.get(defender.id) ?? 0) + 1);
-    return war;
-  };
+/** One ally asked to join a war: who, on which side, and the two sides from its point of view. */
+interface Call {
+  ally: Nation;
+  side: "attack" | "defend";
+  friend: Nation;
+  enemy: Nation;
+}
 
-  for (const [a, b] of pairs) {
-    if (atWar.has(pairKey(a, b)) || allied(state, a, b) || inTruce(state, a, b) || busy(a) || busy(b)) continue;
+/**
+ * Step 5: each pair of neighbors that could fight is asked, the stronger first, whether
+ * to go to war; then the allies of both sides whether to join in.
+ */
+export function declareWars(state: WorldState, rng: Rng, controllers: Controllers): SimEvent[] {
+  const events: SimEvent[] = [];
+  const lookups = warLookups(state);
+  const busy = (id: NationId) => warsOf(state, id) >= SIM.MAX_WARS_PER_NATION;
+
+  for (const [a, b] of neighborPairs(state)) {
+    if (atWar(state, a, b) || allied(state, a, b) || inTruce(state, a, b) || busy(a) || busy(b)) continue;
     const na = state.nations.get(a)!;
     const nb = state.nations.get(b)!;
-    // The side with more fighting power attacks, weighing up whose allies would join in.
-    const [attacker, defender] = fightingPower(state, na) >= fightingPower(state, nb) ? [na, nb] : [nb, na];
-    const attackAllies = helpers(attacker.id, defender.id);
-    const defendAllies = helpers(defender.id, attacker.id);
-    // Reasons to fight: land it lost to the defender, and how much the best border cell is worth.
-    const claim = claimed.has(directedKey(attacker.id, defender.id));
-    const prize = prizes.get(directedKey(attacker.id, defender.id));
-    const motive = (claim ? SIM.CLAIM_WAR_BONUS : 1) * (1 + SIM.WAR_VALUE_K * (prize?.value ?? 0));
-    const chance = warChance(state, attacker, defender, help(attackAllies, SIM.ALLY_ATTACK_PROB), help(defendAllies, SIM.ALLY_DEFEND_PROB), motive);
-    if (!rng.chance(chance)) continue;
-
-    const { goal, goalCells } = chooseGoal(state, attacker, defender, claim, prize?.cell, rng);
-    const war = start(attacker, defender, goal, goalCells);
-    events.push(warEvent(state.year, attacker, defender, warMotive(state, attacker, goal, goalCells, prize?.cell)));
-    for (const ally of defendAllies) {
-      if (!free(ally.id, attacker.id) || !rng.chance(SIM.ALLY_DEFEND_PROB)) continue;
-      start(attacker, ally, "support", [], war.id);
-      events.push(joinDefenseEvent(state.year, ally, defender, attacker));
-    }
-    for (const ally of attackAllies) {
-      if (!free(ally.id, defender.id) || !rng.chance(SIM.ALLY_ATTACK_PROB)) continue;
-      start(ally, defender, "support", [], war.id);
-      events.push(joinAttackEvent(state.year, ally, attacker, defender));
+    // Either side may go to war. The one with more fighting power is asked first.
+    const [strong, weak] = fightingPower(state, na) >= fightingPower(state, nb) ? [na, nb] : [nb, na];
+    for (const [me, them] of [[strong, weak], [weak, strong]] as const) {
+      const why: WarContext = {
+        claim: lookups.claims.has(directedKey(me.id, them.id)),
+        prize: lookups.prizes.get(directedKey(me.id, them.id)),
+        myHelpers: helpers(state, lookups, me.id, them.id),
+        theirHelpers: helpers(state, lookups, them.id, me.id),
+      };
+      const controller = controllers(me.id);
+      // Each choice rolls its own dice, so one nation's choice can't shift another's.
+      const goal = controller.declareWar(state, me, them, why, rng.fork(`war-${me.id}-${them.id}`));
+      if (goal === null) continue;
+      const cmd: CommandOf<"declareWar"> = { kind: "declareWar", nation: me.id, target: them.id, goal };
+      const result = applyDeclareWar(state, cmd, lookups);
+      if (!carryOut(controller, cmd, result)) break;
+      events.push(...result.events);
+      // Each ally that can still reach the war is asked to join: the defender's first.
+      const calls: Call[] = [
+        ...why.theirHelpers.map((ally): Call => ({ ally, side: "defend", friend: them, enemy: me })),
+        ...why.myHelpers.map((ally): Call => ({ ally, side: "attack", friend: me, enemy: them })),
+      ];
+      for (const { ally, side, friend, enemy } of calls) {
+        if (!free(state, ally.id, enemy.id)) continue;
+        const allyController = controllers(ally.id);
+        if (!allyController.joinWar(state, ally, friend, enemy, side, rng.fork(`join-${ally.id}-${friend.id}-${enemy.id}`))) continue;
+        const join: CommandOf<"joinWar"> = { kind: "joinWar", nation: ally.id, war: result.war!.id, side };
+        const joined = applyJoinWar(state, join, lookups);
+        if (carryOut(allyController, join, joined)) events.push(...joined.events);
+      }
+      break;
     }
   }
   return events;
 }
 
-/** Why a war should end now, or null if it goes on. */
+/** Why a war should end now, or null if it goes on. "goal" and "decisive" are asked of the winner; the rest are forced. */
 function peaceReason(state: WorldState, war: War, attacker: Nation, defender: Nation): string | null {
   if (goalAchieved(state, war)) return "goal";
   if (Math.abs(war.score) >= SIM.PEACE_SCORE) return "decisive";
@@ -202,8 +241,15 @@ function clearWinner(war: War, attacker: Nation, defender: Nation): Nation | nul
   return war.score > 0 ? attacker : defender;
 }
 
+/** Does the war end now? Forced endings always do; a won war ends if the winner agrees. */
+function endsNow(state: WorldState, war: War, attacker: Nation, defender: Nation, reason: string | null, controllers: Controllers): boolean {
+  if (reason !== "goal" && reason !== "decisive") return reason !== null;
+  const winner = reason === "goal" || war.score > 0 ? attacker : defender;
+  return controllers(winner.id).acceptPeace(state, winner, war, reason);
+}
+
 /** Step 6b: war scores are brought up to date, and wars that are over end in peace. */
-export function endWars(state: WorldState): SimEvent[] {
+export function endWars(state: WorldState, controllers: Controllers): SimEvent[] {
   const events: SimEvent[] = [];
   const ongoing: War[] = [];
   // Wars still going after this year. A joined war always comes after its main war in the list.
@@ -211,15 +257,20 @@ export function endWars(state: WorldState): SimEvent[] {
   const counts = occupationCounts(state);
 
   for (const war of state.wars) {
-    const attacker = state.nations.get(war.attacker);
-    const defender = state.nations.get(war.defender);
+    const attacker = state.nations.get(war.attacker)!;
+    const defender = state.nations.get(war.defender)!;
     // A side has died (conquered or collapsed): the war simply ends.
-    if (!attacker?.alive || !defender?.alive) continue;
+    if (!attacker.alive || !defender.alive) {
+      const fallen = !attacker.alive ? attacker : defender;
+      closeRecord(state, war, { how: "side fell", raid: false, cells: 0, wholeRealm: false, text: `${fallen.name} fell, and the war with it.` });
+      continue;
+    }
     war.score = war.battleScore + occupationScore(state, war, counts);
+    recordScore(state, war);
     const mainOver = war.joined !== undefined && !ongoingIds.has(war.joined);
 
     const reason = peaceReason(state, war, attacker, defender);
-    if (!mainOver && !reason) {
+    if (!mainOver && !endsNow(state, war, attacker, defender, reason, controllers)) {
       ongoing.push(war);
       ongoingIds.add(war.id);
       continue;
@@ -231,14 +282,19 @@ export function endWars(state: WorldState): SimEvent[] {
     const taken = winner && !raided ? takeLand(state, war, winner, loser) : [];
     state.truces.push({ a: attacker.id, b: defender.id, until: state.year + SIM.TRUCE_YEARS });
     if (mainOver) continue; // allies go home quietly when the war they joined is over
+
+    let event: SimEvent;
     if (raided) {
-      events.push(raidEvent(state.year, attacker, defender));
-      continue;
+      event = raidEvent(state.year, attacker, defender);
+    } else {
+      // Name a deposit the winner took, if any.
+      const prize = taken.find((c) => state.cells[c]!.resource !== 0);
+      const prizeName = prize !== undefined ? RESOURCES[state.cells[prize]!.resource as ResourceKind].name : undefined;
+      event = !loser.alive ? conquestEvent(state.year, winner!, loser, taken.length) : peaceEvent(state.year, attacker, defender, winner, taken.length, prizeName);
     }
-    // Name a deposit the winner took, if any.
-    const prize = taken.find((c) => state.cells[c]!.resource !== 0);
-    const prizeName = prize !== undefined ? RESOURCES[state.cells[prize]!.resource as ResourceKind].name : undefined;
-    events.push(!loser.alive ? conquestEvent(state.year, winner!, loser, taken.length) : peaceEvent(state.year, attacker, defender, winner, taken.length, prizeName));
+    events.push(event);
+    const how = (reason ?? "too long") as WarOutcome["how"];
+    closeRecord(state, war, { how, ...(winner ? { winner: winner.id } : {}), raid: raided, cells: taken.length, wholeRealm: !loser.alive, text: event.text });
   }
 
   state.wars = ongoing;

@@ -129,8 +129,23 @@ New concepts as we meet them, with where they show up in our code.
 | **Incremental update** | Instead of redoing all the work each time, keep the old result and fix only what changed. The test that matters: the result must equal doing it all from scratch. | `createNationOverlay()` in `src/render/overlay.ts` |
 | **Options object** | One object holding many related settings, passed to a function, so it needs one extra argument and not twenty. | `MapLook` in `src/render/palette.ts`, `LOOK_ATLAS` |
 | **Default parameter** | A value a function uses when the caller leaves that argument out, so old calls keep working unchanged. | `look: MapLook = LOOK_STANDARD` in `src/render/labels.ts` |
+| **Canvas transform** | Moving or scaling the canvas's drawing position, so a picture can be drawn around (0, 0) and placed anywhere at any size. `save()` and `restore()` undo it afterwards. | `atPlace()` in `src/render/atlasMarkers.ts` |
 | **Static site** | A website that's only files sent to the browser, with no program running on a server. The game all runs in your browser, so it can be hosted for free. | `npm run build` makes it, in `dist/` |
 | **CI workflow (GitHub Actions)** | A recipe GitHub runs for you on its own computers whenever you push. Ours tests the game, builds it and publishes it, and a failed test stops the publish. | `.github/workflows/publish.yml` |
+| **Interface (as a contract)** | A promise of which functions something has, without saying how they work. Any object that has them can stand in: the AI today, a player later. | `Controller` in `src/sim/ai/controller.ts` |
+| **Command pattern** | Turning a choice into a small piece of data ("declare war on Kethar to reclaim") that something else checks and carries out. Easy to log, replay and refuse. | `Command` in `src/sim/commands.ts` |
+| **Passing dependencies in** | Giving a function the things it uses (here, who makes each nation's choices) as a parameter, instead of it reaching for a fixed one. Lets tests and later a player swap them. | `controllers` parameter of `tick()` and the rule steps |
+| **Circular import** | Two files that import each other. It can half-work and break in confusing ways, so the AI imports the rule files but never the other way round. | `sim/ai/default.ts`, `sim/marching.ts` |
+| **Golden test** | A test that compares output with a fingerprint recorded earlier, to prove a refactor changed nothing. | `tests/golden.test.ts` |
+| **Refactor** | Changing how code is organized without changing what it does. | M15 steps 1–4 |
+| **Chaos (sensitive dependence)** | Tiny changes early grow into completely different histories. Why a fair change to the dice can swing a 5-world average a lot. | M15 decision log |
+| **Write-only record** | Data the simulation writes for others to read but never reads itself, so it can't change what happens. | `sim/warRecords.ts` |
+| **CSS grid / media query** | Laying a page out in columns, and switching layout by screen width (`@media (min-width: 1200px)`). | side panel in `index.html` |
+| **Sticky position** | An element that scrolls with the page until it reaches the top, then stays in view. | `#panel` in `index.html` |
+| **SVG polyline** | A line through a list of points, drawn by the browser from a few numbers: the war report's score line. | `sparkline()` in `src/ui/warRoom.ts` |
+| **Round-robin region growing** | Several regions grow from their seeds in turns, one cell each per round, each taking its cheapest next cell. Fair shares, but terrain still shapes the borders. | `growKingdoms()` in `src/gen/kingdoms.ts` |
+| **Farthest-first selection** | Picking each new point as far as possible from the ones already picked, so they spread evenly. | `kingdomHomes()` in `src/gen/kingdoms.ts` |
+| **Discriminated union** | A type that is one of several shapes, told apart by a field like `kind`. TypeScript then knows `kingdoms` exists only when `kind` is `"settled"`. | `StartOptions` in `src/core/types.ts` |
 | **`public/` folder** | Files Vite copies as they are into the finished site, so the page can load them by path (e.g. `portraits/orc-m-ordinary.webp`). Good for images; code goes in `src/`. | `public/portraits/`, `public/frames/` |
 | **Composite operation (blend mode)** | How Canvas mixes new paint with what's already there. `multiply` darkens like tinted glass; `destination-in` keeps only the old pixels where the new shape is. | `tintedFrame()` in `src/ui/rulerCard.ts` |
 | **Promise / `async` / `await`** | A promise is a value that arrives later, like an image still downloading. `await` pauses a function until it arrives, without freezing the page. | `load()` and `draw()` in `src/ui/rulerCard.ts` |

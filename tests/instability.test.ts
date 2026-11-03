@@ -10,6 +10,7 @@ import { controlMap } from "../src/sim/control";
 import { adminCap, updateStability } from "../src/sim/stability";
 import { tick } from "../src/sim/tick";
 import { makeNation, makeState, row, conqueredPeople } from "./tinyWorld";
+import { everyoneAI } from "../src/sim/ai/default";
 
 describe("stability", () => {
   it("recovers slowly for a small nation at peace", () => {
@@ -117,7 +118,7 @@ describe("rebellion", () => {
       return state;
     }
     const revolts = (unrest: number, seed: string) =>
-      rebellions(shaky(unrest), createRng(seed)).filter((e) => e.type === "rebellion").length;
+      rebellions(shaky(unrest), createRng(seed), everyoneAI).filter((e) => e.type === "rebellion").length;
     const total = (unrest: number) => Array.from({ length: 300 }, (_, i) => revolts(unrest, `s${i}`)).reduce((a, b) => a + b, 0);
 
     it("calm land doesn't revolt, however shaky the nation", () => {
@@ -223,7 +224,7 @@ describe("rebel armies", () => {
     const nation = state.nations.get(1)!;
     const before = SIM.REBEL_PROB;
     SIM.REBEL_PROB = 100; // always rebels
-    const events = rebellions(state, createRng("rise"));
+    const events = rebellions(state, createRng("rise"), everyoneAI);
     SIM.REBEL_PROB = before;
     return { nation, events };
   };
