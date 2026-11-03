@@ -11,3 +11,5 @@ export const EVENT_LOG_MAX = 300;
 export const HIGHLIGHT_SECONDS = 4;
 /** While following a war, playback goes no faster than this (years per second). */
 export const FOLLOW_SPEED = 5;
+/** How long a newly risen great ruler's card stays up before hover takes over again. */
+export const RULER_CARD_SECONDS = 5;

@@ -682,6 +682,19 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | `ARMY_BANNER_FULL` | 1 | 0.3–3 | Soldiers at which a banner reaches full size | Only giant hosts look big | Most armies look big |
 | `ARMY_TARGET_ALPHA` | 0.5 | 0–1 | Opacity of the dashed line to the army's target | Clear war plans | Hidden (0) |
 
+### Ruler card
+
+> Key P. In `src/render/palette.ts`. Boxes are fractions of the frame image (left, top, right, bottom), measured by `scripts/portraits.py`; re-run it if a frame changes. Visual only.
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `RULER_CARD_WIDTH` | 180 | 120–300 | Card width on screen (pixels) | Big, covers more map | Small, harder to see the face |
+| `RULER_CARD_TINT` | 0.6 | 0–1 | How strongly the frame takes the nation's color | Bold nation color | Plain grey metal (0) |
+| `RULER_CARD_OPENINGS` | see file | — | Where the portrait shows inside each frame | — | — |
+| `RULER_CARD_PLATES` | see file | — | Where the name is written on each frame's nameplate | — | — |
+| `RULER_CARD_NAME_FONT` / `RULER_CARD_SUB_FONT` | bold 26px / italic 19px Georgia | — | Name and dynasty fonts (shrunk to fit if too long) | — | — |
+| `RULER_CARD_TEXT` / `RULER_CARD_SHADOW` | #fbf6e9 / black 85% | — | Text color and the shadow that keeps it readable | — | — |
+
 ---
 
 # Playback
@@ -696,6 +709,7 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | `FOLLOW_SPEED` | 5 | 1–20 | While following a war, playback goes no faster than this; the old speed comes back when you stop |
 | `FOCUS_GOAL_COLOR`, `FOCUS_GOAL_RADIUS` | #e0b84a, 4 | — | Gold ring on goal land the attacker hasn't taken yet (`render/palette.ts`) |
 | `FOCUS_HELD_SIZE`, `FOCUS_EDGE` | 5, dark brown | — | Diamond in the occupier's color on occupied land (`render/palette.ts`) |
+| `RULER_CARD_SECONDS` | 5 | 2–15 | How long the ruler card stays up when a great ruler rises (`src/ui/config.ts`) |
 
 ---
 

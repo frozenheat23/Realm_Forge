@@ -71,6 +71,15 @@ function diplomacyText(state: WorldState, id: NationId): string {
   );
 }
 
+/** The map cell under the mouse, if any. */
+export function cellUnderMouse(canvas: HTMLCanvasElement, world: GeneratedWorld, event: MouseEvent): GeneratedWorld["cells"][number] | undefined {
+  // The canvas may be shrunk to fit the window, so convert screen → map pixels.
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor(((event.clientX - rect.left) / rect.width) * world.width);
+  const y = Math.floor(((event.clientY - rect.top) / rect.height) * world.height);
+  return world.cells[world.pixelToCell[y * world.width + x]!];
+}
+
 /** Shows details of the cell under the mouse in `panel`. */
 export function showCellOnHover(
   canvas: HTMLCanvasElement,
@@ -79,11 +88,7 @@ export function showCellOnHover(
   getState: () => WorldState,
 ): void {
   canvas.addEventListener("mousemove", (event) => {
-    // The canvas may be shrunk to fit the window, so convert screen → map pixels.
-    const rect = canvas.getBoundingClientRect();
-    const x = Math.floor(((event.clientX - rect.left) / rect.width) * world.width);
-    const y = Math.floor(((event.clientY - rect.top) / rect.height) * world.height);
-    const cell = world.cells[world.pixelToCell[y * world.width + x]!];
+    const cell = cellUnderMouse(canvas, world, event);
     if (!cell) return;
 
     const tags = [cell.coastal && "coastal", cell.mountain && "mountain", cell.river && "river"]
