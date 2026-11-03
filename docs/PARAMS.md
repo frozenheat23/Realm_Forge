@@ -671,6 +671,19 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | `ARMY_BANNER_FULL` | 1 | 0.3–3 | Soldiers at which a banner reaches full size | Only giant hosts look big | Most armies look big |
 | `ARMY_TARGET_ALPHA` | 0.5 | 0–1 | Opacity of the dashed line to the army's target | Clear war plans | Hidden (0) |
 
+### Ruler card
+
+> Key P. In `src/render/palette.ts`. Boxes are fractions of the frame image (left, top, right, bottom), measured by `scripts/portraits.py`; re-run it if a frame changes. Visual only.
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `RULER_CARD_WIDTH` | 180 | 120–300 | Card width on screen (pixels) | Big, covers more map | Small, harder to see the face |
+| `RULER_CARD_TINT` | 0.6 | 0–1 | How strongly the frame takes the nation's color | Bold nation color | Plain grey metal (0) |
+| `RULER_CARD_OPENINGS` | see file | — | Where the portrait shows inside each frame | — | — |
+| `RULER_CARD_PLATES` | see file | — | Where the name is written on each frame's nameplate | — | — |
+| `RULER_CARD_NAME_FONT` / `RULER_CARD_SUB_FONT` | bold 26px / italic 19px Georgia | — | Name and dynasty fonts (shrunk to fit if too long) | — | — |
+| `RULER_CARD_TEXT` / `RULER_CARD_SHADOW` | #fbf6e9 / black 85% | — | Text color and the shadow that keeps it readable | — | — |
+
 ---
 
 # Playback
@@ -682,6 +695,7 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | `SIM_YEARS` | 1000 | 200–5000 | Default length of a run |
 | `EVENT_LOG_MAX` | 300 | 50–2000 | Most lines kept in the on-screen event log |
 | `HIGHLIGHT_SECONDS` | 4 | 1–15 | How long nations stay highlighted after clicking an event |
+| `RULER_CARD_SECONDS` | 5 | 2–15 | How long the ruler card stays up when a great ruler rises (`src/ui/config.ts`) |
 
 ---
 

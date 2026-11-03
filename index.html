@@ -7,6 +7,10 @@
     <style>
       body { margin: 0; background: #14181f; color: #e8e2d4; font-family: Georgia, serif; }
       .wrap { max-width: 1600px; margin: 0 auto; }
+      /* The ruler card floats over the map's right edge, just below the year counter. */
+      .map-box { position: relative; }
+      #ruler-card { position: absolute; top: 9%; right: 12px; pointer-events: none; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)); }
+      #ruler-card canvas { display: block; height: auto; }
       #map { display: block; width: 100%; height: auto; }
       .bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 12px; }
       .bar .spacer { flex: 1; }
@@ -52,9 +56,12 @@
   </head>
   <body>
     <div class="wrap">
-      <canvas id="map"></canvas>
+      <div class="map-box">
+        <canvas id="map"></canvas>
+        <div id="ruler-card" hidden></div>
+      </div>
       <div id="bar" class="bar"></div>
-      <div id="info">Hover the map to inspect a cell · Space play/pause · → step · C cells · N nations · R races · A alliances · M resources · T towns · H heatmaps · E effects · W armies · click an event to highlight it</div>
+      <div id="info">Hover the map to inspect a cell and see its ruler · Space play/pause · → step · C cells · N nations · R races · A alliances · M resources · T towns · H heatmaps · E effects · W armies · P ruler card · click an event to highlight it</div>
       <details id="settings"><summary>Settings</summary></details>
       <div id="log-filters"></div>
       <div id="log"></div>

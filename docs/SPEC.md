@@ -790,6 +790,15 @@ Hovering over an army (or next to it, since banners are wider than a cell) shows
 
 Two more tints like the Races layer (§5.4b), and only one of the three shows at a time. **Cultures** (key K) tints land by the color of the culture's founding realm, so a dead realm's people still show in its color. **Faiths** (key F) tints land by `FAITH_COLORS`. The hover info names both.
 
+### 5.4j Ruler card
+
+A portrait card floats at the map's top right (`src/ui/rulerCard.ts`), toggled with key P. Hovering over a nation shows its ruler; unowned land hides it. When a great ruler rises, the card shows them and stays up for `RULER_CARD_SECONDS`, ignoring hover meanwhile.
+
+- **Portrait:** `public/portraits/{race}-{m|f}-{ordinary|conqueror|lawgiver|builder|prophet|schemer}.webp`, 48 files. Orcs and Dwarves have no women, so they always use `m`. `portraitPath()` in `src/ui/portraits.ts` picks the file, and a test checks every one exists.
+- **Frame:** `public/frames/ordinary.png` or `great.png`. They're grey, multiplied by the nation's color (`RULER_CARD_TINT`). The portrait is clipped to the frame's opening (`RULER_CARD_OPENINGS`). Name, then dynasty and nation, go on the nameplate (`RULER_CARD_PLATES`).
+- **Making the files:** `scripts/portraits.py` turns the drafts in `assets/` (not committed) into these files and prints the opening boxes. Prompts are in `docs/art/portrait-prompts.md`.
+- The card is a page element, not drawn on the map, so it doesn't appear in recorded videos.
+
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 10 ms, smooth at 50 years per second. Measured after M13: overlay 1.4 ms, effects 0.2 ms, tick ~4.6 ms in the browser, a whole new-year frame ~21 ms.
 - Run the sim on the main thread until M6; move it to a Web Worker only if it slows the screen.

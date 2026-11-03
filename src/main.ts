@@ -1,6 +1,6 @@
 // Entry point: generates a world from a seed, draws it, and plays its history.
 // Page address options: ?seed=anything picks the world, ?style=painted or ?style=atlas switches the look.
-// Keys: Space play/pause, → step, C cell outlines, N nations, R races, K cultures, F faiths, A alliances, M resources, T towns, H heatmaps, E effects, W armies. Hover the map to inspect a cell.
+// Keys: Space play/pause, → step, C cell outlines, N nations, R races, K cultures, F faiths, A alliances, M resources, T towns, H heatmaps, E effects, W armies, P ruler card. Hover the map to inspect a cell and see its ruler.
 import "@fontsource/im-fell-english/400.css";
 import "@fontsource/im-fell-english/400-italic.css";
 import "@fontsource/im-fell-english-sc/400.css";
@@ -29,9 +29,10 @@ import { fromSnapshot, type Snapshot } from "./sim/snapshot";
 import { tick } from "./sim/tick";
 import { HIGHLIGHT_SECONDS, SIM_YEARS } from "./ui/config";
 import { createControls, makeButton } from "./ui/controls";
-import { onKey, showCellOnHover } from "./ui/debugInfo";
+import { cellUnderMouse, onKey, showCellOnHover } from "./ui/debugInfo";
 import { createEventLog } from "./ui/eventLog";
 import { createRecorder, pickSnapshot, saveSnapshot } from "./ui/files";
+import { createRulerCard } from "./ui/rulerCard";
 import { applyParams, createSettings, type Layers } from "./ui/settings";
 
 // --- Page elements ---
@@ -46,6 +47,7 @@ const infoPanel = element("#info");
 const settingsPanel = element("#settings");
 const logFilters = element("#log-filters");
 const logList = element("#log");
+const rulerCardBox = element("#ruler-card");
 
 // --- Generate the world (or restore a loaded save) ---
 const query = new URLSearchParams(location.search);
@@ -185,11 +187,19 @@ const simRng = createRng(seed).fork("sim");
 /** When the latest year began playing (milliseconds): armies slide along its march. */
 let yearStart = 0;
 
+// Hover a nation to see its ruler; a great ruler's rise shows on its own.
+const rulerCard = createRulerCard(rulerCardBox);
+
 function advanceYear(): void {
   const events = tick(state, simRng);
   yearStart = performance.now();
   eventLog.add(events, state);
   effects.noteYear(state, events, performance.now());
+  for (const event of events) {
+    const nation = event.type === "ruler" ? state.nations.get(event.actors[0]!) : undefined;
+    // A great ruler crowned this year is a rise (other ruler events are deaths and crises).
+    if (nation?.alive && nation.ruler.great !== undefined && nation.ruler.crowned === state.year) rulerCard.announce(nation);
+  }
 }
 
 const controls = createControls(bar, () => {
@@ -321,7 +331,13 @@ onKey("n", () => {
   layers.nations = !layers.nations;
   draw();
 });
+onKey("p", () => rulerCard.toggle());
 showCellOnHover(canvas, infoPanel, world, () => state);
+canvas.addEventListener("mousemove", (event) => {
+  const cell = cellUnderMouse(canvas, world, event);
+  rulerCard.hover((cell && state.nations.get(state.state.owner[cell.id]!)) ?? null);
+});
+canvas.addEventListener("mouseleave", () => rulerCard.hover(null));
 
 redrawNations();
 draw();

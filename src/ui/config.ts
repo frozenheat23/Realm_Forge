@@ -9,3 +9,5 @@ export const SIM_YEARS = 1000;
 export const EVENT_LOG_MAX = 300;
 /** How long nations stay highlighted after clicking an event. */
 export const HIGHLIGHT_SECONDS = 4;
+/** How long a newly risen great ruler's card stays up before hover takes over again. */
+export const RULER_CARD_SECONDS = 5;
