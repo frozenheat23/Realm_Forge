@@ -9,6 +9,7 @@ import { rebel, rebellions } from "../src/sim/rebellion";
 import { controlMap } from "../src/sim/control";
 import { adminCap, updateStability } from "../src/sim/stability";
 import { tick } from "../src/sim/tick";
+import { runYears } from "./longRun";
 import { makeNation, makeState, row, conqueredPeople } from "./tinyWorld";
 import { everyoneAI } from "../src/sim/ai/default";
 
@@ -191,22 +192,22 @@ describe("emergence", () => {
 
 describe("1,000 years of history", () => {
   // SPEC §7: same seed + same settings = identical history.
-  function run(seed: string) {
+  async function run(seed: string) {
     const { state } = generateWorld(seed, 320, 180);
     const rng = createRng(seed).fork("sim");
-    for (let i = 0; i < 1000; i++) tick(state, rng);
+    await runYears(1000, () => tick(state, rng));
     return state;
   }
 
-  it("is identical for the same seed", () => {
-    const a = run("determinism");
-    const b = run("determinism");
+  it("is identical for the same seed", async () => {
+    const a = await run("determinism");
+    const b = await run("determinism");
     expect(a.events).toEqual(b.events);
     expect([...a.state.owner]).toEqual([...b.state.owner]);
   });
 
-  it("has empires that break apart", () => {
-    const state = run("determinism");
+  it("has empires that break apart", async () => {
+    const state = await run("determinism");
     expect(state.events.some((e) => e.type === "rebellion")).toBe(true);
   });
 }, 60000);

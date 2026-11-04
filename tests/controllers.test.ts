@@ -11,6 +11,7 @@ import { applyCommand, type Command } from "../src/sim/commands";
 import { SIM } from "../src/sim/params";
 import { neighborPairs } from "../src/sim/helpers";
 import { tick } from "../src/sim/tick";
+import { runYears } from "./longRun";
 import { makeNation, makeState, row } from "./tinyWorld";
 
 // Two nations side by side: [1][1][1][1][1] | [2][2][2][2][2]
@@ -94,11 +95,11 @@ describe("controllers", () => {
     expect(theirs.size).toBeCloseTo(10 * SIM.MOBILIZE_SHARE);
   });
 
-  it("a world where no one wants war has no wars declared, but rebellions still happen", () => {
+  it("a world where no one wants war has no wars declared, but rebellions still happen", async () => {
     const passive: Controller = { ...AI, declareWar: () => null, crushRevolt: () => false };
     const { state } = generateWorld("passive", 320, 180);
     const rng = createRng("passive").fork("sim");
-    for (let y = 0; y < 1000; y++) tick(state, rng, () => passive);
+    await runYears(1000, () => tick(state, rng, () => passive));
     expect(state.events.filter((e) => e.text.includes("declares war"))).toHaveLength(0);
     expect(state.events.some((e) => e.type === "rebellion")).toBe(true);
   }, 60_000);
@@ -133,13 +134,13 @@ describe("controllers", () => {
     expect(compared).toBeGreaterThan(0);
   }, 120_000);
 
-  it("the rules never turn down one of the AI's own commands", () => {
+  it("the rules never turn down one of the AI's own commands", async () => {
     const refused: string[] = [];
     const watched: Controller = { ...AI, refused: (command, reason) => refused.push(`${command.kind}: ${reason}`) };
     const everyone: Controllers = () => watched;
     const { state } = generateWorld("never-refused", 320, 180);
     const rng = createRng("never-refused").fork("sim");
-    for (let y = 0; y < 1000; y++) tick(state, rng, everyone);
+    await runYears(1000, () => tick(state, rng, everyone));
     expect(state.events.some((e) => e.type === "war")).toBe(true);
     expect(refused).toEqual([]);
   }, 60_000);
