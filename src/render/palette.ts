@@ -422,17 +422,15 @@ export const FOCUS_GOAL_RADIUS = 4;
 /** Mark on land a side occupies, in the occupier's color, with a dark edge. */
 export const FOCUS_HELD_SIZE = 5;
 export const FOCUS_EDGE = "rgba(30, 24, 18, 0.85)";
-// --- Ruler card (SPEC §5.4k): portrait + frame tinted in the nation's color ---
+// --- Ruler card (SPEC §5.4k): portrait in a parchment frame, its wax seal in the nation's color ---
 /** Card width on the page, in CSS pixels. It is drawn at 512 × 768 and shrunk, so it stays sharp. */
 export const RULER_CARD_WIDTH = 180;
-/** How strongly the grey metal frame takes the nation's color, 0..1. */
-export const RULER_CARD_TINT = 0.6;
 /** Where the portrait shows through each frame, as shares of the frame: [left, top, right, bottom]. Measured by scripts/portraits.py. */
-export const RULER_CARD_OPENINGS = { ordinary: [0.074, 0.083, 0.926, 0.87], great: [0.107, 0.155, 0.893, 0.857] } as const;
-/** Each frame's nameplate, in the same shares. */
-export const RULER_CARD_PLATES = { ordinary: [0.1, 0.876, 0.9, 0.954], great: [0.215, 0.876, 0.786, 0.944] } as const;
-/** Ruler's title and name, then dynasty and realm. Sizes are in the 512-pixel-wide drawing. */
-export const RULER_CARD_NAME_FONT = "bold 26px Georgia, serif";
-export const RULER_CARD_SUB_FONT = "italic 19px Georgia, serif";
-export const RULER_CARD_TEXT = "#fbf6e9";
-export const RULER_CARD_SHADOW = "rgba(0, 0, 0, 0.85)";
+export const RULER_CARD_OPENINGS = { ordinary: [0.076, 0.092, 0.926, 0.887], great: [0.119, 0.105, 0.881, 0.822] } as const;
+/** Each frame's nameplate (the great frame's is the scroll between its rolls), in the same shares. */
+export const RULER_CARD_PLATES = { ordinary: [0.06, 0.893, 0.94, 0.96], great: [0.22, 0.845, 0.8, 0.925] } as const;
+/** Ruler's title and name, then dynasty and realm, in the map's old-print fonts. Sizes are in the 512-pixel-wide drawing. */
+export const RULER_CARD_NAME_FONT = "28px 'IM Fell English SC', Georgia, serif";
+export const RULER_CARD_SUB_FONT = "italic 20px 'IM Fell English', Georgia, serif";
+/** Ink on the nameplate. */
+export const RULER_CARD_TEXT = "#1d150d";

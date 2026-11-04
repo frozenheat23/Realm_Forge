@@ -809,8 +809,8 @@ The side panel (Wars, Past wars, Log), following a war, its map marks and the wa
 A portrait card floats at the map's top right (`src/ui/rulerCard.ts`), toggled with key P. Hovering over a nation shows its ruler; unowned land hides it. When a great ruler rises, the card shows them and stays up for `RULER_CARD_SECONDS`, ignoring hover meanwhile.
 
 - **Portrait:** `public/portraits/{race}-{m|f}-{ordinary|conqueror|lawgiver|builder|prophet|schemer}.webp`, 48 files. Orcs and Dwarves have no women, so they always use `m`. `portraitPath()` in `src/ui/portraits.ts` picks the file, and a test checks every one exists.
-- **Frame:** `public/frames/ordinary.png` or `great.png`. They're grey, multiplied by the nation's color (`RULER_CARD_TINT`). The portrait is clipped to the frame's opening (`RULER_CARD_OPENINGS`). Name, then dynasty and nation, go on the nameplate (`RULER_CARD_PLATES`).
-- **Making the files:** `scripts/portraits.py` turns the drafts in `assets/` (not committed) into these files and prints the opening boxes. Prompts are in `docs/art/portrait-prompts.md`.
+- **Frame:** `public/frames/ordinary.png` or `great.png`, aged parchment to match the map, drawn as they are. Only the wax seal at the top takes the nation's color: `{kind}-seal.png` is the seal alone in light grey, multiplied by the color. Text is dark ink in the map's IM Fell fonts. The portrait is clipped to the frame's opening (`RULER_CARD_OPENINGS`). Name, then dynasty and nation, go on the nameplate (`RULER_CARD_PLATES`).
+- **Making the files:** `scripts/portraits.py` turns the drafts in `assets/` (not committed) into these files (lifting each seal out by its red color) and prints the opening boxes. Prompts are in `docs/art/portrait-prompts.md`.
 - The card is a page element, not drawn on the map, so it doesn't appear in recorded videos.
 
 ### 5.5 Performance budget
