@@ -129,22 +129,22 @@ Drafts are in `assets/portrait-drafts/octo-great/`, named `race-gender-type` (fo
 
 ## Card frames
 
-Paste the base prompt plus one design. The frame stays grey so the game can tint it with each nation's color.
+The game's frames are aged parchment, to match the map. They aren't tinted: only the red wax seal at the top center is recolored per nation, so keep it red, round and plain. Paste the base prompt plus one design. (The first frames were grey metal, tinted whole; they're retired.)
 
 ```text
-A single ornamental portrait card frame for a fantasy grand-strategy game, seen perfectly flat and front-on with no perspective, perfectly symmetrical left to right. Tall rectangular shape in a 2:3 ratio, filling the image with a small even margin. The large central opening is completely empty and pure white. Everything outside the frame is pure white too. No person, no text, no letters, no logo, no watermark, no shadow on the white areas. At the bottom of the frame sits a wide empty nameplate with a smooth blank surface. The metal is neutral desaturated silver-grey with soft pale gold highlights, so it can be tinted to any color later. Rendered in a glossy semi-realistic 2.5D fantasy illustration style, ultra-polished, crisp clean edges, soft painterly metal shading.
+A single portrait card frame for a fantasy strategy game drawn in the style of an old printed map, seen perfectly flat and front-on with no perspective, perfectly symmetrical left to right. Tall rectangular shape in a 2:3 ratio, filling the image with a small even margin. The large central opening, about 85 percent of the frame width, is completely empty and pure white, with a clean straight inner edge on all four sides; nothing pokes inward into the opening. Everything outside the frame is pure white too. No person, no text, no letters, no numbers, no logo, no watermark, no shadow on the white areas. Crisp clean edges.
 ```
 
 **Ordinary rulers**
 
 ```text
-Design: slim and elegant, a thin double-line border of brushed metal with simple corner brackets and a small plain crest at the top center.
+Material: aged parchment. A slim, plain border band of warm cream-tan parchment with slightly rough edges, outlined by a thin double sepia-brown ink rule like an antique map. Very little decoration: only a small simple ink knot at each of the four corners, no vines and no leaves. A round blank red-brown wax seal, plain and unmarked, sits at the top center over the border. At the bottom, a plain wide parchment band as an empty nameplate, flat and smooth, edged by a single ink line. Muted colors only: cream, tan, sepia ink. Engraved, hand-drawn, ink illustration style.
 ```
 
 **Great rulers**
 
 ```text
-Design: elegant and ornate but slim. The central opening is very large, about 85 percent of the frame width, with a clean straight inner edge on all four sides. Nothing pokes inward into the opening: no gems, scrolls, points or crest may cross the inner edge. The left and right sides are thin bands of fine engraved filigree. All the rich decoration sits at the four corners and along the outer edge: jeweled corner pieces with blank grey gems and flowing scrollwork that grows outward, and a tall crown-shaped crest at the top center that rises upward above the border.
+At the bottom of the frame sits a wide empty nameplate with a smooth blank surface. Material: aged parchment and vellum. The border is a band of warm cream-tan parchment with slightly torn, curled edges at the corners, outlined in thin sepia-brown ink lines like a medieval manuscript or an antique map cartouche. Fine hand-inked decoration: a double ink rule, small knotwork and leafy scrolls at the four corners, faint foxing stains, and a rolled scroll-shaped nameplate at the bottom. A small blank wax seal at the top center. Muted colors only: cream, tan, sepia ink, soft brown. Engraved, hand-drawn, woodcut-and-ink illustration style.
 ```
 
 ## Tips

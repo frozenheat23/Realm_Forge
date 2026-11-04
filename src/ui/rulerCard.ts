@@ -1,5 +1,5 @@
-// The ruler card (SPEC §5.4k): a portrait in a frame tinted with the nation's color,
-// with the ruler's name on the nameplate. Hover a nation to see its ruler; a great
+// The ruler card (SPEC §5.4k): a portrait in a parchment frame whose wax seal takes
+// the nation's color, with the ruler's name inked on the nameplate. Hover a nation to see its ruler; a great
 // ruler's rise holds the card up for a few seconds.
 import type { Nation } from "../core/types";
 import { rulerName } from "../gen/rulers";
@@ -7,10 +7,8 @@ import {
   RULER_CARD_NAME_FONT,
   RULER_CARD_OPENINGS,
   RULER_CARD_PLATES,
-  RULER_CARD_SHADOW,
   RULER_CARD_SUB_FONT,
   RULER_CARD_TEXT,
-  RULER_CARD_TINT,
   RULER_CARD_WIDTH,
 } from "../render/palette";
 import { RULER_CARD_SECONDS } from "./config";
@@ -42,21 +40,19 @@ function load(path: string): Promise<HTMLImageElement> {
   return image;
 }
 
-/** The frame in the nation's color, on its own canvas: grey metal multiplied by the color, keeping the frame's see-through parts. */
-function tintedFrame(frame: HTMLImageElement, color: string): HTMLCanvasElement {
+/** The wax seal in the nation's color, on its own canvas: light grey wax multiplied by the color, keeping the seal's shape. */
+function coloredSeal(seal: HTMLImageElement, color: string): HTMLCanvasElement {
   const c = document.createElement("canvas");
   c.width = W;
   c.height = H;
   const g = c.getContext("2d")!;
-  g.drawImage(frame, 0, 0, W, H);
+  g.drawImage(seal, 0, 0, W, H);
   g.globalCompositeOperation = "multiply";
-  g.globalAlpha = RULER_CARD_TINT;
   g.fillStyle = color;
   g.fillRect(0, 0, W, H);
-  // Multiplying also colored the see-through parts, so cut back to the frame's own shape.
+  // Multiplying also colored the see-through parts, so cut back to the seal's own shape.
   g.globalCompositeOperation = "destination-in";
-  g.globalAlpha = 1;
-  g.drawImage(frame, 0, 0, W, H);
+  g.drawImage(seal, 0, 0, W, H);
   return c;
 }
 
@@ -88,9 +84,13 @@ export function createRulerCard(container: HTMLElement): RulerCard {
     const id = ++drawId;
     const { ruler } = nation;
     const kind = ruler.great === undefined ? "ordinary" : "great";
-    const [portrait, frame] = await Promise.all([
+    const [portrait, frame, seal] = await Promise.all([
       load(portraitPath(nation.race, ruler)).catch(() => load(fallbackPath(nation.race, ruler))),
       load(`frames/${kind}.png`),
+      load(`frames/${kind}-seal.png`),
+      // Canvas only uses a web font once it has loaded; otherwise it quietly falls back to Georgia.
+      document.fonts.load(RULER_CARD_NAME_FONT),
+      document.fonts.load(RULER_CARD_SUB_FONT),
     ]);
     if (id !== drawId) return;
 
@@ -107,7 +107,8 @@ export function createRulerCard(container: HTMLElement): RulerCard {
     g.clip();
     g.drawImage(portrait, ox, oy, ow, (ow * portrait.height) / portrait.width);
     g.restore();
-    g.drawImage(tintedFrame(frame, nation.color), 0, 0);
+    g.drawImage(frame, 0, 0, W, H);
+    g.drawImage(coloredSeal(seal, nation.color), 0, 0);
 
     const [pl, pt, pr, pb] = RULER_CARD_PLATES[kind];
     const cx = ((pl + pr) / 2) * W;
@@ -116,11 +117,8 @@ export function createRulerCard(container: HTMLElement): RulerCard {
     g.textAlign = "center";
     g.textBaseline = "middle";
     g.fillStyle = RULER_CARD_TEXT;
-    g.shadowColor = RULER_CARD_SHADOW;
-    g.shadowBlur = 4;
     fitText(g, rulerName(ruler, nation.race), cx, plateMid - 13, plateWidth, RULER_CARD_NAME_FONT);
     fitText(g, `${ruler.dynasty} · ${nation.name}`, cx, plateMid + 15, plateWidth, RULER_CARD_SUB_FONT);
-    g.shadowBlur = 0;
     container.hidden = !enabled;
   }
 

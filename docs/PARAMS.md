@@ -689,11 +689,10 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
 | `RULER_CARD_WIDTH` | 180 | 120–300 | Card width on screen (pixels) | Big, covers more map | Small, harder to see the face |
-| `RULER_CARD_TINT` | 0.6 | 0–1 | How strongly the frame takes the nation's color | Bold nation color | Plain grey metal (0) |
 | `RULER_CARD_OPENINGS` | see file | — | Where the portrait shows inside each frame | — | — |
 | `RULER_CARD_PLATES` | see file | — | Where the name is written on each frame's nameplate | — | — |
-| `RULER_CARD_NAME_FONT` / `RULER_CARD_SUB_FONT` | bold 26px / italic 19px Georgia | — | Name and dynasty fonts (shrunk to fit if too long) | — | — |
-| `RULER_CARD_TEXT` / `RULER_CARD_SHADOW` | #fbf6e9 / black 85% | — | Text color and the shadow that keeps it readable | — | — |
+| `RULER_CARD_NAME_FONT` / `RULER_CARD_SUB_FONT` | 28px IM Fell English SC / italic 20px IM Fell English | — | Name and dynasty fonts (shrunk to fit if too long) | — | — |
+| `RULER_CARD_TEXT` | #1d150d | — | Ink color on the nameplate | — | — |
 
 ---
 
