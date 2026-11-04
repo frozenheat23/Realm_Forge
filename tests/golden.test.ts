@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
 import { generateWorld } from "../src/gen";
 import { tick } from "../src/sim/tick";
+import { runYears } from "./longRun";
 
 /** FNV-1a hash of some text, as 8 hex digits. */
 function hash(text: string): string {
@@ -18,10 +19,10 @@ function hash(text: string): string {
 }
 
 /** Every event, plus who owns and lives in each cell at the end. */
-function fingerprint(seed: string, years: number, width?: number, height?: number): string {
+async function fingerprint(seed: string, years: number, width?: number, height?: number): Promise<string> {
   const { state } = generateWorld(seed, width, height);
   const rng = createRng(seed).fork("sim");
-  for (let y = 0; y < years; y++) tick(state, rng);
+  await runYears(years, () => tick(state, rng));
   const s = state.state;
   return hash(
     state.events.map((e) => e.text).join("\n") +
@@ -42,12 +43,12 @@ const GOLDEN = {
 };
 
 describe("golden history", () => {
-  it("a full-size world over 600 years", () => {
-    expect(fingerprint("golden-full", 600)).toBe(GOLDEN.full);
+  it("a full-size world over 600 years", async () => {
+    expect(await fingerprint("golden-full", 600)).toBe(GOLDEN.full);
   }, 120_000);
 
-  it("two small worlds over 1,000 years", () => {
-    expect(fingerprint("golden-a", 1000, 320, 180)).toBe(GOLDEN.smallA);
-    expect(fingerprint("golden-b", 1000, 320, 180)).toBe(GOLDEN.smallB);
+  it("two small worlds over 1,000 years", async () => {
+    expect(await fingerprint("golden-a", 1000, 320, 180)).toBe(GOLDEN.smallA);
+    expect(await fingerprint("golden-b", 1000, 320, 180)).toBe(GOLDEN.smallB);
   }, 120_000);
 });
