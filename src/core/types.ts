@@ -283,6 +283,18 @@ export interface Nation {
 /** What a war is for. "support" = an ally who joined someone else's war. */
 export type WarGoal = "conquer" | "reclaim" | "raid" | "support";
 
+/** A change the gods make to history in the sandbox (docs/systems/sandbox.md). */
+export type GodCommand =
+  | { kind: "godWar"; nation: NationId; target: NationId; goal: Exclude<WarGoal, "support"> }
+  /** `winner` null = white peace. */
+  | { kind: "godPeace"; war: number; winner: NationId | null };
+
+/** A god command and the year it was given (after that year's tick). */
+export interface LoggedCommand {
+  year: number;
+  command: GodCommand;
+}
+
 export interface War {
   id: number;
   attacker: NationId;
@@ -312,7 +324,7 @@ export interface BattleRecord {
 
 /** How a war ended. */
 export interface WarOutcome {
-  how: "goal" | "decisive" | "exhausted" | "too long" | "side fell";
+  how: "goal" | "decisive" | "exhausted" | "too long" | "side fell" | "imposed";
   /** Missing for a white peace, or when a side fell. */
   winner?: NationId;
   /** The attacker won a raid: spoils, no land. */
@@ -433,6 +445,8 @@ export interface WorldState {
   alliances: Alliance[];
   /** Names of cells that have grown into cities (kept if the city shrinks, so it keeps its name if it regrows). */
   cityNames: Map<CellId, string>;
+  /** Every god command given so far, in order. History = seed + settings + this log (docs/systems/sandbox.md). */
+  commands: LoggedCommand[];
 }
 
 /** How history opens (docs/systems/start.md): small nations in an empty world, or old kingdoms sharing all of it. */

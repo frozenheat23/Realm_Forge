@@ -3,12 +3,15 @@
 // `Map` and typed arrays don't survive JSON.stringify, so they're converted to plain
 // arrays here. The map itself (cells, terrain) isn't saved: it's rebuilt from the seed,
 // which always gives the same map.
-import type { Alliance, Army, CellState, Nation, RaceHome, SimEvent, War, WarRecord, WorldState } from "../core/types";
+import type { Alliance, Army, CellState, LoggedCommand, Nation, RaceHome, SimEvent, War, WarRecord, WorldState } from "../core/types";
 import type { GeneratedWorld } from "../gen";
 import type { SimParams } from "./params";
 
-/** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9), 5 armies (M11), 8 culture and faith (M12), 9 rulers (M13), 10 war records (M16). */
-export const SNAPSHOT_VERSION = 10;
+/** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9), 5 armies (M11), 8 culture and faith (M12), 9 rulers (M13), 10 war records (M16), 11 the sandbox's command log (M17). */
+export const SNAPSHOT_VERSION = 11;
+
+/** Older versions that still load, with what they lack filled in. */
+const STILL_LOADS = new Set([10]);
 
 /** Why older saves can't be loaded, by version. */
 const TOO_OLD: Record<number, string> = {
@@ -46,6 +49,8 @@ export interface Snapshot {
   /** [cell, name] pairs. */
   cityNames: [number, string][];
   warRecords: WarRecord[];
+  /** Missing in v10 saves. */
+  commands?: LoggedCommand[];
 }
 
 export function toSnapshot(state: WorldState, params: SimParams): Snapshot {
@@ -84,6 +89,7 @@ export function toSnapshot(state: WorldState, params: SimParams): Snapshot {
     alliances: state.alliances,
     cityNames: [...state.cityNames],
     warRecords: state.warRecords,
+    commands: state.commands,
   };
 }
 
@@ -91,7 +97,7 @@ export function toSnapshot(state: WorldState, params: SimParams): Snapshot {
 export function fromSnapshot(snapshot: Snapshot, world: GeneratedWorld): WorldState {
   const tooOld = TOO_OLD[snapshot.version];
   if (tooOld) throw new Error(`This save is from before ${tooOld} and can't be loaded`);
-  if (snapshot.version !== SNAPSHOT_VERSION) throw new Error(`Unknown save version ${snapshot.version}`);
+  if (snapshot.version !== SNAPSHOT_VERSION && !STILL_LOADS.has(snapshot.version)) throw new Error(`Unknown save version ${snapshot.version}`);
   if (snapshot.seed !== world.seed) throw new Error("Save file is for a different seed");
   const c = snapshot.cells;
   if (c.owner.length !== world.cells.length) throw new Error("Save file doesn't match this map");
@@ -130,5 +136,6 @@ export function fromSnapshot(snapshot: Snapshot, world: GeneratedWorld): WorldSt
     // Saves from before pacts could fade have no `renewed`: count from when the pact was made.
     alliances: snapshot.alliances.map((al) => ({ ...al, renewed: al.renewed ?? al.since })),
     cityNames: new Map(snapshot.cityNames),
+    commands: structuredClone(snapshot.commands ?? []),
   };
 }

@@ -32,6 +32,7 @@ const ENDINGS: Record<NonNullable<WarRecord["outcome"]>["how"], string> = {
   exhausted: "the fighting wore one side out",
   "too long": "it dragged on until both gave up",
   "side fell": "one side fell",
+  imposed: "the gods imposed peace",
 };
 
 const nameOf = (state: WorldState, id: NationId) => state.nations.get(id)?.name ?? "?";

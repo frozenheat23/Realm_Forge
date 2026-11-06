@@ -135,6 +135,7 @@ export function makeState(
     battles: [],
     warRecords: [],
     truces: [],
+    commands: [],
     events: [],
     cultureHomes: [[0, 0]],
     colorHue: 0,
