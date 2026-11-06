@@ -536,7 +536,7 @@ SPEC §4.15 and `docs/systems/rulers.md`. Race tables are in `gen/params.ts`; th
 | `CIVIL_WAR_MIN_AREA` | 100 | 10–300 | Cells needed for a crisis to become civil war | Only great realms split | Small realms split too |
 | `CIVIL_WAR_CELLS_PER_SPLIT` | 150 | 30–500 | One pretender per this many cells | Fewer successors | More successors |
 | `CIVIL_WAR_MAX_SPLITS` | 4 | 1–8 | Most pretenders in one crisis | Empires shatter | Clean two-way splits |
-| `CIVIL_WAR_SHARE` | 0.25 | 0.05–0.5 | Largest share of the land one pretender can take | Big successors | Small breakaways |
+| `CIVIL_WAR_SHARE` | 0.25 | 0.05–0.5 | Largest share of the land one pretender can take (only land of the ruling people, as far from the capital as `REBEL_MIN_CAPITAL_DIST`) | Big successors | Small breakaways |
 
 `REIGN_SPREAD` (0.5, `gen/params.ts`): a reign lasts the race's `reign`, give or take this share.
 

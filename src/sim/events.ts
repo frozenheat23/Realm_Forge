@@ -28,6 +28,11 @@ export function rebellionEvent(year: number, rebel: Nation, from: Nation): SimEv
   return { year, type: "rebellion", actors: [rebel.id, from.id], text };
 }
 
+export function pretenderEvent(year: number, pretender: Nation, from: Nation): SimEvent {
+  const text = `Year ${year}: ${rulerName(pretender.ruler, pretender.race)} of ${pretender.ruler.dynasty} claims the throne of ${from.name} and rules ${pretender.name}.`;
+  return { year, type: "rebellion", actors: [pretender.id, from.id], text };
+}
+
 export function rebornEvent(year: number, reborn: Nation, from: Nation, yearsGone: number): SimEvent {
   const when = yearsGone === 0 ? "the very year it fell" : `${yearsGone} years after its fall`;
   const text = `Year ${year}: ${reborn.name} is reborn, ${when}, breaking free of ${from.name}.`;

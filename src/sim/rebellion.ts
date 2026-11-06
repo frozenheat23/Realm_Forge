@@ -6,7 +6,7 @@ import { raiseArmy } from "./armies";
 import { carryOut, done, refuse, type Controllers } from "./ai/controller";
 import type { CommandOf, CommandResult } from "./commands";
 import { commonFaith } from "./faith";
-import { rebellionEvent, rebornEvent, warEvent } from "./events";
+import { pretenderEvent, rebellionEvent, rebornEvent, warEvent } from "./events";
 import { cellsByNation, hopsFromCapital, livingNations, pairKey, setOwner, weightedPick } from "./helpers";
 import { SIM } from "./params";
 import { addNation, bestCapital, type Heritage } from "./newNation";
@@ -73,21 +73,33 @@ function yearsSinceFall(state: WorldState, rebels: Nation): number | null {
 }
 
 /**
+ * Who rises. A "revolt" is subject peoples first, then the ruling people.
+ * A "pretender" (in a civil war) is a rival claimant from the ruling people only.
+ */
+export type UprisingKind = "revolt" | "pretender";
+
+/**
  * Tries to start one rebellion in `nation`. Returns the new rebel nation, or
  * null if no province is far enough away or the breakaway would be too small.
  */
-export function rebel(state: WorldState, nation: Nation, cells: CellId[], rng: Rng, maxCells = SIM.REBEL_MAX_CELLS): Nation | null {
+export function rebel(state: WorldState, nation: Nation, cells: CellId[], rng: Rng, maxCells = SIM.REBEL_MAX_CELLS, kind: UprisingKind = "revolt"): Nation | null {
   const hops = hopsFromCapital(state, nation);
   // Rebels start far from the capital, or in land the capital can't even reach.
   const farAway = cells.filter((c) => hops[c]! === -1 || hops[c]! >= SIM.REBEL_MIN_CAPITAL_DIST);
-  // Subject peoples rise first. If there are too few of them to form a nation, the ruling people rise instead.
+  const ownPeople = farAway.filter((c) => state.state.culture[c] === nation.culture);
   const foreign = farAway.filter((c) => state.state.culture[c] !== nation.culture);
-  const region = revoltRegion(state, nation, foreign, maxCells, rng) ?? revoltRegion(state, nation, farAway, maxCells, rng);
+  // A pretender's followers are the rulers' own people. Otherwise subject peoples rise first,
+  // and if there are too few of them to form a nation, the ruling people rise instead.
+  const region =
+    kind === "pretender"
+      ? revoltRegion(state, nation, ownPeople, maxCells, rng)
+      : (revoltRegion(state, nation, foreign, maxCells, rng) ?? revoltRegion(state, nation, farAway, maxCells, rng));
   if (!region) return null;
 
   // The rebels are ruled by their own people. (`as RaceId`: the typed array only knows it's a number.)
   const rebelRace = state.state.race[region[0]!]! as RaceId;
-  const heritage = rebelHeritage(state, nation, state.state.culture[region[0]!]!);
+  // A pretender's realm stays the same people, a sister state under a new name and dynasty.
+  const heritage = kind === "pretender" ? { culture: nation.culture } : rebelHeritage(state, nation, state.state.culture[region[0]!]!);
   const rebelNation = addNation(state, rng.fork("name"), bestCapital(state, region), SIM.REBEL_START_STABILITY, rebelRace, nation.id, heritage);
   rebelNation.faith = commonFaith(state, region) as FaithId;
   for (const c of region) {
@@ -111,11 +123,13 @@ export function applyCrushRevolt(state: WorldState, cmd: CommandOf<"crushRevolt"
 
   const region = claimedCells(state, nation, rebels);
   const war = startWar(state, nation, rebels, "reclaim", region);
+  // Only a pretender's realm shares its old rulers' culture (other rebels are another people, or a new one).
+  const why = rebels.culture === nation.culture ? " to put down the pretender" : " to crush the rebellion";
   const { pop, race } = state.state;
   const levy = region.reduce((sum, c) => sum + pop[c]! * traits(race[c]!).martial, 0) * SIM.REBEL_LEVY;
   rebels.reserve += levy;
   raiseArmy(state, rebels, war, nation, levy);
-  return done([warEvent(state.year, nation, rebels, " to crush the rebellion")], war);
+  return done([warEvent(state.year, nation, rebels, why)], war);
 }
 
 /**
@@ -136,11 +150,24 @@ function takeUpArms(state: WorldState, nation: Nation, rebels: Nation, rng: Rng,
  * One region of `nation` rises and takes up arms, if it can. Returns what happened,
  * or null if no region could break away. `rng` should be new to this uprising.
  */
-export function uprising(state: WorldState, nation: Nation, cells: CellId[], rng: Rng, controllers: Controllers, maxCells = SIM.REBEL_MAX_CELLS): SimEvent[] | null {
-  const rebelNation = rebel(state, nation, cells, rng.fork("revolt"), maxCells);
+export function uprising(
+  state: WorldState,
+  nation: Nation,
+  cells: CellId[],
+  rng: Rng,
+  controllers: Controllers,
+  maxCells = SIM.REBEL_MAX_CELLS,
+  kind: UprisingKind = "revolt",
+): SimEvent[] | null {
+  const rebelNation = rebel(state, nation, cells, rng.fork("revolt"), maxCells, kind);
   if (!rebelNation) return null;
   const yearsGone = yearsSinceFall(state, rebelNation);
-  const rose = yearsGone === null ? rebellionEvent(state.year, rebelNation, nation) : rebornEvent(state.year, rebelNation, nation, yearsGone);
+  const rose =
+    kind === "pretender"
+      ? pretenderEvent(state.year, rebelNation, nation)
+      : yearsGone === null
+        ? rebellionEvent(state.year, rebelNation, nation)
+        : rebornEvent(state.year, rebelNation, nation, yearsGone);
   const war = takeUpArms(state, nation, rebelNation, rng.fork("arms"), controllers);
   return war ? [rose, war] : [rose];
 }

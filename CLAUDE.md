@@ -46,7 +46,7 @@ I'm new to coding and learning TypeScript through this project. Every session is
 - Show it as a good-looking map with play / pause / speed controls, a year counter and an event log.
 - Same seed + same settings = same history (in the same browser).
 
-**Not now:** player control (planned for M19; M15–M18 prepare for it), economy, trade, multiplayer, servers or accounts. (Ideas are parked in SPEC.md §8 and PARAMS.md "Candidate parameters".)
+**Not now:** player control (planned for M20; M15–M19 prepare for it), economy, trade, multiplayer, servers or accounts. (Ideas are parked in SPEC.md §8 and PARAMS.md "Candidate parameters".)
 
 ---
 
@@ -256,3 +256,4 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-11-01 | Ruler portraits: half-body crop, shortlist of painted and Octopath-style pixel art (user's choice; bold ink dropped). Reusable prompts for other image services are in `docs/art/portrait-prompts.md` |
 | 2026-11-04 | Ruler card (SPEC §5.4k, key P): hover a nation to see its ruler; a great ruler's rise holds the card up 5 s. Placeholder set = 48 Octopath-style portraits (5 races × 2 genders × ordinary + 5 great types; Orcs and Dwarves men only), parchment frames to match the map, untinted, with only the wax seal in the nation's color and the name in black ink (user's choice over grey metal and forged steel). Drafts in `assets/` stay out of git (public repo, ~100 MB); `scripts/portraits.py` makes the small WebP files in `public/` |
 | 2026-11-04 | CI publish kept failing with Vitest's "Timeout calling onTaskUpdate" although every test passed: 1,000-year test runs blocked their worker for up to a minute. Long runs now go through `runYears()` (`tests/longRun.ts`), which pauses every 50 years; history unchanged (golden test passes) |
+| 2026-11-06 | Civil wars fixed: pretenders rise only from the ruling people (`UprisingKind` "pretender" in `sim/rebellion.ts`) and keep its culture, as sister states with a new name and dynasty; subject peoples rise only by the revolt rule. Found by measuring: before, 71–79% of pretenders were another race. Same 10 worlds, old → new: pretenders of the rulers' race 99%, rebellions and wars within noise. Golden history re-recorded. Also fixed "Not now", which still said player control was M19 |

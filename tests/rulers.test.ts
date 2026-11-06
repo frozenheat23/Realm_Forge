@@ -134,6 +134,27 @@ describe("a succession crisis", () => {
     const taken = state.state.owner.filter((id) => id !== 1).length;
     expect(taken).toBeLessThanOrEqual(30); // two pretenders, a quarter of the land each
   });
+
+  it("raises pretenders from the ruling people, not from subject peoples", () => {
+    const { state, nation } = dyingRealm(60);
+    // The far half of the realm is a subject people: Orcs of another culture.
+    for (let c = 30; c < 60; c++) {
+      state.state.race[c] = Race.Orc;
+      state.state.culture[c] = 2;
+    }
+    withParams({ CRISIS_BASE: 10, CIVIL_WAR_MIN_AREA: 40, CIVIL_WAR_CELLS_PER_SPLIT: 20, CIVIL_WAR_MAX_SPLITS: 2, CIVIL_WAR_SHARE: 0.25, REBEL_WAR_PROB: 0 }, () => {
+      const events = succession(state, createRng("civil war"), everyoneAI);
+      expect(events.some((e) => e.text.includes("claims the throne of"))).toBe(true);
+    });
+    const pretenders = [...state.nations.values()].filter((n) => n.parent === nation.id);
+    expect(pretenders.length).toBeGreaterThan(0);
+    for (const p of pretenders) {
+      expect(p.race).toBe(nation.race);
+      expect(p.culture).toBe(nation.culture); // the same people, under a new name
+    }
+    // The subject people stayed with the old realm.
+    for (let c = 30; c < 60; c++) expect(state.state.owner[c]).toBe(nation.id);
+  });
 });
 
 describe("great rulers", () => {

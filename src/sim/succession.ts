@@ -16,7 +16,7 @@ export function crisisChance(nation: Nation, wasGreat: boolean): number {
   return SIM.CRISIS_BASE * traits(nation.race).succession * (1 + nation.area / SIM.CRISIS_AREA) * (wasGreat ? SIM.CRISIS_GREAT : 1);
 }
 
-/** Pretenders rise, each taking a piece of the realm. Returns what happened. */
+/** Pretenders of the ruling people rise, each taking a piece of the realm. Returns what happened. */
 function civilWar(state: WorldState, nation: Nation, rng: Rng, controllers: Controllers): SimEvent[] {
   const events = [civilWarEvent(state.year, nation)];
   const owner = state.state.owner;
@@ -26,7 +26,7 @@ function civilWar(state: WorldState, nation: Nation, rng: Rng, controllers: Cont
   const pretenders = clamp(Math.floor(cells.length / SIM.CIVIL_WAR_CELLS_PER_SPLIT), 1, SIM.CIVIL_WAR_MAX_SPLITS);
   const mostCells = Math.floor(cells.length * SIM.CIVIL_WAR_SHARE);
   for (let i = 0; i < pretenders; i++) {
-    const happened = uprising(state, nation, cells, rng.fork(`pretender-${i}`), controllers, mostCells);
+    const happened = uprising(state, nation, cells, rng.fork(`pretender-${i}`), controllers, mostCells, "pretender");
     if (!happened) break;
     events.push(...happened);
     cells = cells.filter((c) => owner[c] === nation.id);
