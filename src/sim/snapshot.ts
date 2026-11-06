@@ -127,7 +127,8 @@ export function fromSnapshot(snapshot: Snapshot, world: GeneratedWorld): WorldSt
     colorHue: snapshot.colorHue,
     raceHomes: snapshot.raceHomes,
     relations: new Map(snapshot.relations),
-    alliances: snapshot.alliances.map((al) => ({ ...al })),
+    // Saves from before pacts could fade have no `renewed`: count from when the pact was made.
+    alliances: snapshot.alliances.map((al) => ({ ...al, renewed: al.renewed ?? al.since })),
     cityNames: new Map(snapshot.cityNames),
   };
 }

@@ -147,6 +147,8 @@ export interface RaceTraits {
   reign: number;
   /** × CRISIS_BASE: how badly its handovers of power go. */
   succession: number;
+  /** × PACT_FADE and NEW_RULER_BREAK: how readily its rulers let an alliance go. */
+  fickleness: number;
   /** Chance a ruler of this race is a woman. Changes the title and name only. */
   femaleChance: number;
   /** "House", "Clan"... */
@@ -352,6 +354,8 @@ export interface Alliance {
   a: NationId;
   b: NationId;
   since: number;
+  /** Last year they fought a shared enemy. A pact left unused fades (SPEC §4.12). */
+  renewed: number;
 }
 
 export interface SimEvent {

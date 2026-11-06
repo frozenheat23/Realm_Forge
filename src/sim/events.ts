@@ -149,6 +149,16 @@ export function allianceEvent(year: number, a: Nation, b: Nation): SimEvent {
   return { year, type: "alliance", actors: [a.id, b.id], text };
 }
 
+export function allianceLapsesEvent(year: number, leaver: Nation, other: Nation, idleYears: number): SimEvent {
+  const text = `Year ${year}: after ${idleYears} years without a shared war, ${leaver.name} lets its alliance with ${other.name} lapse.`;
+  return { year, type: "alliance_ended", actors: [leaver.id, other.id], text };
+}
+
+export function newRulerBreaksEvent(year: number, leaver: Nation, other: Nation): SimEvent {
+  const text = `Year ${year}: ${rulerName(leaver.ruler, leaver.race)} of ${leaver.name}, new to the throne, breaks the alliance with ${other.name}.`;
+  return { year, type: "alliance_ended", actors: [leaver.id, other.id], text };
+}
+
 export function allianceEndedEvent(year: number, a: Nation, b: Nation): SimEvent {
   return {
     year,

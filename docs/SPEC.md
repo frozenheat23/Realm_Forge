@@ -477,12 +477,16 @@ clamp to −1..1
 - Pairs with a dead nation are forgotten.
 
 **Alliances** (`alliances`, at most `MAX_ALLIES` per nation):
-1. An alliance whose opinion has fallen below `ALLIANCE_BREAK_OPINION` breaks (`alliance_ended` event). One with a dead member just lapses.
+1. An alliance with a dead member just lapses. Any year both allies fight a shared enemy renews it (`renewed`). Then each ally's controller is asked whether to keep it (`keepAlliance`); the AI lets it go (`alliance_ended` event) if:
+   - opinion has fallen below `ALLIANCE_BREAK_OPINION` (*"the alliance between X and Y breaks down"*), or
+   - its ruler was crowned last year, with chance `NEW_RULER_BREAK` × race `fickleness` (× `GREAT_SCHEMER_BREAK` for a Schemer) (*"Queen Selena of X, new to the throne, breaks the alliance with Y"*), or
+   - with chance `PACT_FADE` × years since the pact was last renewed × race `fickleness`, so an unused pact grows ever likelier to lapse (*"after 80 years without a shared war, X lets its alliance with Y lapse"*).
+   A broken pact drops the pair's opinion to at most `PACT_BROKEN_OPINION`, so they don't swear a new one the next year. Allies fighting together right now are never asked to leave by the last two. The log line is chosen from what's true when the pact ends, so a pact that fades in a new ruler's first year is told as the new ruler's choice.
 2. Each neighbor pair that isn't allied or at war, with opinion ≥ `ALLIANCE_MIN_OPINION` and room for another ally on both sides, allies with chance `ALLIANCE_PROB` (`alliance` event; told as a "kinship pact" when both are the same race).
 
 Allies never declare war on each other. Alliances are both defensive and offensive: how allies deter and join wars is in §4.5.
 
-**What this gives.** Kin of the friendlier races (Humans, Light Elves, Dwarves) ally and stay allied for centuries. Other alliances are wartime coalitions: two nations fighting the same enemy warm to each other and ally, then drift apart after the peace. Hated pairs (Light vs Dark Elves, Dwarves vs Orcs) go to war more often.
+**What this gives.** Kin of the friendlier races ally readily, and pacts that keep fighting together last; quiet ones lapse in a few generations, and new rulers sometimes tear them up. Dwarf and Light Elf pacts last longest, Orc and Dark Elf pacts shortest. Other alliances are wartime coalitions: two nations fighting the same enemy warm to each other and ally, then drift apart after the peace. Hated pairs (Light vs Dark Elves, Dwarves vs Orcs) go to war more often.
 
 ### 4.13 Armies
 
@@ -849,7 +853,7 @@ Not designed yet. When one is picked up, give it its own section in §4 and matc
 - Schisms, holy wars and holy cities (§4.14)
 - Red Orcs as a second orc race (disciplined empire-builders who rule Green Orcs easily)
 - Trade routes and economy
-- Deeper diplomacy: vassals, peace terms, betrayal (an ally refusing to help), alliances slowly cooling so kin pacts don't last forever
+- Deeper diplomacy: vassals, peace terms, betrayal (an ally refusing to help)
 - Naval expansion across water (and fleets carrying armies, after M11)
 - Golden ages that end in decline (designed in `systems/rulers.md`)
 - Plagues (spreading by neighbor, carried by armies and through cities, burning out as survivors gain immunity) and famines (regional, 2–5 years, worst in war-torn land, eased by grain). Brainstormed in M13 and set aside by choice

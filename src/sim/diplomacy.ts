@@ -5,7 +5,7 @@ import { faithInfo } from "../gen/faiths";
 import { RACE_ATTITUDES } from "../gen/params";
 import { carryOut, done, refuse, type Controllers } from "./ai/controller";
 import type { CommandOf, CommandResult } from "./commands";
-import { allianceEndedEvent, allianceEvent } from "./events";
+import { allianceEndedEvent, allianceEvent, allianceLapsesEvent, newRulerBreaksEvent } from "./events";
 import { neighborPairs, pairKey } from "./helpers";
 import { SIM } from "./params";
 
@@ -102,7 +102,7 @@ export function applyFormAlliance(state: WorldState, cmd: CommandOf<"formAllianc
   if (allied(state, a.id, b.id)) return refuse("they're already allies");
   if (enemiesOf(state).get(a.id)?.has(b.id)) return refuse("they're at war with each other");
   if (alliesOf(state, a.id).length >= SIM.MAX_ALLIES || alliesOf(state, b.id).length >= SIM.MAX_ALLIES) return refuse("one of them has as many allies as it can keep");
-  state.alliances.push({ a: Math.min(a.id, b.id), b: Math.max(a.id, b.id), since: state.year });
+  state.alliances.push({ a: Math.min(a.id, b.id), b: Math.max(a.id, b.id), since: state.year, renewed: state.year });
   return done([allianceEvent(state.year, a, b)]);
 }
 
@@ -113,12 +113,21 @@ export function applyBreakAlliance(state: WorldState, cmd: CommandOf<"breakAllia
   if (index < 0) return refuse("they aren't allies");
   const al = state.alliances[index]!;
   state.alliances.splice(index, 1);
+  const leaver = state.nations.get(cmd.nation)!;
+  const other = state.nations.get(cmd.other)!;
+  const feeling = opinion(state, leaver.id, other.id);
+  // A broken pact leaves a coolness behind, so the pair doesn't simply swear a new one next year.
+  state.relations.set(key, Math.min(feeling, SIM.PACT_BROKEN_OPINION));
+  // Tell why, from what was true when it broke: a new ruler, a pact gone unused while still friends, or friendship gone sour.
+  if (leaver.ruler.crowned === state.year - 1) return done([newRulerBreaksEvent(state.year, leaver, other)]);
+  if (feeling >= SIM.ALLIANCE_BREAK_OPINION) return done([allianceLapsesEvent(state.year, leaver, other, state.year - al.renewed)]);
   return done([allianceEndedEvent(state.year, state.nations.get(al.a)!, state.nations.get(al.b)!)]);
 }
 
 /** Alliances lapse when a member dies, and break if either member wants out; then friendly neighbors may ally. */
 export function updateAlliances(state: WorldState, pairs: [NationId, NationId][], rng: Rng, controllers: Controllers): SimEvent[] {
   const events: SimEvent[] = [];
+  const enemies = enemiesOf(state);
 
   for (const al of [...state.alliances]) {
     const a = state.nations.get(al.a);
@@ -127,10 +136,14 @@ export function updateAlliances(state: WorldState, pairs: [NationId, NationId][]
       state.alliances.splice(state.alliances.indexOf(al), 1); // a member is gone: the alliance just lapses
       continue;
     }
+    // Fighting a shared enemy renews the pact.
+    const enemiesA = enemies.get(a.id);
+    const enemiesB = enemies.get(b.id);
+    if (enemiesA && enemiesB && [...enemiesA].some((e) => enemiesB.has(e))) al.renewed = state.year;
     // Either member may leave; the first to say so breaks it.
     for (const [me, other] of [[a, b], [b, a]]) {
       const controller = controllers(me!.id);
-      if (controller.keepAlliance(state, me!, other!)) continue;
+      if (controller.keepAlliance(state, me!, other!, state.year - al.renewed, rng.fork(`keep-${me!.id}-${other!.id}`))) continue;
       const cmd: CommandOf<"breakAlliance"> = { kind: "breakAlliance", nation: me!.id, other: other!.id };
       const result = applyBreakAlliance(state, cmd);
       if (carryOut(controller, cmd, result)) events.push(...result.events);
@@ -138,7 +151,6 @@ export function updateAlliances(state: WorldState, pairs: [NationId, NationId][]
     }
   }
 
-  const enemies = enemiesOf(state);
   const allyCount = (id: NationId) => alliesOf(state, id).length;
   for (const [a, b] of pairs) {
     if (allied(state, a, b) || enemies.get(a)?.has(b)) continue;

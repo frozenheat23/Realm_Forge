@@ -21,7 +21,7 @@ function threeNations() {
     makeNation(2, 9, { reserve: 10, manpowerCap: 10 }),
     makeNation(3, 11, { reserve: 10, manpowerCap: 10 }),
   ]);
-  state.alliances.push({ a: 2, b: 3, since: 0 });
+  state.alliances.push({ a: 2, b: 3, since: 0, renewed: 0 });
   applyCommand(state, { kind: "declareWar", nation: 1, target: 2, goal: "raid" });
   applyCommand(state, { kind: "joinWar", nation: 3, war: state.wars[0]!.id, side: "defend" });
   return state;

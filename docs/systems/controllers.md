@@ -46,7 +46,7 @@ interface Controller {
   joinWar(view: View, me: Nation, friend: Nation, enemy: Nation, side: "attack" | "defend", rng: Rng): boolean;
   proposeAlliance(view: View, me: Nation, other: Nation, rng: Rng): boolean;
   acceptAlliance(view: View, me: Nation, other: Nation): boolean;
-  keepAlliance(view: View, me: Nation, other: Nation): boolean;
+  keepAlliance(view: View, me: Nation, other: Nation, idleYears: number, rng: Rng): boolean; // idleYears = since they last fought a shared enemy
   acceptPeace(view: View, me: Nation, war: War, reason: "goal" | "decisive"): boolean;
   mobilize(view: View, me: Nation, wars: War[]): number[];                     // soldiers for each war without an army
   orderArmy(view: View, army: Army, orders: ArmyOrders): CellId;             // NO_TARGET = stand still; orders.reach(cell) checks a cell can be reached

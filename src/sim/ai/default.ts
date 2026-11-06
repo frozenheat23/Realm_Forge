@@ -85,8 +85,17 @@ export const AI: Controller = {
     return opinion(view, me.id, other.id) >= SIM.ALLIANCE_MIN_OPINION;
   },
 
-  keepAlliance(view, me, other) {
-    return opinion(view, me.id, other.id) >= SIM.ALLIANCE_BREAK_OPINION;
+  keepAlliance(view, me, other, idleYears, rng) {
+    if (opinion(view, me.id, other.id) < SIM.ALLIANCE_BREAK_OPINION) return false;
+    if (idleYears === 0) return true; // fighting side by side right now
+    const fickleness = traits(me.race).fickleness;
+    // A ruler crowned last year weighs the old pacts afresh, once.
+    if (me.ruler.crowned === view.year - 1) {
+      const schemer = me.ruler.great === RulerType.Schemer ? SIM.GREAT_SCHEMER_BREAK : 1;
+      if (rng.chance(SIM.NEW_RULER_BREAK * fickleness * schemer)) return false;
+    }
+    // An unused pact fades: the longer since they last fought together, the likelier it lapses.
+    return !rng.chance(SIM.PACT_FADE * idleYears * fickleness);
   },
 
   acceptPeace() {

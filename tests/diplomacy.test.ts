@@ -8,7 +8,7 @@ import { neighborPairs, pairKey } from "../src/sim/helpers";
 import { SIM, SIM_DEFAULTS } from "../src/sim/params";
 import { rebel } from "../src/sim/rebellion";
 import { fromSnapshot, toSnapshot } from "../src/sim/snapshot";
-import { declareWars, endWars } from "../src/sim/war";
+import { declareWars, endWars, startWar } from "../src/sim/war";
 import { makeNation, makeState, row } from "./tinyWorld";
 import { everyoneAI, warChance } from "../src/sim/ai/default";
 
@@ -120,11 +120,58 @@ describe("alliances", () => {
 
   it("break when opinion sours", () => {
     const state = twoNations();
-    state.alliances.push({ a: 1, b: 2, since: 0 });
+    state.alliances.push({ a: 1, b: 2, since: 0, renewed: 0 });
     state.relations.set(pairKey(1, 2), -0.5);
     const events = updateAlliances(state, neighborPairs(state), createRng("b"), everyoneAI);
     expect(state.alliances).toHaveLength(0);
     expect(events[0]!.type).toBe("alliance_ended");
+  });
+
+  it("lapse when unused, and fighting a shared enemy renews them", () => {
+    SIM.PACT_FADE = 1; // any year without a shared war ends it
+    const quiet = triangle();
+    quiet.year = 50;
+    quiet.alliances.push({ a: 1, b: 2, since: 0, renewed: 0 });
+    quiet.relations.set(pairKey(1, 2), 0.5);
+    const events = updateAlliances(quiet, neighborPairs(quiet), createRng("fade"), everyoneAI);
+    expect(quiet.alliances).toHaveLength(0);
+    expect(events[0]!.text).toContain("50 years without a shared war");
+    expect(opinion(quiet, 1, 2)).toBeLessThanOrEqual(SIM.PACT_BROKEN_OPINION); // cooled, so they don't re-ally at once
+
+    const fighting = triangle();
+    fighting.year = 50;
+    fighting.alliances.push({ a: 1, b: 2, since: 0, renewed: 0 });
+    fighting.relations.set(pairKey(1, 2), 0.5);
+    const [n1, n2, n3] = [1, 2, 3].map((id) => fighting.nations.get(id)!);
+    startWar(fighting, n3!, n1!, "conquer", []);
+    startWar(fighting, n3!, n2!, "conquer", []);
+    updateAlliances(fighting, neighborPairs(fighting), createRng("fade"), everyoneAI);
+    expect(fighting.alliances).toEqual([{ a: 1, b: 2, since: 0, renewed: 50 }]);
+  });
+
+  it("can be broken by a ruler new to the throne", () => {
+    SIM.PACT_FADE = 0;
+    SIM.NEW_RULER_BREAK = 1;
+    const state = twoNations();
+    state.year = 10;
+    state.alliances.push({ a: 1, b: 2, since: 0, renewed: 0 });
+    state.relations.set(pairKey(1, 2), 0.5);
+    state.nations.get(1)!.ruler.crowned = 9;
+    const events = updateAlliances(state, neighborPairs(state), createRng("crowned"), everyoneAI);
+    expect(state.alliances).toHaveLength(0);
+    expect(events[0]!.text).toContain("new to the throne");
+  });
+
+  it("fade faster for Orcs than for Dwarves", () => {
+    const breaks = (race: RaceId) => {
+      const nation = makeNation(1, 0, { race });
+      const state = makeState(row(1), [1], [nation]);
+      state.year = 100;
+      let count = 0;
+      for (let i = 0; i < 2000; i++) if (!everyoneAI(1).keepAlliance(state, nation, nation, 60, createRng(`k${i}`))) count++;
+      return count;
+    };
+    expect(breaks(Race.Orc)).toBeGreaterThan(breaks(Race.Dwarf) * 2);
   });
 
   it("never exceed MAX_ALLIES", () => {
@@ -140,7 +187,7 @@ describe("alliances", () => {
     for (let trial = 0; trial < 300; trial++) {
       const state = twoNations();
       state.nations.get(1)!.reserve = 1000;
-      state.alliances.push({ a: 1, b: 2, since: 0 });
+      state.alliances.push({ a: 1, b: 2, since: 0, renewed: 0 });
       declareWars(state, createRng(`n${trial}`), everyoneAI);
       expect(state.wars).toHaveLength(0);
     }
@@ -150,7 +197,7 @@ describe("alliances", () => {
     SIM.ALLY_DEFEND_PROB = 1;
     const state = untilWar(() => {
       const s = triangle();
-      s.alliances.push({ a: 2, b: 3, since: 0 });
+      s.alliances.push({ a: 2, b: 3, since: 0, renewed: 0 });
       return s;
     });
     expect(state.wars).toHaveLength(2);
@@ -164,7 +211,7 @@ describe("alliances", () => {
     SIM.ALLY_DEFEND_PROB = 1;
     const state = untilWar(() => {
       const s = triangle();
-      s.alliances.push({ a: 1, b: 3, since: 0 });
+      s.alliances.push({ a: 1, b: 3, since: 0, renewed: 0 });
       return s;
     });
     expect(state.wars).toHaveLength(2);
@@ -181,7 +228,7 @@ describe("alliances", () => {
         makeNation(3, 2, { reserve: 1 }),
         makeNation(4, 3, { reserve: 1 }),
       ]);
-      state.alliances.push({ a: 2, b: 4, since: 0 });
+      state.alliances.push({ a: 2, b: 4, since: 0, renewed: 0 });
       declareWars(state, createRng(`f${trial}`), everyoneAI);
       expect(state.wars.some((w) => pairKey(w.attacker, w.defender) === pairKey(1, 4))).toBe(false);
     }
@@ -211,11 +258,11 @@ describe("saves", () => {
   it("keep opinions and alliances, and refuse saves from before them", () => {
     const { world, state } = generateWorld("diplo", 320, 180);
     state.relations.set(pairKey(1, 2), -0.4);
-    state.alliances.push({ a: 1, b: 2, since: 3 });
+    state.alliances.push({ a: 1, b: 2, since: 3, renewed: 3 });
     const snapshot = JSON.parse(JSON.stringify(toSnapshot(state, SIM)));
     const back = fromSnapshot(snapshot, world);
     expect(back.relations.get(pairKey(1, 2))).toBe(-0.4);
-    expect(back.alliances).toEqual([{ a: 1, b: 2, since: 3 }]);
+    expect(back.alliances).toEqual([{ a: 1, b: 2, since: 3, renewed: 3 }]);
     expect(() => fromSnapshot({ ...snapshot, version: 2 }, world)).toThrow(/diplomacy/);
   });
 });

@@ -231,7 +231,7 @@ describe("allies in support", () => {
     // 3 is allied to 2; 1 holds part of 2's land.
     const owners = Array.from({ length: 20 }, (_, i) => (i < 8 ? 3 : i < 14 ? 2 : 1));
     const state = makeState(row(20), owners, [makeNation(1, 19), makeNation(2, 10), makeNation(3, 0)]);
-    state.alliances.push({ a: 2, b: 3, since: 0 });
+    state.alliances.push({ a: 2, b: 3, since: 0, renewed: 0 });
     state.state.occupier[13] = 1;
     state.wars.push(war("conquer", [13]), war("support", [], { id: 2, defender: 3, joined: 1 }));
     state.armies.push({ id: 1, owner: 3, war: 2, cell: 7, size: 1, morale: 1, target: NO_TARGET, path: [], trail: [7] });

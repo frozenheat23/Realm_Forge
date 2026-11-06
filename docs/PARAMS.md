@@ -366,6 +366,10 @@ Opinion between two nations moves `OPINION_DRIFT` of the way toward a target eac
 | `ALLIANCE_BREAK_OPINION` | 0.05 | −0.3–0.15 | Alliance breaks below this | Coalitions dissolve soon after peace | Alliances last forever |
 | `ALLIANCE_PROB` | 0.05 | 0.01–0.3 | Yearly chance an eligible pair allies | Alliances form at once | Slow to ally |
 | `MAX_ALLIES` | 2 | 0–5 | Allies per nation | Huge blocs, world wars | Lone nations (0 = no alliances) |
+| `PACT_FADE` | 0.00005 | 0–0.0005 | Each ally's yearly chance to let a pact lapse grows by this for every year without a shared war (× race `fickleness`). At 0.00005 a quiet Human pact has about even odds of outlasting 120 years from fading alone | Pacts last only a generation or two | Pacts last until a member dies (0) |
+| `NEW_RULER_BREAK` | 0.03 | 0–0.3 | Chance a ruler crowned last year breaks each pact (× race `fickleness`). Orcs, with short reigns, feel it most | Every new reign reshuffles alliances | Rulers honor their forebears' pacts (0) |
+| `PACT_BROKEN_OPINION` | 0 | −0.5–0.15 | Opinion falls to at most this when a pact breaks. From 0, kin take about a generation to ally again | Old allies stay friendly and re-ally within a few years | Broken pacts leave enemies, and wars follow |
+| `GREAT_SCHEMER_BREAK` | 2 | 1–5 | A great Schemer is this many times as likely to break a pact on taking the throne | Schemers tear up every pact | Schemers no worse than anyone |
 | `ALLY_DEFEND_PROB` | 0.8 | 0–1 | Chance a bordering ally joins a defensive war | Allies reliably deter attacks | Unreliable allies |
 | `ALLY_ATTACK_PROB` | 0.4 | 0–1 | Chance a bordering ally joins an attack | Allied blitzes, snowballing | Alliances purely defensive (0) |
 
@@ -554,13 +558,13 @@ The race's number for each type, × `GREAT_RULER_CHANCE`.
 
 ### Race traits
 
-| Race | `reign` (average years) | `succession` (× crisis chance) | `femaleChance` |
-|---|---|---|---|
-| Humans | 25 | 1.0 | 0.5 |
-| Light Elves | 120 | 0.5 | 0.5 |
-| Dark Elves | 80 | 1.2 | 0.8 |
-| Dwarves | 60 | 0.4 | 0 |
-| Orcs | 15 | 2.0 | 0 |
+| Race | `reign` (average years) | `succession` (× crisis chance) | `femaleChance` | `fickleness` (× `PACT_FADE`, `NEW_RULER_BREAK`) |
+|---|---|---|---|---|
+| Humans | 25 | 1.0 | 0.5 | 1.0 |
+| Light Elves | 120 | 0.5 | 0.5 | 0.6 (long memories) |
+| Dark Elves | 80 | 1.2 | 0.8 | 1.6 (treacherous) |
+| Dwarves | 60 | 0.4 | 0 | 0.5 (oaths are kept) |
+| Orcs | 15 | 2.0 | 0 | 1.5 (loyal to strength, not to pacts) |
 
 ---
 
@@ -731,7 +735,7 @@ Common problems and which knobs to try first.
 | One race takes over most seeds | ↓ that race's `growth` or `martial` first; then ↑ `FOREIGN_K` so big multi-race empires crack |
 | A race dies out early | ↑ its `defense` or its homeland affinity; check `RACE_HOMES_PER_RACE` |
 | Race makes no difference | ↑ `FOREIGN_K`, ↓ `FOREIGN_FREE`; widen the trait spread a little |
-| Alliances never change | ↑ `ALLIANCE_BREAK_OPINION`, ↑ `BORDER_FRICTION` |
+| Alliances never change | ↑ `PACT_FADE`, ↑ `NEW_RULER_BREAK`, ↑ `ALLIANCE_BREAK_OPINION` |
 | Allied blocs snowball | ↓ `ALLY_ATTACK_PROB`, ↓ `MAX_ALLIES` |
 | Racial feuds don't show | ↑ `OPINION_WAR_K`, ↑ `WAR_OPINION_HIT` |
 | Rebels are always swallowed back | ↓ `CLAIM_WAR_BONUS`, ↓ `CLAIM_YEARS`, ↑ `REBEL_START_STABILITY` |

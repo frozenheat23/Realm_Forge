@@ -41,7 +41,7 @@ describe("commands", () => {
     expect(outcome(state, { kind: "declareWar", nation: 1, target: 2, goal: "raid" })).toMatch(/truce/);
 
     const allies = twoNations();
-    allies.alliances.push({ a: 1, b: 2, since: 0 });
+    allies.alliances.push({ a: 1, b: 2, since: 0, renewed: 0 });
     expect(outcome(allies, { kind: "declareWar", nation: 1, target: 2, goal: "raid" })).toMatch(/allies/);
     expect(outcome(allies, { kind: "formAlliance", a: 1, b: 2 })).toMatch(/already allies/);
 
@@ -61,7 +61,7 @@ describe("commands", () => {
     applyCommand(state, { kind: "declareWar", nation: 1, target: 2, goal: "raid" });
     const war = state.wars[0]!.id;
     expect(outcome(state, { kind: "joinWar", nation: 3, war, side: "defend" })).toMatch(/ally/);
-    state.alliances.push({ a: 2, b: 3, since: 0 });
+    state.alliances.push({ a: 2, b: 3, since: 0, renewed: 0 });
     expect(outcome(state, { kind: "joinWar", nation: 3, war, side: "defend" })).toBe("done");
     expect(state.wars.at(-1)!.joined).toBe(war);
   });

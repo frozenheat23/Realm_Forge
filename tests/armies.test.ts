@@ -102,7 +102,7 @@ describe("marching", () => {
     // 1 1 3 3 2 2: nation 3 is at peace with both and blocks the way.
     const state = makeState(row(6), [1, 1, 3, 3, 2, 2], [makeNation(1, 0), makeNation(2, 5), makeNation(3, 2)]);
     expect(findPath(state, 0, 5, 1)).toEqual([]);
-    state.alliances.push({ a: 1, b: 3, since: 0 });
+    state.alliances.push({ a: 1, b: 3, since: 0, renewed: 0 });
     expect(findPath(state, 0, 5, 1)).toEqual([]); // allied with 3, but 2 is neutral to it too
     state.wars.push(war());
     expect(findPath(state, 0, 5, 1)).toEqual([1, 2, 3, 4, 5]); // now it can march through its ally

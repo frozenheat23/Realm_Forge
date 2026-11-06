@@ -225,6 +225,14 @@ export const SIM = {
   ALLIANCE_BREAK_OPINION: 0.05,
   ALLIANCE_PROB: 0.05,
   MAX_ALLIES: 2,
+  /** Each side's yearly chance of letting a pact lapse grows by this much for every year without a shared enemy (× race `fickleness`). */
+  PACT_FADE: 0.00005,
+  /** Chance a new ruler breaks each of the realm's pacts on taking the throne (× race `fickleness`). */
+  NEW_RULER_BREAK: 0.03,
+  /** A great Schemer is this many times as likely to break a pact on taking the throne. */
+  GREAT_SCHEMER_BREAK: 2,
+  /** Opinion falls to at most this when a pact is broken, so the pair doesn't ally again at once. */
+  PACT_BROKEN_OPINION: 0,
   /** Chance an ally bordering the attacker joins to defend its partner. */
   ALLY_DEFEND_PROB: 0.8,
   /** Chance an ally bordering the target joins its partner's attack. */

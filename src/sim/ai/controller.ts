@@ -51,8 +51,8 @@ export interface Controller {
   proposeAlliance(view: View, me: Nation, other: Nation, rng: Rng): boolean;
   /** Accept an alliance `other` offers? */
   acceptAlliance(view: View, me: Nation, other: Nation): boolean;
-  /** Stay allied with `other` another year? */
-  keepAlliance(view: View, me: Nation, other: Nation): boolean;
+  /** Stay allied with `other` another year? `idleYears` = years since they last fought a shared enemy. */
+  keepAlliance(view: View, me: Nation, other: Nation, idleYears: number, rng: Rng): boolean;
   /** End `war` now? Asked of the side that's winning. */
   acceptPeace(view: View, me: Nation, war: War, reason: PeaceReason): boolean;
   /** Soldiers to raise for each of `wars` (wars this nation has no army in yet). */
