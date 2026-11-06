@@ -36,6 +36,7 @@ import { createEventLog } from "./ui/eventLog";
 import { createRecorder, pickSnapshot, saveSnapshot } from "./ui/files";
 import { createRulerCard } from "./ui/rulerCard";
 import { applyParams, createSettings, type Layers } from "./ui/settings";
+import { createSandbox } from "./ui/sandbox";
 import { createWarRoom, nationsOf } from "./ui/warRoom";
 
 // --- Page elements ---
@@ -202,7 +203,19 @@ eventLog.add(state.events, state);
 // --- War Room (M16): the side panel's wars, and following one ---
 /** The speed before following slowed playback down, to go back to afterwards. */
 let speedBefore: number | null = null;
-const warRoom = createWarRoom(panel, () => followed, follow);
+// The Sandbox tab (M17): god commands go to the rules, then the screen catches up.
+const sandbox = createSandbox(element("#tab-sandbox"), {
+  state: () => state,
+  world,
+  pause: () => controls.pause(),
+  changed(events) {
+    eventLog.add(events, state);
+    redrawNations();
+    draw();
+    warRoom.update(state);
+  },
+});
+const warRoom = createWarRoom(panel, () => followed, follow, { update: sandbox.update, opened: () => controls.pause() });
 
 /** Starts following a war (dimming everyone else and slowing time), or stops with null. */
 function follow(id: number | null): void {

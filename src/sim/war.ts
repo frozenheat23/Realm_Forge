@@ -23,7 +23,7 @@ function inTruce(state: WorldState, a: NationId, b: NationId): boolean {
 }
 
 /** Key for "from → to": unlike pairKey, the order matters. */
-function directedKey(from: NationId, to: NationId): number {
+export function directedKey(from: NationId, to: NationId): number {
   return from * 100000 + to;
 }
 

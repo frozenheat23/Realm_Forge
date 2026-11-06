@@ -91,6 +91,16 @@
       .report dd { margin: 0; }
       .report h4 { margin: 12px 0 4px; font: 600 12px system-ui, sans-serif; color: #c9b26b; text-transform: uppercase; letter-spacing: 0.06em; }
       .report ul { margin: 0; padding-left: 18px; }
+      .sandbox-part { padding: 8px 12px 12px; border-bottom: 1px solid #222833; font: 13px/1.5 system-ui, sans-serif; color: #d8d2c4; }
+      .sandbox-part h4 { margin: 4px 0 6px; font: 600 12px system-ui, sans-serif; color: #c9b26b; text-transform: uppercase; letter-spacing: 0.06em; }
+      .sandbox-field { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0; color: #a9a395; }
+      .sandbox-field select, .sandbox-field input { width: 200px; background: #1b2029; color: #e8e2d4; border: 1px solid #3a4150; border-radius: 3px; padding: 2px 4px; }
+      .sandbox-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+      .sandbox-row button:disabled { opacity: 0.4; cursor: not-allowed; }
+      .sandbox-row progress { flex: 1; }
+      .sandbox-note { min-height: 1.5em; margin-top: 4px; color: #a9a395; font-size: 12px; }
+      .sandbox-odds p { margin: 6px 0; }
+      .sandbox-odds p:last-child { color: #8f8a7e; font-size: 12px; }
       .report svg { display: block; width: 100%; height: 60px; background: #1b2029; border-radius: 4px; }
     </style>
   </head>
@@ -110,6 +120,7 @@
           <button data-tab="wars">Wars</button>
           <button data-tab="past">Past wars</button>
           <button data-tab="log">Log</button>
+          <button data-tab="sandbox" title="God powers over wars, and the odds of what happens next">Sandbox</button>
         </nav>
         <section id="tab-wars" class="tab"></section>
         <section id="tab-past" class="tab"></section>
@@ -117,6 +128,7 @@
           <div id="log-filters"></div>
           <div id="log"></div>
         </section>
+        <section id="tab-sandbox" class="tab"></section>
       </aside>
     </div>
     <script type="module" src="/src/main.ts"></script>

@@ -5,7 +5,7 @@ import { menText } from "../sim/events";
 import { SIM } from "../sim/params";
 import { sideOf } from "../sim/warRecords";
 
-export type Tab = "wars" | "past" | "log";
+export type Tab = "wars" | "past" | "log" | "sandbox";
 
 export interface WarRoom {
   /** Brings the lists up to date (after each year, or when following changes). */
@@ -174,12 +174,20 @@ const sortKey: Record<Sort, (r: WarRecord) => number> = {
 /** Most past wars the list shows at once. */
 const PAST_SHOWN = 150;
 
+/** What the panel needs from the Sandbox tab (M17), which lives in `ui/sandbox.ts`. */
+export interface SandboxTab {
+  update(state: WorldState): void;
+  /** The tab was opened. */
+  opened(): void;
+}
+
 /**
  * Builds the panel. `onFollow` runs with a war's id when a war going on is clicked,
  * or null to stop following.
  */
-export function createWarRoom(panel: HTMLElement, followed: () => number | null, onFollow: (id: number | null) => void): WarRoom {
-  const tabs = { wars: panel.querySelector<HTMLElement>("#tab-wars")!, past: panel.querySelector<HTMLElement>("#tab-past")!, log: panel.querySelector<HTMLElement>("#tab-log")! };
+export function createWarRoom(panel: HTMLElement, followed: () => number | null, onFollow: (id: number | null) => void, sandbox: SandboxTab): WarRoom {
+  const tab = (id: string) => panel.querySelector<HTMLElement>(`#tab-${id}`)!;
+  const tabs = { wars: tab("wars"), past: tab("past"), log: tab("log"), sandbox: tab("sandbox") };
   const buttons = [...panel.querySelectorAll<HTMLButtonElement>(".tabs button")];
   let shown: Tab = "wars";
   let report: { record: WarRecord } | null = null;
@@ -191,6 +199,7 @@ export function createWarRoom(panel: HTMLElement, followed: () => number | null,
     shown = tab;
     for (const [name, section] of Object.entries(tabs)) section.classList.toggle("shown", name === tab);
     for (const b of buttons) b.classList.toggle("active", b.dataset.tab === tab);
+    if (tab === "sandbox") sandbox.opened();
     if (lastState) room.update(lastState);
   };
   for (const b of buttons) b.addEventListener("click", () => showTab(b.dataset.tab as Tab));
@@ -281,6 +290,7 @@ export function createWarRoom(panel: HTMLElement, followed: () => number | null,
       lastState = state;
       if (shown === "wars") drawWars(state);
       if (shown === "past") drawPast(state);
+      if (shown === "sandbox") sandbox.update(state);
     },
     showReport(record, state) {
       report = { record };

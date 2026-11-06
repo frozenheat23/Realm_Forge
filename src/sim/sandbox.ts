@@ -2,19 +2,41 @@
 // Like every command they go through the rules here; the screen never changes the world itself.
 // Every one given is logged, so history = seed + settings + the command log.
 import { createRng, type Rng } from "../core/rng";
-import type { GodCommand, LoggedCommand, SimEvent, WorldState } from "../core/types";
+import type { GodCommand, LoggedCommand, NationId, SimEvent, WorldState } from "../core/types";
 import { done, refuse, type Controllers } from "./ai/controller";
 import type { CommandResult } from "./commands";
 import { pairKey } from "./helpers";
-import { applyDeclareWar, atWar, callAllies, clearWinnerOf, concludeWar, helpers, warLookups } from "./war";
+import { applyDeclareWar, atWar, callAllies, clearWinnerOf, concludeWar, directedKey, helpers, warLookups } from "./war";
 
 /** The god command of one kind, e.g. `GodOf<"godWar">`. */
 type GodOf<K extends GodCommand["kind"]> = Extract<GodCommand, { kind: K }>;
 
-/** Retells an event as the gods' doing: "Year 412: by the will of the gods, …". */
+/** Retells an event as the gods' doing: "Year 412: by the will of the gods, …". Names keep their capitals. */
 function byTheGods(event: SimEvent, phrase: string): SimEvent {
-  const rest = event.text.replace(/^Year \d+: /, "");
-  return { ...event, text: `Year ${event.year}: ${phrase}${rest.charAt(0).toLowerCase()}${rest.slice(1)}` };
+  const rest = event.text.replace(/^Year -?\d+: /, "");
+  return { ...event, text: `Year ${event.year}: ${phrase}${rest}` };
+}
+
+/** The goals a god war may have. */
+export const GOD_GOALS = ["conquer", "reclaim", "raid"] as const;
+
+/**
+ * For the Sandbox tab: why `nation` couldn't go to war on `target` with each goal,
+ * or null where it could. The same checks `applyGodWar` makes, without changing anything.
+ */
+export function godWarRefusals(state: WorldState, nation: NationId, target: NationId): Record<(typeof GOD_GOALS)[number], string | null> {
+  const lookups = warLookups(state);
+  let both: string | null = null;
+  const me = state.nations.get(nation);
+  const them = state.nations.get(target);
+  if (!me?.alive || !them?.alive || me === them) both = "there's no such pair of nations";
+  else if (!lookups.touching.has(pairKey(nation, target))) both = "they don't share a border";
+  else if (atWar(state, nation, target)) both = "they're already at war";
+  return {
+    conquer: both ?? (lookups.prizes.has(directedKey(nation, target)) ? null : "there's nothing to conquer"),
+    reclaim: both ?? (lookups.claims.has(directedKey(nation, target)) ? null : "there's no claim to reclaim"),
+    raid: both,
+  };
 }
 
 /** "godWar": a war the gods start. They may break truces, the war limit and alliances, not geography. */

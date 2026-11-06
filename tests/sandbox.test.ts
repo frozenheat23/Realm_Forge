@@ -5,7 +5,7 @@ import type { GodCommand, WorldState } from "../src/core/types";
 import { generateWorld } from "../src/gen";
 import { everyoneAI } from "../src/sim/ai/default";
 import { neighborPairs, pairKey } from "../src/sim/helpers";
-import { giveCommand, replayCommands } from "../src/sim/sandbox";
+import { giveCommand, godWarRefusals, replayCommands } from "../src/sim/sandbox";
 import { SIM } from "../src/sim/params";
 import { fromSnapshot, toSnapshot } from "../src/sim/snapshot";
 import { tick } from "../src/sim/tick";
@@ -28,8 +28,15 @@ describe("god commands", () => {
     expect(state.wars).toHaveLength(1);
     expect(state.truces).toHaveLength(0);
     expect(state.alliances).toHaveLength(0);
-    expect(state.events.at(-1)!.text).toContain("by the will of the gods");
+    expect(state.events.at(-1)!.text).toContain(`by the will of the gods, ${state.nations.get(1)!.name} declares war`);
     expect(state.commands).toEqual([{ year: 0, command: { kind: "godWar", nation: 1, target: 2, goal: "raid" } }]);
+  });
+
+  it("say which goals a god war could have, and why not", () => {
+    const state = twoNations();
+    expect(godWarRefusals(state, 1, 2)).toEqual({ conquer: null, reclaim: "there's no claim to reclaim", raid: null });
+    const apart = makeState(row(7), [1, 1, 1, 0, 2, 2, 2], [makeNation(1, 0), makeNation(2, 6)]);
+    expect(godWarRefusals(apart, 1, 2).raid).toBe("they don't share a border");
   });
 
   it("refuse what the rules don't allow, and change nothing", () => {
