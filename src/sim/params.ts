@@ -297,6 +297,12 @@ export const SIM = {
 /** Men shown per soldier unit, on banners and in the log. Only changes the text. */
 export const ARMY_MEN_PER_UNIT = 20000;
 
+// Odds (M17, docs/systems/sandbox.md). They never change history, so they stay out of SIM and saves.
+/** Possible futures run for one odds question. 20 can tell 90% from 50%, not 55% from 50%. */
+export const ODDS_RUNS = 20;
+/** Years each future runs, unless the question is only about a war that ends sooner. */
+export const ODDS_YEARS = 50;
+
 export type SimParams = typeof SIM;
 export type SimParamName = keyof SimParams;
 
