@@ -713,6 +713,8 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | `FOCUS_GOAL_COLOR`, `FOCUS_GOAL_RADIUS` | #e0b84a, 4 | — | Gold ring on goal land the attacker hasn't taken yet (`render/palette.ts`) |
 | `FOCUS_HELD_SIZE`, `FOCUS_EDGE` | 5, dark brown | — | Diamond in the occupier's color on occupied land (`render/palette.ts`) |
 | `RULER_CARD_SECONDS` | 5 | 2–15 | How long the ruler card stays up when a great ruler rises (`src/ui/config.ts`) |
+| `ODDS_RUNS` | 20 | 5–100 | Futures the Sandbox's odds run (`src/sim/params.ts`, not in Settings or saves). More = finer percentages, but slower (~1.5 s each in the browser) |
+| `ODDS_YEARS` | 50 | 1–500 | Years each future runs by default; the tab's Years box can change it per run |
 
 ---
 

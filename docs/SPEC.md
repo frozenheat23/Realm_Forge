@@ -808,6 +808,10 @@ Two more tints like the Races layer (§5.4b), and only one of the three shows at
 
 The side panel (Wars, Past wars, Log), following a war, its map marks and the war report: see [`systems/warroom.md`](systems/warroom.md). It reads the war records the simulation keeps (`WorldState.warRecords`, saved).
 
+### 5.4j-b Sandbox (M17)
+
+A fourth side-panel tab: god commands that start or end wars (logged and saved, so history = seed + settings + command log), and odds from 20 possible futures. See [`systems/sandbox.md`](systems/sandbox.md).
+
 ### 5.4k Ruler card
 
 A portrait card floats at the map's top right (`src/ui/rulerCard.ts`), toggled with key P. Hovering over a nation shows its ruler; unowned land hides it. When a great ruler rises, the card shows them and stays up for `RULER_CARD_SECONDS`, ignoring hover meanwhile.

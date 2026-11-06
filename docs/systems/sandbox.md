@@ -1,6 +1,6 @@
 # Sandbox (M17)
 
-> **Planned.** Designed 2026-11-06 with the user, who chose wars as the first god powers and "who wins this war / does this nation survive" as the first odds questions. Code will be `sim/sandbox.ts` (god commands and the command log), `sim/odds.ts` (futures) and `ui/sandbox.ts` (the tab). Where the build differs, "As built" at the end will say so.
+> **Built** (M17, 2026-11-06). Designed with the user, who chose wars as the first god powers and "who wins this war / does this nation survive" as the first odds questions. Code: `sim/sandbox.ts` (god commands and the command log), `sim/odds.ts` (futures), `ui/sandbox.ts` (the tab). "As built" at the end says where the build differs from the design.
 
 **Goal.** Let you reach into a running history and change it, then ask how likely things are from here. Two parts:
 
@@ -66,3 +66,10 @@ Each step ends with the full test suite green.
 ## Not in M17
 
 Rulers, unrest and army god powers (later, same pattern); comparing futures with and without a command side by side; world-wide odds; running futures in a Web Worker (only if 10 seconds turns out to be too slow); playing a nation (M20).
+
+## As built
+
+- **Goals greyed out before you click.** `godWarRefusals()` in `sim/sandbox.ts` makes the same checks as `applyGodWar` without changing anything, so the tab can grey out a goal and give the reason on hover.
+- **The gods' event lines keep names as they are**: "by the will of the gods, Aeluin declares war on Aerel …" (the first draft lowercased the first letter, which broke names).
+- **Speed.** One future of 50 years on the full map takes about 0.55 s (11 ms a year), so 20 futures take ~11 s in Node and ~30 s in the browser, where the map keeps drawing between chunks. Not moved to a Web Worker: the page stays responsive and shows progress.
+- **What the first odds showed** (5 wars at their start, 4 unseen seeds, 20 futures each): in 4 of 5, every future ended the same way: the attacker wins 20 of 20, or 20 white peaces when a 26-cell realm attacked a 102-cell one. Even near-equals (425 against 457 cells) went 20–0. Defenders entered those wars with almost no soldiers in reserve (0–3, against the attacker's 8–38), so the war was decided before it began. Only one war split: 13 defender wins and 7 white peaces. This is the starting point for M18 (Real war).
