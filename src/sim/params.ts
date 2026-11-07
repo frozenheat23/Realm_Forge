@@ -109,6 +109,10 @@ export const SIM = {
 
   // --- War ---
   WAR_BASE_PROB: 0.001,
+  /** Misjudgment (M18): each year a nation's estimate of its strength against a rival is off by up to × e^±INTEL_ERROR. */
+  INTEL_ERROR: 0.7,
+  /** × INTEL_ERROR when the rival is of another race: strangers are harder to judge. */
+  INTEL_FOREIGN: 1.5,
   WAR_STRENGTH_EXP: 2.25,
   /** Ceiling on the yearly chance a pair goes to war, however lopsided they are. */
   WAR_MAX_PROB: 0.3,

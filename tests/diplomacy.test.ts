@@ -84,9 +84,9 @@ describe("opinion", () => {
     const state = twoNations();
     const [a, b] = [state.nations.get(1)!, state.nations.get(2)!];
     state.relations.set(pairKey(1, 2), -0.8);
-    const hate = warChance(state, a, b);
+    const hate = warChance(state, a, b, 2);
     state.relations.set(pairKey(1, 2), 0.8);
-    expect(warChance(state, a, b)).toBeLessThan(hate);
+    expect(warChance(state, a, b, 2)).toBeLessThan(hate);
   });
 
   it("declaring war leaves a grudge", () => {

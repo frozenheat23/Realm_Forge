@@ -70,7 +70,7 @@ export function makeNation(id: NationId, capital: number, extra: Partial<Nation>
     race: Race.Human,
     culture: id,
     faith: Faith.RadiantCovenant,
-    ruler: { name: "Testa", dynasty: "House Test", female: false, crowned: 0, ends: 1_000_000 }, // reigns forever unless a test says otherwise
+    ruler: { name: "Testa", dynasty: "House Test", female: false, crowned: 0, ends: 1_000_000, boldness: 1 }, // reigns forever unless a test says otherwise
     alive: true,
     stability: 0.8,
     warWeariness: 0,

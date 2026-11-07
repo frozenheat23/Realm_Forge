@@ -37,11 +37,12 @@ async function fingerprint(seed: string, years: number, width?: number, height?:
 // recording, before M15 (a9cbfab), held unchanged through steps 1–4. Re-recorded in M16 for
 // the new wording of a victory that took no land (history itself unchanged). Re-recorded
 // 2026-11-06: civil-war pretenders now rise from the ruling people, and again when
-// alliances began to fade and break under new rulers (history changed both times).
+// alliances began to fade and break under new rulers (history changed both times). Re-recorded
+// 2026-11-07: nations go to war on what they believe, not on exact strength (M18 misjudgment).
 const GOLDEN = {
-  full: "de6a1d93",
-  smallA: "0c28726e",
-  smallB: "890fbd00",
+  full: "02300d63",
+  smallA: "413db51a",
+  smallB: "ec4c485d",
 };
 
 describe("golden history", () => {

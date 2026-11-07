@@ -185,7 +185,7 @@ export const RACES: Record<PlayableRace, RaceTraits> = {
   [Race.Human]: {
     name: "Human", plural: "Humans", family: "human",
     growth: 1.0, martial: 1.0, defense: 1.0, aggression: 1.0, endurance: 1.0, cohesion: 1.0, unrest: 1.0, tolerance: 1.0, startSize: 1.0, assimilation: 1.0, conversion: 1.0, faiths: [Faith.RadiantCovenant],
-    reign: 25, succession: 1.0, fickleness: 1.0, femaleChance: 0.5, dynastyWord: "House",
+    reign: 25, succession: 1.0, fickleness: 1.0, confidence: 1.0, temper: 0.6, femaleChance: 0.5, dynastyWord: "House",
     greatOdds: { [RulerType.Conqueror]: 1, [RulerType.Lawgiver]: 3, [RulerType.Builder]: 1, [RulerType.Prophet]: 1, [RulerType.Schemer]: 1 },
     affinity: {}, // the baseline: no land is better or worse for Humans than its biome says
     mountainAffinity: 1.0,
@@ -196,7 +196,7 @@ export const RACES: Record<PlayableRace, RaceTraits> = {
   [Race.LightElf]: {
     name: "Light Elf", plural: "Light Elves", family: "elf",
     growth: 0.6, martial: 1.1, defense: 1.4, aggression: 0.5, endurance: 0.8, cohesion: 0.9, unrest: 0.6, tolerance: 0.6, startSize: 1.75, assimilation: 0.35, conversion: 0.4, faiths: [Faith.EvergreenVow, Faith.SilverChoir],
-    reign: 120, succession: 0.5, fickleness: 0.6, femaleChance: 0.5, dynastyWord: "House",
+    reign: 120, succession: 0.5, fickleness: 0.6, confidence: 0.9, temper: 0.25, femaleChance: 0.5, dynastyWord: "House",
     greatOdds: { [RulerType.Conqueror]: 0.5, [RulerType.Lawgiver]: 1, [RulerType.Builder]: 1, [RulerType.Prophet]: 3, [RulerType.Schemer]: 1 },
     affinity: { [Biome.TemperateForest]: 1.5, [Biome.TropicalForest]: 1.4, [Biome.Grassland]: 0.8, [Biome.Desert]: 0.5 },
     mountainAffinity: 1.0,
@@ -207,7 +207,7 @@ export const RACES: Record<PlayableRace, RaceTraits> = {
   [Race.DarkElf]: {
     name: "Dark Elf", plural: "Dark Elves", family: "elf",
     growth: 0.7, martial: 1.3, defense: 1.1, aggression: 1.4, endurance: 0.9, cohesion: 0.7, unrest: 1.2, tolerance: 0.5, startSize: 1.25, assimilation: 0.6, conversion: 0.8, faiths: [Faith.HollowMother],
-    reign: 80, succession: 1.2, fickleness: 1.6, femaleChance: 0.8, dynastyWord: "House",
+    reign: 80, succession: 1.2, fickleness: 1.6, confidence: 1.15, temper: 0.5, femaleChance: 0.8, dynastyWord: "House",
     greatOdds: { [RulerType.Conqueror]: 1, [RulerType.Lawgiver]: 0.5, [RulerType.Builder]: 0.5, [RulerType.Prophet]: 1, [RulerType.Schemer]: 3 },
     affinity: { [Biome.Taiga]: 1.6, [Biome.Wetland]: 1.4, [Biome.Grassland]: 0.8 },
     mountainAffinity: 1.5,
@@ -218,7 +218,7 @@ export const RACES: Record<PlayableRace, RaceTraits> = {
   [Race.Dwarf]: {
     name: "Dwarf", plural: "Dwarves", family: "dwarf",
     growth: 0.7, martial: 1.2, defense: 1.5, aggression: 0.7, endurance: 1.3, cohesion: 0.9, unrest: 0.6, tolerance: 0.7, startSize: 1.0, assimilation: 0.45, conversion: 0.2, faiths: [Faith.DeepAncestors, Faith.AnvilOath],
-    reign: 60, succession: 0.4, fickleness: 0.5, femaleChance: 0, dynastyWord: "Clan",
+    reign: 60, succession: 0.4, fickleness: 0.5, confidence: 0.9, temper: 0.2, femaleChance: 0, dynastyWord: "Clan",
     greatOdds: { [RulerType.Conqueror]: 0.5, [RulerType.Lawgiver]: 1, [RulerType.Builder]: 3, [RulerType.Prophet]: 0.5, [RulerType.Schemer]: 0.5 },
     affinity: { [Biome.Taiga]: 1.3, [Biome.Grassland]: 0.8, [Biome.TropicalForest]: 0.5 },
     mountainAffinity: 2.5,
@@ -229,7 +229,7 @@ export const RACES: Record<PlayableRace, RaceTraits> = {
   [Race.Orc]: {
     name: "Orc", plural: "Orcs", family: "orc",
     growth: 1.5, martial: 1.1, defense: 0.8, aggression: 1.6, endurance: 1.1, cohesion: 0.6, unrest: 1.5, tolerance: 1.1, startSize: 0.75, assimilation: 1.5, conversion: 1.3, faiths: [Faith.RedHunger, Faith.BoneDrums],
-    reign: 15, succession: 2.0, fickleness: 1.5, femaleChance: 0, dynastyWord: "Clan",
+    reign: 15, succession: 2.0, fickleness: 1.5, confidence: 1.25, temper: 0.3, femaleChance: 0, dynastyWord: "Clan",
     greatOdds: { [RulerType.Conqueror]: 3, [RulerType.Lawgiver]: 0.5, [RulerType.Builder]: 0.5, [RulerType.Prophet]: 1, [RulerType.Schemer]: 0.5 },
     affinity: { [Biome.Desert]: 2.5, [Biome.Shrubland]: 1.5, [Biome.Savanna]: 1.3, [Biome.TemperateForest]: 0.8 },
     mountainAffinity: 1.0,

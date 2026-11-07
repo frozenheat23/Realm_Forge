@@ -184,6 +184,8 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
+| `INTEL_ERROR` | 0.7 | 0–1.5 | Each year a nation's estimate of its strength against a rival is off by up to × e^±this (×0.5 – ×2 at 0.7). Measured: 0.4 → 3% of wars started by a weaker or even side, 0.7 → 5%, 1.0 → 7%; each step adds wars | Weak realms attack often and lose | Nations judge exactly, as before M18 (0) |
+| `INTEL_FOREIGN` | 1.5 | 1–3 | × `INTEL_ERROR` against a nation of another race | Wars between races are the gambles | Strangers judged as well as kin |
 | `WAR_BASE_PROB` | 0.001 | 0.001–0.02 | Base yearly chance a neighbor pair goes to war (0.004 before M9's war motives, 0.003 before M11 manpower) | Constant warfare | Peaceful eras |
 | `WAR_STRENGTH_EXP` | 2.25 | 0.5–3 | How much a power gap encourages war (1.0 before M11: soldier counts differ more between nations than the old `strength` did) | Strong prey on weak | Wars between equals too |
 | `WAR_MAX_PROB` | 0.3 | 0.02–0.3 | Ceiling on a pair's yearly war chance, however lopsided | Bullies attack almost at once | Even giants hesitate |
@@ -558,13 +560,15 @@ The race's number for each type, × `GREAT_RULER_CHANCE`.
 
 ### Race traits
 
-| Race | `reign` (average years) | `succession` (× crisis chance) | `femaleChance` | `fickleness` (× `PACT_FADE`, `NEW_RULER_BREAK`) |
-|---|---|---|---|---|
-| Humans | 25 | 1.0 | 0.5 | 1.0 |
-| Light Elves | 120 | 0.5 | 0.5 | 0.6 (long memories) |
-| Dark Elves | 80 | 1.2 | 0.8 | 1.6 (treacherous) |
-| Dwarves | 60 | 0.4 | 0 | 0.5 (oaths are kept) |
-| Orcs | 15 | 2.0 | 0 | 1.5 (loyal to strength, not to pacts) |
+| Race | `reign` (average years) | `succession` (× crisis chance) | `femaleChance` | `fickleness` (× `PACT_FADE`, `NEW_RULER_BREAK`) | `confidence` (× war estimate) | `temper` (rulers' boldness e^±this) |
+|---|---|---|---|---|---|---|
+| Humans | 25 | 1.0 | 0.5 | 1.0 | 1.0 | 0.6 (×0.55 – ×1.8: some warmongers, some timid) |
+| Light Elves | 120 | 0.5 | 0.5 | 0.6 (long memories) | 0.9 | 0.25 (steady) |
+| Dark Elves | 80 | 1.2 | 0.8 | 1.6 (treacherous) | 1.15 | 0.5 (unpredictable) |
+| Dwarves | 60 | 0.4 | 0 | 0.5 (oaths are kept) | 0.9 | 0.2 (steady) |
+| Orcs | 15 | 2.0 | 0 | 1.5 (loyal to strength, not to pacts) | 1.25 (overrate themselves) | 0.3 |
+
+`confidence` and `temper` (M18 misjudgment) change only how a nation judges a war, not how it fights: a race that overrates itself starts more wars and loses more of them. Fighting appetite is `aggression` (race traits table). A wide `temper` turned out to help a race slightly (bold kings mostly pick on weaker realms, timid ones lose little), so widen it with a balance check.
 
 ---
 

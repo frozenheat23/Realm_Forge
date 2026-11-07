@@ -41,7 +41,7 @@ describe("making a ruler", () => {
   });
 
   it("titles a ruler by race, type and gender", () => {
-    const base = { name: "Selena", dynasty: "House Test", crowned: 0, ends: 10 };
+    const base = { name: "Selena", dynasty: "House Test", crowned: 0, ends: 10, boldness: 1 };
     expect(rulerName({ ...base, female: true, great: RulerType.Conqueror }, Race.Human)).toBe("High Queen Selena");
     expect(rulerName({ ...base, female: false, great: RulerType.Conqueror }, Race.Orc)).toBe("Warlord Selena");
     expect(rulerName({ ...base, female: true }, Race.DarkElf)).toBe("Matriarch Selena");
@@ -158,7 +158,7 @@ describe("a succession crisis", () => {
 });
 
 describe("great rulers", () => {
-  const ruler = (great?: (typeof RulerType)[keyof typeof RulerType]) => ({ name: "Testa", dynasty: "House Test", female: false, crowned: 0, ends: 1_000_000, ...(great ? { great } : {}) });
+  const ruler = (great?: (typeof RulerType)[keyof typeof RulerType]) => ({ name: "Testa", dynasty: "House Test", female: false, crowned: 0, ends: 1_000_000, boldness: 1, ...(great ? { great } : {}) });
 
   it("come mostly as the type their race leans toward", () => {
     const rng = createRng("leanings");

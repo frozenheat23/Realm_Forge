@@ -77,6 +77,11 @@ export interface Ruler {
   ends: number;
   /** Only great rulers have a type. */
   great?: RulerTypeId;
+  /**
+   * × how strong this ruler believes their realm is against a rival (M18 misjudgment).
+   * Rolled at coronation from the race's `temper`: above 1 is bold, below 1 timid.
+   */
+  boldness: number;
 }
 
 /** One row of the FAITHS table. */
@@ -149,6 +154,10 @@ export interface RaceTraits {
   succession: number;
   /** × PACT_FADE and NEW_RULER_BREAK: how readily its rulers let an alliance go. */
   fickleness: number;
+  /** × its estimate of its strength against a rival (M18): above 1 overrates itself. */
+  confidence: number;
+  /** How much its rulers' boldness varies: each is between e^-temper and e^+temper. */
+  temper: number;
   /** Chance a ruler of this race is a woman. Changes the title and name only. */
   femaleChance: number;
   /** "House", "Clan"... */

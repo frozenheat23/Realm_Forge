@@ -29,7 +29,11 @@ export function makeRuler(rng: Rng, race: RaceId, year: number, dynasty: string)
   const female = rng.chance(t.femaleChance);
   const names = RULER_NAMES[t.family];
   const reign = t.reign * rng.range(1 - REIGN_SPREAD, 1 + REIGN_SPREAD);
-  return { name: personalName(rng, female ? names.female : names.male), dynasty, female, crowned: year, ends: year + Math.max(1, Math.round(reign)) };
+  const name = personalName(rng, female ? names.female : names.male);
+  // A stream of its own, so adding boldness (M18) changed no ruler's name or reign. It's named
+  // after the ruler: a fork depends only on its name, so one shared name would give everyone the same temper.
+  const boldness = Math.exp(rng.fork(`temper-${dynasty}-${name}-${year}`).range(-t.temper, t.temper));
+  return { name, dynasty, female, crowned: year, ends: year + Math.max(1, Math.round(reign)), boldness };
 }
 
 /** Starts a ruler partway through their reign, so a world's first rulers don't all die together. */

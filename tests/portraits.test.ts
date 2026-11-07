@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { Race, RulerType, type RaceId, type Ruler, type RulerTypeId } from "../src/core/types";
 import { fallbackPath, portraitPath } from "../src/ui/portraits";
 
-const ruler = (female: boolean, great?: RulerTypeId): Ruler => ({ name: "Test", dynasty: "House Test", female, crowned: 0, ends: 10, great });
+const ruler = (female: boolean, great?: RulerTypeId): Ruler => ({ name: "Test", dynasty: "House Test", female, crowned: 0, ends: 10, great, boldness: 1 });
 
 describe("ruler portraits", () => {
   it("names the file by race, gender and type", () => {

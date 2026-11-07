@@ -14,18 +14,27 @@ import { claimedCells, conquestCells, openGoals } from "../warGoals";
 import type { Controller, Controllers, View, WarContext } from "./controller";
 
 /**
- * Yearly chance that `attacker` declares war on `defender` (SPEC §4.5).
- * `attackHelp` / `defendHelp` = fighting power the allies on each side are expected to bring.
+ * Yearly chance that `attacker` declares war on `defender` (SPEC §4.5), given `ratio`:
+ * how much stronger the attacker believes it is, allies included (see `estimate`).
  * `motive` multiplies it for reasons to fight (claims, rich border land).
  * A bigger gap makes war more tempting, and so do an aggressive ruling race and hatred.
  */
-export function warChance(state: View, attacker: Nation, defender: Nation, attackHelp = 0, defendHelp = 0, motive = 1): number {
-  const ratio = (fightingPower(state, attacker) + attackHelp) / Math.max(fightingPower(state, defender) + defendHelp, 1e-6);
+export function warChance(state: View, attacker: Nation, defender: Nation, ratio: number, motive = 1): number {
   const mood = Math.max(0, 1 - opinion(state, attacker.id, defender.id) * SIM.OPINION_WAR_K);
   return Math.min(
     SIM.WAR_MAX_PROB,
     SIM.WAR_BASE_PROB * traits(attacker.race).aggression * blessing(attacker, Faith.RedHunger) * greatBonus(attacker, RulerType.Conqueror, SIM.GREAT_CONQUEROR_WAR) * ratio ** SIM.WAR_STRENGTH_EXP * (1 - attacker.warWeariness) * mood * motive,
   );
+}
+
+/**
+ * How much stronger `me` believes it is than `them` (M18 misjudgment, docs/systems/realwar.md):
+ * the true ratio of fighting power (allies' expected help included), × the race's confidence,
+ * × the ruler's boldness, × this year's error, which is bigger against another race.
+ */
+export function estimate(me: Nation, them: Nation, trueRatio: number, rng: Rng): number {
+  const error = SIM.INTEL_ERROR * (me.race === them.race ? 1 : SIM.INTEL_FOREIGN);
+  return trueRatio * traits(me.race).confidence * me.ruler.boldness * Math.exp(rng.range(-error, error));
 }
 
 /** The goal to fight for: lost land if there's a claim; otherwise a raid (likelier for aggressive races, and when there's nothing worth taking) or a conquest. */
@@ -54,20 +63,17 @@ export function chooseGoal(
   return { goal, goalCells: conquestCells(state, attacker, defender, prize!) };
 }
 
-/** Only the side with more fighting power considers war (the first of an equal pair, by id). */
-function stronger(view: View, me: Nation, them: Nation): boolean {
-  const mine = fightingPower(view, me);
-  const theirs = fightingPower(view, them);
-  return mine > theirs || (mine === theirs && me.id < them.id);
-}
-
 export const AI: Controller = {
   declareWar(view, me, them, why, rng) {
-    if (!stronger(view, me, them)) return null;
-    // Weigh up whose allies would join in, and the reasons to fight.
+    // Weigh up whose allies would join in, then how the two sides compare, as this ruler sees it.
     const help = (allies: Nation[], joinChance: number) => allies.reduce((sum, n) => sum + fightingPower(view, n) * joinChance, 0);
+    const mine = fightingPower(view, me) + help(why.myHelpers, SIM.ALLY_ATTACK_PROB);
+    const theirs = fightingPower(view, them) + help(why.theirHelpers, SIM.ALLY_DEFEND_PROB);
+    const ratio = estimate(me, them, mine / Math.max(theirs, 1e-6), rng);
+    // Only a side that believes it's the stronger considers war; both may believe it.
+    if (ratio <= 1) return null;
     const motive = (why.claim ? SIM.CLAIM_WAR_BONUS : 1) * (1 + SIM.WAR_VALUE_K * (why.prize?.value ?? 0));
-    const chance = warChance(view, me, them, help(why.myHelpers, SIM.ALLY_ATTACK_PROB), help(why.theirHelpers, SIM.ALLY_DEFEND_PROB), motive);
+    const chance = warChance(view, me, them, ratio, motive);
     if (!rng.chance(chance)) return null;
     return goalFor(me, why, rng);
   },

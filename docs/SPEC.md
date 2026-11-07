@@ -315,7 +315,8 @@ For each unowned land cell, every neighboring nation rolls to claim it with prob
 **Declaring.** For each pair of neighboring nations that aren't at war, allied, or in a truce:
 
 ```
-chance = WAR_BASE_PROB × aggression × (attackSide / defendSide) ^ WAR_STRENGTH_EXP × (1 − attacker.warWeariness) × mood × motive
+chance = WAR_BASE_PROB × aggression × estimate ^ WAR_STRENGTH_EXP × (1 − attacker.warWeariness) × mood × motive
+estimate = attackSide / defendSide × confidence × ruler's boldness × e^(±INTEL_ERROR, × INTEL_FOREIGN against another race)   // M18
 power      = soldiers × (0.5 + stability)                           // fightingPower, §4.13
 attackSide = attacker power + Σ power of attacker's helpers × ALLY_ATTACK_PROB
 defendSide = defender power + Σ power of defender's helpers × ALLY_DEFEND_PROB
@@ -323,7 +324,7 @@ mood       = max(0, 1 − opinion × OPINION_WAR_K)
 motive     = (claim ? CLAIM_WAR_BONUS : 1) × (1 + WAR_VALUE_K × value of the defender's best border cell)
 ```
 
-The chance is capped at `WAR_MAX_PROB`. The stronger side (by its own power) is the attacker; `aggression` is its ruling race's trait. A nation can be in at most `MAX_WARS_PER_NATION` wars it declares or is declared on. `opinion` and **helpers** (allies who would join) are from §4.12, so allies deter attacks and hatred invites them. A **claim** means the defender holds land the attacker lost to it within `CLAIM_YEARS`; cell **value** (as the attacker's race sees it) is in §4.11. Each war gets a **goal** (§4.13). The `war` event says why: *"…to reclaim its lost lands"* for a claim, *"…to raid its lands"* for a raid, otherwise *"…, coveting its iron"* when the best border cell holds a resource the attacker's race favors, or else *"…to seize the lands around Arvenna"* when the goal holds a city.
+The chance is capped at `WAR_MAX_PROB`. Only a side whose **estimate** is above 1, that believes it's the stronger, considers war, so both sides may; before M18 only the truly stronger side did. The estimate (misjudgment, [`systems/realwar.md`](systems/realwar.md)) fools only the decision: battles use true strength. `aggression`, `confidence` and `temper` are the ruling race's traits. A nation can be in at most `MAX_WARS_PER_NATION` wars it declares or is declared on. `opinion` and **helpers** (allies who would join) are from §4.12, so allies deter attacks and hatred invites them. A **claim** means the defender holds land the attacker lost to it within `CLAIM_YEARS`; cell **value** (as the attacker's race sees it) is in §4.11. Each war gets a **goal** (§4.13). The `war` event says why: *"…to reclaim its lost lands"* for a claim, *"…to raid its lands"* for a raid, otherwise *"…, coveting its iron"* when the best border cell holds a resource the attacker's race favors, or else *"…to seize the lands around Arvenna"* when the goal holds a city.
 
 **Allies join.** Right after a declaration, each of the defender's helpers joins with chance `ALLY_DEFEND_PROB`, and each of the attacker's with `ALLY_ATTACK_PROB`. A helper is an ally that borders the enemy or the ally it's helping, isn't allied with the enemy too, isn't already at war or in a truce with it, and isn't at its own war limit. Each joining ally gets its own `War` with the enemy (its own army and score), with `joined` set to the main war's id.
 

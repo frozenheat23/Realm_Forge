@@ -7,11 +7,11 @@ import type { Alliance, Army, CellState, LoggedCommand, Nation, RaceHome, SimEve
 import type { GeneratedWorld } from "../gen";
 import type { SimParams } from "./params";
 
-/** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9), 5 armies (M11), 8 culture and faith (M12), 9 rulers (M13), 10 war records (M16), 11 the sandbox's command log (M17). */
-export const SNAPSHOT_VERSION = 11;
+/** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9), 5 armies (M11), 8 culture and faith (M12), 9 rulers (M13), 10 war records (M16), 11 the sandbox's command log (M17), 12 rulers' boldness (M18). */
+export const SNAPSHOT_VERSION = 12;
 
 /** Older versions that still load, with what they lack filled in. */
-const STILL_LOADS = new Set([10]);
+const STILL_LOADS = new Set([10, 11]);
 
 /** Why older saves can't be loaded, by version. */
 const TOO_OLD: Record<number, string> = {
@@ -120,7 +120,8 @@ export function fromSnapshot(snapshot: Snapshot, world: GeneratedWorld): WorldSt
       development: Float32Array.from(c.development),
       settlement: Uint8Array.from(c.settlement),
     },
-    nations: new Map(snapshot.nations.map((n) => [n.id, { ...n }])),
+    // Rulers from saves before v12 had no boldness: they judge rivals plainly (1).
+    nations: new Map(snapshot.nations.map((n) => [n.id, { ...n, ruler: { ...n.ruler, boldness: n.ruler.boldness ?? 1 } }])),
     wars: snapshot.wars.map((w) => ({ ...w })),
     armies: snapshot.armies.map((a) => ({ ...a, path: [...a.path], trail: [...a.trail] })),
     nextArmyId: snapshot.nextArmyId,
