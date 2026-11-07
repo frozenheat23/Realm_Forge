@@ -7,11 +7,12 @@
     <style>
       body { margin: 0; background: #14181f; color: #e8e2d4; font-family: Georgia, serif; }
       .wrap { max-width: 1600px; margin: 0 auto; }
-      /* The ruler card floats over the map's right edge, just below the year counter. */
-      .map-box { position: relative; }
+      /* The map is sized by fitMap() in main.ts; the ruler card floats over its right edge, just below the year counter. */
+      .map-area { min-width: 0; }
+      .map-box { position: relative; width: fit-content; margin: 0 auto; }
       #ruler-card { position: absolute; top: 9%; right: 12px; pointer-events: none; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)); }
       #ruler-card canvas { display: block; height: auto; }
-      #map { display: block; width: 100%; height: auto; }
+      #map { display: block; }
       #map.zoomed { cursor: grab; }
       #map.dragging { cursor: grabbing; }
       .bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 12px; }
@@ -64,10 +65,13 @@
       .tab.shown { display: block; }
       #tab-log.shown { display: flex; flex-direction: column; }
       #tab-log #log { flex: 1; height: auto; margin-bottom: 0; }
-      @media (min-width: 1200px) {
-        .wrap { max-width: 2000px; display: grid; grid-template-columns: minmax(0, 1fr) 380px; }
-        #panel { border-top: none; border-left: 1px solid #2c3340; position: sticky; top: 0; height: 100vh; }
-        .tab { height: auto; flex: 1; }
+      /* One page from MAP_BESIDE_WIDTH (src/ui/config.ts) up: the panel beside the map, and the map shrunk to fit the window's height. */
+      @media (min-width: 900px) {
+        .wrap { max-width: none; display: grid; grid-template-columns: minmax(0, 1fr) clamp(320px, 27vw, 400px); height: 100vh; }
+        main { display: flex; flex-direction: column; height: 100vh; min-width: 0; overflow-y: auto; }
+        #settings[open] { max-height: 40vh; overflow-y: auto; }
+        #panel { border-top: none; border-left: 1px solid #2c3340; height: 100vh; min-height: 0; }
+        .tab { height: auto; flex: 1; min-height: 0; }
       }
 
       .wars-empty, .room-note { padding: 12px; font: 13px/1.5 system-ui, sans-serif; color: #8f8a7e; }
@@ -118,9 +122,11 @@
   <body>
     <div class="wrap">
       <main>
-        <div class="map-box">
-          <canvas id="map"></canvas>
-          <div id="ruler-card" hidden></div>
+        <div class="map-area" id="map-area">
+          <div class="map-box">
+            <canvas id="map"></canvas>
+            <div id="ruler-card" hidden></div>
+          </div>
         </div>
         <div id="bar" class="bar"></div>
         <div id="info">Hover the map to inspect a cell and see its ruler · wheel or double-click to zoom, drag to move, 0 whole map · Space play/pause · → step · C cells · N nations · R races · A alliances · M resources · T towns · H heatmaps · E effects · W armies · P ruler card · click an event to highlight it, or a war to follow it</div>

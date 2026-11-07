@@ -3,6 +3,8 @@
 /** Years-per-second options on the speed buttons. */
 export const SPEEDS = [1, 5, 20, 50, 100];
 export const DEFAULT_SPEED = 5;
+/** From this window width (px) up, the side panel sits beside the map and the map fits the window's height. Must match the @media rule in index.html. */
+export const MAP_BESIDE_WIDTH = 900;
 /** Playback stops by itself at this year. */
 export const SIM_YEARS = 1000;
 /** Most lines the event log keeps on screen (older ones drop off the bottom). */

@@ -31,7 +31,7 @@ import { drawWarFocus } from "./render/warFocus";
 import { fromSnapshot, type Snapshot } from "./sim/snapshot";
 import { createWorld, startFromText, startToText } from "./sim/start";
 import { tick } from "./sim/tick";
-import { FOLLOW_SPEED, FOLLOW_ZOOM_MAX, HIGHLIGHT_SECONDS, MAX_ZOOM, SIM_YEARS, ZOOM_SHARP_DELAY } from "./ui/config";
+import { FOLLOW_SPEED, FOLLOW_ZOOM_MAX, HIGHLIGHT_SECONDS, MAP_BESIDE_WIDTH, MAX_ZOOM, SIM_YEARS, ZOOM_SHARP_DELAY } from "./ui/config";
 import { createControls, makeButton } from "./ui/controls";
 import { cellUnderMouse, onKey, showCellOnHover } from "./ui/debugInfo";
 import { createEventLog } from "./ui/eventLog";
@@ -95,6 +95,33 @@ if (pending && pending.seed === seed) {
 canvas.width = world.width;
 canvas.height = world.height;
 const ctx = canvas.getContext("2d")!;
+
+// The map is drawn at full size and shown as large as fits: beside the panel, in the height
+// the controls below it leave (so everything is on one page); on narrow screens, the width.
+const mapArea = element("#map-area");
+const mainColumn = mapArea.parentElement!;
+const wide = matchMedia(`(min-width: ${MAP_BESIDE_WIDTH}px)`);
+/** Height of an element with its margins. */
+function outerHeight(node: Element): number {
+  const css = getComputedStyle(node);
+  return node.getBoundingClientRect().height + parseFloat(css.marginTop) + parseFloat(css.marginBottom);
+}
+function fitMap(): void {
+  const width = mapArea.clientWidth;
+  let height = Infinity;
+  if (wide.matches) {
+    const below = [...mainColumn.children].filter((child) => child !== mapArea).reduce((sum, child) => sum + outerHeight(child), 0);
+    height = mainColumn.clientHeight - below;
+  }
+  const scale = Math.max(0.1, Math.min(width / canvas.width, height / canvas.height));
+  canvas.style.width = `${Math.floor(canvas.width * scale)}px`;
+  canvas.style.height = `${Math.floor(canvas.height * scale)}px`;
+}
+// Refit when the window changes size, or anything below the map grows or shrinks (the settings opening).
+const refit = new ResizeObserver(fitMap);
+for (const child of [mainColumn, ...mainColumn.children]) refit.observe(child);
+addEventListener("resize", fitMap);
+fitMap();
 
 // Makes an off-screen canvas the same size as the map.
 function offscreen(): [HTMLCanvasElement, CanvasRenderingContext2D] {

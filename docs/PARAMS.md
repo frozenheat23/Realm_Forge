@@ -736,6 +736,7 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | `FOLLOW_ZOOM_MAX` | 3 | 1–4 | Following a war zooms to fit its two capitals, but no closer than this |
 | `MARK_ZOOM_GROWTH` | 0.5 | 0–1 | Zoomed in, markers, names, rivers, terrain symbols and inked lines grow on screen as zoom ^ this (×2 at 4×). 1 = they grow with the map; 0 = they stay the same size (`render/palette.ts`) |
 | `PLAYER_MOBILIZE_CHOICES` | [0.25, 0.5, 0.8, 1] | — | The Play tab's "Raise for a new war" choices, as shares of the reserve (`src/ui/config.ts`); the current policy is listed too if it isn't one of them |
+| `MAP_BESIDE_WIDTH` | 900 | 700–1600 | From this window width (px) up, the side panel sits beside the map and the map shrinks to fit the window's height, so it's all one page. Must match the `@media` rule in `index.html` |
 | `PLAY_LIST_MAX` | 40 | 10–200 | Most realms listed when choosing a nation to play, largest first |
 | `ODDS_RUNS` | 20 | 5–100 | Futures the Sandbox's odds run (`src/sim/params.ts`, not in Settings or saves). More = finer percentages, but slower (~1.5 s each in the browser) |
 | `ODDS_YEARS` | 50 | 1–500 | Years each future runs by default; the tab's Years box can change it per run |

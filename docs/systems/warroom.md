@@ -37,7 +37,7 @@ interface WarRecord {
 
 ## Side panel
 
-On wide screens (≥ 1200 px) the page becomes two columns: the map with its toolbar on the left, a panel on the right that stays in view as you scroll. On narrow screens the panel drops below the map. The panel has three tabs.
+From `MAP_BESIDE_WIDTH` (900 px) up the page is one screen with two columns: the map with its toolbar on the left, shrunk to fit the window's height (`fitMap` in `main.ts`), and the panel on the right, whose tabs scroll inside it (changed 2026-11-07, M20; it was ≥ 1200 px with a page that scrolled). On narrower screens the panel drops below the map. The panel has three tabs.
 
 - **Wars**: the wars going on now. Each row shows both sides (color swatches) and how many allies each has, the goal (and the city it's about), years so far, a score bar from the defender's win line to the attacker's, and soldiers fallen on each side. Click a row to follow it.
 - **Past wars**: every war that has ended, newest first, sortable by length, by soldiers fallen, and by land that changed hands. Click one for its report.
