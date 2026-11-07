@@ -69,3 +69,72 @@ export function groupPixelsByCell(displayCells: Int32Array, cellCount: number): 
   }
   return { start, pixels };
 }
+
+/** A value of a per-pixel map (heights, coast distances) at any point, blended from the four nearest pixels. */
+export function sampleAt(values: Float32Array, width: number, height: number, x: number, y: number): number {
+  // Pixel (i, j) holds the value at its centre, (i + 0.5, j + 0.5).
+  const fx = Math.min(width - 1, Math.max(0, x - 0.5));
+  const fy = Math.min(height - 1, Math.max(0, y - 0.5));
+  const x0 = Math.floor(fx);
+  const y0 = Math.floor(fy);
+  const x1 = Math.min(width - 1, x0 + 1);
+  const y1 = Math.min(height - 1, y0 + 1);
+  const tx = fx - x0;
+  const ty = fy - y0;
+  const top = values[y0 * width + x0]! * (1 - tx) + values[y0 * width + x1]! * tx;
+  const bottom = values[y1 * width + x0]! * (1 - tx) + values[y1 * width + x1]! * tx;
+  return top * (1 - ty) + bottom * ty;
+}
+
+/** The cell whose centre is nearest (x, y): the pixel's cell, or one of its neighbors. Exact at any zoom. */
+function nearestCell(world: GeneratedWorld, x: number, y: number): number {
+  const px = Math.min(world.width - 1, Math.max(0, Math.floor(x)));
+  const py = Math.min(world.height - 1, Math.max(0, Math.floor(y)));
+  let best = world.pixelToCell[py * world.width + px]!;
+  const [bx, by] = world.cells[best]!.site;
+  let bestDist = (bx - x) ** 2 + (by - y) ** 2;
+  for (const n of world.cells[best]!.neighbors) {
+    const [nx, ny] = world.cells[n]!.site;
+    const d = (nx - x) ** 2 + (ny - y) ** 2;
+    if (d < bestDist) [best, bestDist] = [n, d];
+  }
+  return best;
+}
+
+/** The part of the map a zoomed view shows: `width` × `height` view pixels, each 1/zoom of a map pixel. */
+export interface ViewGrid {
+  width: number;
+  height: number;
+  zoom: number;
+  /** The map point at the view's top-left corner. */
+  x: number;
+  y: number;
+}
+
+/**
+ * Like `buildDisplayCells`, but for a zoomed view (M19): which cell each view pixel shows.
+ * Cells are found from their true centres and the coast from blended heights, so
+ * borders and coastlines stay smooth however close the view is.
+ */
+export function buildViewCells(world: GeneratedWorld, view: ViewGrid): Int32Array {
+  const { cells, heightmap } = world;
+  const w = CEL_BIOME_EDGE_WOBBLE;
+  const display = new Int32Array(view.width * view.height);
+  for (let gy = 0; gy < view.height; gy++) {
+    const y = view.y + (gy + 0.5) / view.zoom;
+    for (let gx = 0; gx < view.width; gx++) {
+      const x = view.x + (gx + 0.5) / view.zoom;
+      const isLandPixel = sampleAt(heightmap.data, heightmap.width, heightmap.height, x, y) > heightmap.seaLevel;
+      // The same smooth waves as buildDisplayCells, so borders curve the same way. Those
+      // are worked out from pixel numbers, and pixel i's centre is at i + 0.5: hence the − 0.5.
+      const [ix, iy] = [x - 0.5, y - 0.5];
+      const sx = x + w * Math.sin(iy * 0.11 + ix * 0.03) + w * 0.5 * Math.sin(iy * 0.37);
+      const sy = y + w * Math.sin(ix * 0.09 - iy * 0.04) + w * 0.5 * Math.sin(ix * 0.31);
+      let cell = nearestCell(world, sx, sy);
+      if (isLandPixel && !cells[cell]!.isLand) cell = nearestCell(world, x, y);
+      if (isLandPixel && !cells[cell]!.isLand) cell = nearestLandNeighbor(world, cell, x, y);
+      display[gy * view.width + gx] = cell;
+    }
+  }
+  return display;
+}

@@ -147,6 +147,10 @@ export const LABEL_FONT = "Georgia, 'Times New Roman', serif";
 /** Label size in pixels: grows with the square root of the nation's area, within these limits. */
 export const LABEL_MIN_SIZE = 11;
 export const LABEL_MAX_SIZE = 40;
+
+// --- Zoom (M19) ---
+/** Zoomed in, markers, names and inked lines grow on screen as zoom ^ this: 0.5 makes them twice as big at 4×. 1 = they grow with the map; 0 = they stay the same size. */
+export const MARK_ZOOM_GROWTH = 0.5;
 export const LABEL_SIZE_PER_SQRT_AREA = 2.2;
 /** Gap between letters, as a share of the font size. */
 export const LABEL_LETTER_SPACING = 0.18;

@@ -727,6 +727,12 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | `FOCUS_GOAL_COLOR`, `FOCUS_GOAL_RADIUS` | #e0b84a, 4 | — | Gold ring on goal land the attacker hasn't taken yet (`render/palette.ts`) |
 | `FOCUS_HELD_SIZE`, `FOCUS_EDGE` | 5, dark brown | — | Diamond in the occupier's color on occupied land (`render/palette.ts`) |
 | `RULER_CARD_SECONDS` | 5 | 2–15 | How long the ruler card stays up when a great ruler rises (`src/ui/config.ts`) |
+| `MAX_ZOOM` | 4 | 2–8 | Closest zoom (M19): 4 = a quarter of the map across (`src/ui/config.ts`) |
+| `ZOOM_WHEEL_K` | 0.002 | 0.0005–0.01 | How fast the mouse wheel zooms: one wheel step of 100 zooms by e^(100 × this) |
+| `ZOOM_STEP` | 2 | 1.25–4 | Zoom per double-click or + / − key |
+| `ZOOM_SHARP_DELAY` | 150 | 0–1000 | Milliseconds after the view stops moving before it's redrawn sharp (the redraw takes ~0.4 s) |
+| `FOLLOW_ZOOM_MAX` | 3 | 1–4 | Following a war zooms to fit its two capitals, but no closer than this |
+| `MARK_ZOOM_GROWTH` | 0.5 | 0–1 | Zoomed in, markers, names, rivers, terrain symbols and inked lines grow on screen as zoom ^ this (×2 at 4×). 1 = they grow with the map; 0 = they stay the same size (`render/palette.ts`) |
 | `ODDS_RUNS` | 20 | 5–100 | Futures the Sandbox's odds run (`src/sim/params.ts`, not in Settings or saves). More = finer percentages, but slower (~1.5 s each in the browser) |
 | `ODDS_YEARS` | 50 | 1–500 | Years each future runs by default; the tab's Years box can change it per run |
 

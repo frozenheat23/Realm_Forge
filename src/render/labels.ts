@@ -3,6 +3,7 @@ import type { GeneratedWorld } from "../gen";
 import type { CellId, NationId, WorldState } from "../core/types";
 import { clamp } from "../core/math";
 import { drawCastle } from "./atlasMarkers";
+import { atMark, markScale, zoomOf } from "./marks";
 import { cssColor, lookTint } from "./color";
 import {
   CAPITAL_FILL,
@@ -112,17 +113,21 @@ export function drawLabels(ctx: CanvasRenderingContext2D, world: GeneratedWorld,
     .filter((n) => n.alive)
     .sort((a, b) => (owned.get(b.id)?.length ?? 0) - (owned.get(a.id)?.length ?? 0) || a.id - b.id);
   const placed: Box[] = [];
+  const k = markScale(zoomOf(ctx));
 
   for (const nation of nations) {
     const cells = owned.get(nation.id) ?? [];
 
     const [capX, capY] = world.cells[nation.capital]!.site;
-    if (look.capital === "castle") drawCastle(ctx, capX, capY, cssColor(lookTint(nation.color, look)));
-    else drawCapitalDot(ctx, capX, capY, look.labelColor);
-    if (nation.ruler.great !== undefined) drawCrown(ctx, capX, capY, look);
+    atMark(ctx, capX, capY, () => {
+      if (look.capital === "castle") drawCastle(ctx, capX, capY, cssColor(lookTint(nation.color, look)));
+      else drawCapitalDot(ctx, capX, capY, look.labelColor);
+      if (nation.ruler.great !== undefined) drawCrown(ctx, capX, capY, look);
+    });
 
     if (cells.length < LABEL_MIN_AREA) continue;
-    const size = clamp(Math.sqrt(cells.length) * LABEL_SIZE_PER_SQRT_AREA, LABEL_MIN_SIZE, LABEL_MAX_SIZE);
+    // Zoomed in, names grow more slowly than the map (in map units they shrink by `k`).
+    const size = clamp(Math.sqrt(cells.length) * LABEL_SIZE_PER_SQRT_AREA, LABEL_MIN_SIZE, LABEL_MAX_SIZE) * k;
     const [x, y] = labelAnchor(world, cells, (c) => state.state.owner[c]!);
     ctx.font = `${look.labelWeight} ${size.toFixed(1)}px ${look.labelFont}`;
     ctx.letterSpacing = `${(size * look.labelSpacing).toFixed(1)}px`;
@@ -133,7 +138,7 @@ export function drawLabels(ctx: CanvasRenderingContext2D, world: GeneratedWorld,
     placed.push(box);
 
     // Halo first (a thick light outline), then the dark letters on top.
-    ctx.lineWidth = Math.max(2.5, size * 0.18);
+    ctx.lineWidth = Math.max(2.5 * k, size * 0.18);
     ctx.strokeStyle = look.labelHalo;
     ctx.strokeText(text, x, y);
     ctx.fillStyle = look.labelColor;

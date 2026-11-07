@@ -12,6 +12,8 @@
       #ruler-card { position: absolute; top: 9%; right: 12px; pointer-events: none; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)); }
       #ruler-card canvas { display: block; height: auto; }
       #map { display: block; width: 100%; height: auto; }
+      #map.zoomed { cursor: grab; }
+      #map.dragging { cursor: grabbing; }
       .bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 12px; }
       .bar .spacer { flex: 1; }
       button, .bar input[type="text"], .bar select {
@@ -113,7 +115,7 @@
           <div id="ruler-card" hidden></div>
         </div>
         <div id="bar" class="bar"></div>
-        <div id="info">Hover the map to inspect a cell and see its ruler · Space play/pause · → step · C cells · N nations · R races · A alliances · M resources · T towns · H heatmaps · E effects · W armies · P ruler card · click an event to highlight it, or a war to follow it</div>
+        <div id="info">Hover the map to inspect a cell and see its ruler · wheel or double-click to zoom, drag to move, 0 whole map · Space play/pause · → step · C cells · N nations · R races · A alliances · M resources · T towns · H heatmaps · E effects · W armies · P ruler card · click an event to highlight it, or a war to follow it</div>
         <details id="settings"><summary>Settings</summary></details>
       </main>
       <aside id="panel">

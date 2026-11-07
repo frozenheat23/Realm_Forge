@@ -13,3 +13,15 @@ export const HIGHLIGHT_SECONDS = 4;
 export const FOLLOW_SPEED = 5;
 /** How long a newly risen great ruler's card stays up before hover takes over again. */
 export const RULER_CARD_SECONDS = 5;
+
+// --- Map zoom (M19). See docs/PARAMS.md ("Zoom"). ---
+/** Closest zoom: 4 = a quarter of the map across. */
+export const MAX_ZOOM = 4;
+/** How fast the mouse wheel zooms: each wheel step of 100 zooms by e^(100 × this). */
+export const ZOOM_WHEEL_K = 0.002;
+/** Zoom per double-click or + / − key. */
+export const ZOOM_STEP = 2;
+/** After the view stops moving, wait this long (ms) before redrawing it sharp. */
+export const ZOOM_SHARP_DELAY = 150;
+/** Following a war zooms to its two capitals, but no closer than this. */
+export const FOLLOW_ZOOM_MAX = 3;

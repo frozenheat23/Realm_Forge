@@ -8,6 +8,7 @@ import { traits } from "../gen/races";
 import { menText } from "../sim/events";
 import { armiesIn } from "../sim/armies";
 import { soldiers } from "../sim/manpower";
+import { toWorld, WHOLE_MAP, type Camera } from "../render/camera";
 import { alliesOf, opinion } from "../sim/diplomacy";
 
 /** Rounds soldier units to men, e.g. 12,000. */
@@ -71,12 +72,18 @@ function diplomacyText(state: WorldState, id: NationId): string {
   );
 }
 
-/** The map cell under the mouse, if any. */
-export function cellUnderMouse(canvas: HTMLCanvasElement, world: GeneratedWorld, event: MouseEvent): GeneratedWorld["cells"][number] | undefined {
-  // The canvas may be shrunk to fit the window, so convert screen → map pixels.
+/** The canvas pixel under the mouse. The canvas may be shrunk to fit the window, so screen pixels are converted. */
+export function canvasPoint(canvas: HTMLCanvasElement, event: MouseEvent): [number, number] {
   const rect = canvas.getBoundingClientRect();
-  const x = Math.floor(((event.clientX - rect.left) / rect.width) * world.width);
-  const y = Math.floor(((event.clientY - rect.top) / rect.height) * world.height);
+  return [((event.clientX - rect.left) / rect.width) * canvas.width, ((event.clientY - rect.top) / rect.height) * canvas.height];
+}
+
+/** The map cell under the mouse, if any, seen through `camera` (M19). */
+export function cellUnderMouse(canvas: HTMLCanvasElement, world: GeneratedWorld, event: MouseEvent, camera: Camera = WHOLE_MAP): GeneratedWorld["cells"][number] | undefined {
+  const [wx, wy] = toWorld(camera, ...canvasPoint(canvas, event));
+  const x = Math.floor(wx);
+  const y = Math.floor(wy);
+  if (x < 0 || y < 0 || x >= world.width || y >= world.height) return undefined;
   return world.cells[world.pixelToCell[y * world.width + x]!];
 }
 
@@ -86,9 +93,10 @@ export function showCellOnHover(
   panel: HTMLElement,
   world: GeneratedWorld,
   getState: () => WorldState,
+  getCamera: () => Camera = () => WHOLE_MAP,
 ): void {
   canvas.addEventListener("mousemove", (event) => {
-    const cell = cellUnderMouse(canvas, world, event);
+    const cell = cellUnderMouse(canvas, world, event, getCamera());
     if (!cell) return;
 
     const tags = [cell.coastal && "coastal", cell.mountain && "mountain", cell.river && "river"]

@@ -23,7 +23,7 @@ function heatValues(state: WorldState, kind: HeatKind): Float32Array {
 
 const ramp = buildRampTable(HEAT_RAMP);
 
-export function renderHeatmap(world: GeneratedWorld, displayCells: Int32Array, state: WorldState, kind: HeatKind): ImageData {
+export function renderHeatmap(world: Pick<GeneratedWorld, "width" | "height">, displayCells: Int32Array, state: WorldState, kind: HeatKind): ImageData {
   const values = heatValues(state, kind);
   const owner = state.state.owner;
   const image = new ImageData(world.width, world.height);

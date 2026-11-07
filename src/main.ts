@@ -1,6 +1,6 @@
 // Entry point: generates a world from a seed, draws it, and plays its history.
 // Page address options: ?seed=anything picks the world, ?style=cel or ?style=painted switches to an older look.
-// Keys: Space play/pause, → step, C cell outlines, N nations, R races, K cultures, F faiths, A alliances, M resources, T towns, H heatmaps, E effects, W armies, P ruler card. Hover the map to inspect a cell and see its ruler.
+// Keys: Space play/pause, → step, + / − / 0 zoom (or wheel, drag, double-click), C cell outlines, N nations, R races, K cultures, F faiths, A alliances, M resources, T towns, H heatmaps, E effects, W armies, P ruler card. Hover the map to inspect a cell and see its ruler.
 import "@fontsource/im-fell-english/400.css";
 import "@fontsource/im-fell-english/400-italic.css";
 import "@fontsource/im-fell-english-sc/400.css";
@@ -12,13 +12,15 @@ import { drawArmies } from "./render/armies";
 import { drawChartFrame, drawSailingLines, drawTitlePanel, planChart } from "./render/atlasChart";
 import { drawAtlasLand } from "./render/atlasSymbols";
 import { drawCellOutlines } from "./render/debug";
-import { buildDisplayCells, groupPixelsByCell } from "./render/displayCells";
+import { lookAt, sameCamera, setView, WHOLE_MAP, type Camera } from "./render/camera";
+import { buildDisplayCells, buildViewCells, groupPixelsByCell, type ViewGrid } from "./render/displayCells";
 import { createEffects } from "./render/effects";
 import { HEAT_KINDS, renderHeatmap, type HeatKind } from "./render/heatmap";
 import { drawHeatmapName, drawYear } from "./render/hud";
 import { drawLabels } from "./render/labels";
 import { ATLAS_FONTS, LOOK_ATLAS, LOOK_STANDARD } from "./render/palette";
-import { createNationOverlay, type OverlayTint } from "./render/overlay";
+import { markScale } from "./render/marks";
+import { createNationOverlay, type NationOverlay, type OverlayTint } from "./render/overlay";
 import { drawResources } from "./render/resources";
 import { drawSettlements } from "./render/settlements";
 import { drawRivers } from "./render/rivers";
@@ -29,7 +31,7 @@ import { drawWarFocus } from "./render/warFocus";
 import { fromSnapshot, type Snapshot } from "./sim/snapshot";
 import { createWorld, startFromText, startToText } from "./sim/start";
 import { tick } from "./sim/tick";
-import { FOLLOW_SPEED, HIGHLIGHT_SECONDS, SIM_YEARS } from "./ui/config";
+import { FOLLOW_SPEED, FOLLOW_ZOOM_MAX, HIGHLIGHT_SECONDS, MAX_ZOOM, SIM_YEARS, ZOOM_SHARP_DELAY } from "./ui/config";
 import { createControls, makeButton } from "./ui/controls";
 import { cellUnderMouse, onKey, showCellOnHover } from "./ui/debugInfo";
 import { createEventLog } from "./ui/eventLog";
@@ -38,6 +40,7 @@ import { createRulerCard } from "./ui/rulerCard";
 import { applyParams, createSettings, type Layers } from "./ui/settings";
 import { createSandbox } from "./ui/sandbox";
 import { createWarRoom, nationsOf } from "./ui/warRoom";
+import { attachZoom } from "./ui/zoom";
 
 // --- Page elements ---
 function element<T extends HTMLElement>(selector: string): T {
@@ -152,17 +155,114 @@ function redrawNations(): void {
   overlay.update(state, highlight(), overlayTint());
   nationCtx.putImageData(nationImage, 0, 0);
   if (heat) heatCtx.putImageData(renderHeatmap(world, displayCells, state, heat), 0, 0);
+  if (sharp) refreshSharp(sharp);
   if (layers.effects) effects.refresh(state);
+}
+
+// --- Zoom (M19) ---
+/** What part of the map is on screen. */
+let camera: Camera = WHOLE_MAP;
+const bounds = { width: world.width, height: world.height, maxZoom: MAX_ZOOM };
+
+/**
+ * A zoomed view drawn sharp: terrain, nation colors, heatmap and terrain symbols
+ * redrawn for just the part on screen, at screen size. Rebuilt when the view settles;
+ * while it moves, the whole-map pictures are stretched instead.
+ */
+interface SharpView {
+  camera: Camera;
+  cells: Int32Array;
+  overlay: NationOverlay;
+  nationImage: ImageData;
+  nationCtx: CanvasRenderingContext2D;
+  nation: HTMLCanvasElement;
+  heatCtx: CanvasRenderingContext2D;
+  heat: HTMLCanvasElement;
+  /** Only the parchment map's terrain and symbols can be redrawn; the classic maps' are stretched. */
+  terrain: HTMLCanvasElement | null;
+  symbols: HTMLCanvasElement | null;
+}
+let sharp: SharpView | null = null;
+let sharpTimer = 0;
+
+function buildSharp(): SharpView | null {
+  if (camera.zoom === 1) return null;
+  const view: ViewGrid = { width: world.width, height: world.height, zoom: camera.zoom, x: camera.x, y: camera.y };
+  const cells = buildViewCells(world, view);
+  const grid = { width: view.width, height: view.height, cells: world.cells };
+  // The tinted band along borders keeps its look: as wide as at zoom 1, grown like a marker.
+  const edge = Math.round(look.overlayEdgeWidth * camera.zoom * markScale(camera.zoom));
+  const viewOverlay = createNationOverlay(grid, cells, groupPixelsByCell(cells, world.cells.length), { ...look, overlayEdgeWidth: edge });
+  const [nation, viewNationCtx] = offscreen();
+  const [heatCanvas, viewHeatCtx] = offscreen();
+  let terrainCanvas: HTMLCanvasElement | null = null;
+  let symbolCanvas: HTMLCanvasElement | null = null;
+  if (chart) {
+    const [t, tCtx] = offscreen();
+    tCtx.putImageData(renderAtlasTerrain(world, chart, view), 0, 0);
+    setView(tCtx, camera);
+    drawSailingLines(tCtx, world, chart);
+    const [s, sCtx] = offscreen();
+    setView(sCtx, camera);
+    drawAtlasLand(sCtx, world, chart);
+    [terrainCanvas, symbolCanvas] = [t, s];
+  }
+  const built: SharpView = {
+    camera,
+    cells,
+    overlay: viewOverlay,
+    nationImage: new ImageData(new Uint8ClampedArray(viewOverlay.pixels.buffer), view.width, view.height),
+    nationCtx: viewNationCtx,
+    nation,
+    heatCtx: viewHeatCtx,
+    heat: heatCanvas,
+    terrain: terrainCanvas,
+    symbols: symbolCanvas,
+  };
+  refreshSharp(built);
+  return built;
+}
+
+/** Brings a sharp view's nation colors and heatmap up to date with the world. */
+function refreshSharp(view: SharpView): void {
+  view.overlay.update(state, highlight(), overlayTint());
+  view.nationCtx.putImageData(view.nationImage, 0, 0);
+  if (heat) view.heatCtx.putImageData(renderHeatmap(world, view.cells, state, heat), 0, 0);
+}
+
+/** Moves the view. It shows at once, stretched, and is redrawn sharp once it stops moving. */
+function setCamera(next: Camera): void {
+  if (sameCamera(next, camera)) return;
+  camera = next;
+  canvas.classList.toggle("zoomed", camera.zoom > 1);
+  draw();
+  clearTimeout(sharpTimer);
+  sharpTimer = window.setTimeout(() => {
+    sharp = buildSharp();
+    draw();
+  }, ZOOM_SHARP_DELAY);
 }
 
 // The whole still map is drawn to `base` only when something changes. Every screen
 // frame copies it to the page and animates the effects on top (see `present`).
 const [base, baseCtx] = offscreen();
+baseCtx.imageSmoothingQuality = "high";
+/** Draws one picture layer: the sharp view's if it has one, otherwise the whole-map picture through the camera. */
+function layer(view: HTMLCanvasElement | null | undefined, whole: HTMLCanvasElement): void {
+  if (view) baseCtx.setTransform(1, 0, 0, 1, 0, 0);
+  else setView(baseCtx, camera);
+  baseCtx.drawImage(view ?? whole, 0, 0);
+}
 function draw(): void {
-  baseCtx.drawImage(terrain, 0, 0);
-  if (layers.nations) baseCtx.drawImage(nationLayer, 0, 0);
-  if (heat) baseCtx.drawImage(heatLayer, 0, 0);
-  if (chart) baseCtx.drawImage(symbols, 0, 0);
+  const view = sharp && sameCamera(sharp.camera, camera) ? sharp : null;
+  baseCtx.setTransform(1, 0, 0, 1, 0, 0);
+  baseCtx.clearRect(0, 0, base.width, base.height);
+  layer(view?.terrain, terrain);
+  if (layers.nations) layer(view?.nation, nationLayer);
+  if (heat) layer(view?.heat, heatLayer);
+  if (chart) layer(view?.symbols, symbols);
+  // Lines, markers and names are drawn through the camera, so they're sharp at any zoom.
+  setView(baseCtx, camera);
   if (layers.cells) drawCellOutlines(baseCtx, world);
   if (layers.settlements) drawSettlements(baseCtx, world, state, look);
   if (layers.resources) drawResources(baseCtx, world, look);
@@ -170,8 +270,10 @@ function draw(): void {
   const record = followedRecord();
   if (record) drawWarFocus(baseCtx, world, state, record);
   if (layers.nations && layers.labels) drawLabels(baseCtx, world, state, look);
+  if (chart) drawChartFrame(baseCtx, world);
+  // The title panel and year stay put on screen, whatever the zoom.
+  baseCtx.setTransform(1, 0, 0, 1, 0, 0);
   if (chart) {
-    drawChartFrame(baseCtx, world);
     drawTitlePanel(baseCtx, chart, state.year, heat);
   } else {
     drawYear(baseCtx, state.year, world.width);
@@ -181,9 +283,12 @@ function draw(): void {
 }
 
 function present(now: number): void {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.drawImage(base, 0, 0);
+  setView(ctx, camera);
   if (layers.effects) effects.draw(ctx, now);
   if (layers.armies) drawArmies(ctx, world, state, (now - yearStart) * controls.speed / 1000, look);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 // --- Event log (click an event → its nations light up for a few seconds) ---
@@ -228,9 +333,20 @@ function follow(id: number | null): void {
     speedBefore = null;
   }
   followed = id;
+  const record = followedRecord();
+  if (record) setCamera(warView(record.attacker, record.defender));
   warRoom.update(state);
   redrawNations();
   draw();
+}
+
+/** A view of both sides' capitals, with room around them. */
+function warView(a: NationId, b: NationId): Camera {
+  const [ax, ay] = world.cells[state.nations.get(a)!.capital]!.site;
+  const [bx, by] = world.cells[state.nations.get(b)!.capital]!.site;
+  // Fit the two capitals inside the middle half of the screen.
+  const fit = Math.min(world.width / 2 / Math.max(1, Math.abs(ax - bx)), world.height / 2 / Math.max(1, Math.abs(ay - by)));
+  return lookAt((ax + bx) / 2, (ay + by) / 2, Math.min(FOLLOW_ZOOM_MAX, fit), bounds);
 }
 
 /** After a year: pause on the followed war's big moments, and show its report when it ends. */
@@ -358,6 +474,7 @@ bar.append(
       alert(`Couldn't read that file: ${(error as Error).message}`);
     }
   }),
+  makeButton("Whole map", "Zoom out to show the whole map (key 0). Zoom in with the mouse wheel, double-click or +, and drag to move.", () => setCamera(WHOLE_MAP)),
   recordButton,
   makeButton(style === "atlas" ? "Classic map" : "Parchment map", "Switch map style (restarts this world from year 0)", () => goTo(seed, style === "atlas" ? "cel" : "atlas")),
 );
@@ -415,9 +532,10 @@ onKey("n", () => {
   draw();
 });
 onKey("p", () => rulerCard.toggle());
-showCellOnHover(canvas, infoPanel, world, () => state);
+showCellOnHover(canvas, infoPanel, world, () => state, () => camera);
+attachZoom(canvas, bounds, () => camera, setCamera);
 canvas.addEventListener("mousemove", (event) => {
-  const cell = cellUnderMouse(canvas, world, event);
+  const cell = cellUnderMouse(canvas, world, event, camera);
   rulerCard.hover((cell && state.nations.get(state.state.owner[cell.id]!)) ?? null);
 });
 canvas.addEventListener("mouseleave", () => rulerCard.hover(null));

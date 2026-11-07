@@ -29,7 +29,8 @@ export interface NationOverlay {
 /** War borders are thick, so a change reaches 2 pixels into the next cell, and the wobbly edges can reach one cell further. */
 const REPAINT_RINGS = 2;
 
-export function createNationOverlay(world: GeneratedWorld, displayCells: Int32Array, cellPixels: CellPixels, look: MapLook = LOOK_STANDARD): NationOverlay {
+/** `world` can be the whole map or a zoomed view's grid (M19): only its size and cells are used. */
+export function createNationOverlay(world: Pick<GeneratedWorld, "width" | "height" | "cells">, displayCells: Int32Array, cellPixels: CellPixels, look: MapLook = LOOK_STANDARD): NationOverlay {
   const { width, height, cells } = world;
   const edge = look.overlayEdgeWidth;
   const tinted = (hex: string) => lookTint(hex, look);

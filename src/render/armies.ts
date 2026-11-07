@@ -13,6 +13,7 @@ import {
 } from "./palette";
 import { ARMY_MEN_PER_UNIT } from "../sim/params";
 import { cssColor, lookTint } from "./color";
+import { atMark, markScale, zoomOf } from "./marks";
 
 /** A short size for a banner: "12k", or "800" under a thousand. */
 export function menLabel(size: number): string {
@@ -49,8 +50,9 @@ function drawTargetLine(ctx: CanvasRenderingContext2D, world: GeneratedWorld, ar
   const [tx, ty] = world.cells[army.target]!.site;
   ctx.globalAlpha = ARMY_TARGET_ALPHA;
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([5, 4]);
+  const k = markScale(zoomOf(ctx));
+  ctx.lineWidth = 1.5 * k;
+  ctx.setLineDash([5 * k, 4 * k]);
   ctx.beginPath();
   ctx.moveTo(x, y);
   ctx.lineTo(tx, ty);
@@ -69,20 +71,22 @@ export function drawArmies(ctx: CanvasRenderingContext2D, world: GeneratedWorld,
     const color = cssColor(lookTint(nation.color, look));
     drawTargetLine(ctx, world, army, color, x, y);
 
-    const grown = Math.sqrt(Math.min(1, army.size / ARMY_BANNER_FULL));
-    const r = ARMY_BANNER_MIN + (ARMY_BANNER_MAX - ARMY_BANNER_MIN) * grown;
-    shieldPath(ctx, x, y, r);
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.strokeStyle = look.armyOutline;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+    atMark(ctx, x, y, () => {
+      const grown = Math.sqrt(Math.min(1, army.size / ARMY_BANNER_FULL));
+      const r = ARMY_BANNER_MIN + (ARMY_BANNER_MAX - ARMY_BANNER_MIN) * grown;
+      shieldPath(ctx, x, y, r);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = look.armyOutline;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
 
-    ctx.font = look.armyFont;
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = look.armyLabelHalo;
-    ctx.strokeText(menLabel(army.size), x, y - r * 0.1);
-    ctx.fillStyle = look.armyLabelColor;
-    ctx.fillText(menLabel(army.size), x, y - r * 0.1);
+      ctx.font = look.armyFont;
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = look.armyLabelHalo;
+      ctx.strokeText(menLabel(army.size), x, y - r * 0.1);
+      ctx.fillStyle = look.armyLabelColor;
+      ctx.fillText(menLabel(army.size), x, y - r * 0.1);
+    });
   }
 }

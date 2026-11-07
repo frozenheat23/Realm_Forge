@@ -4,6 +4,7 @@ import { Biome } from "../core/types";
 import type { GeneratedWorld } from "../gen";
 import { MOUNTAIN_H, HILL_H } from "../gen/params";
 import type { AtlasChart } from "./atlasChart";
+import { atMark, markScale, zoomOf } from "./marks";
 import {
   ATLAS_FOREST_CHANCE,
   ATLAS_HILL_CHANCE,
@@ -108,7 +109,9 @@ function drawForestClump(ctx: CanvasRenderingContext2D, rng: Rng, x: number, y: 
 }
 
 export function drawAtlasLand(ctx: CanvasRenderingContext2D, world: GeneratedWorld, chart: AtlasChart): void {
-  drawRivers(ctx, world, ATLAS_RIVER_COLOR, ATLAS_RIVER_MIN_WIDTH, ATLAS_RIVER_WIDTH_PER_FLOW);
+  // Zoomed in (M19), rivers and symbols grow more slowly than the map, like markers.
+  const k = markScale(zoomOf(ctx));
+  drawRivers(ctx, world, ATLAS_RIVER_COLOR, ATLAS_RIVER_MIN_WIDTH * k, ATLAS_RIVER_WIDTH_PER_FLOW * k);
 
   const rng = createRng(world.seed).fork("atlas-symbols");
   const inland = world.cells.filter((c) => {
@@ -123,14 +126,16 @@ export function drawAtlasLand(ctx: CanvasRenderingContext2D, world: GeneratedWor
     const y = cell.site[1] + (rng.next() - 0.5) * 5;
     const roll = rng.next();
     const forest = cell.biome === Biome.TemperateForest || cell.biome === Biome.TropicalForest || cell.biome === Biome.Taiga;
-    if (cell.mountain) {
-      drawPeak(ctx, rng, x, y + 6, ATLAS_PEAK_SIZE + (cell.elevation - MOUNTAIN_H) * ATLAS_PEAK_GROWTH + rng.next() * 4);
-    } else if (cell.elevation > HILL_H) {
-      if (roll < ATLAS_HILL_CHANCE) drawHill(ctx, x, y, 6 + rng.next() * 2);
-    } else if (forest) {
-      if (roll < ATLAS_FOREST_CHANCE) drawForestClump(ctx, rng, x, y, cell.biome === Biome.Taiga);
-    } else if (cell.biome === Biome.Desert) {
-      drawStipple(ctx, rng, x, y);
-    }
+    atMark(ctx, x, y, () => {
+      if (cell.mountain) {
+        drawPeak(ctx, rng, x, y + 6, ATLAS_PEAK_SIZE + (cell.elevation - MOUNTAIN_H) * ATLAS_PEAK_GROWTH + rng.next() * 4);
+      } else if (cell.elevation > HILL_H) {
+        if (roll < ATLAS_HILL_CHANCE) drawHill(ctx, x, y, 6 + rng.next() * 2);
+      } else if (forest) {
+        if (roll < ATLAS_FOREST_CHANCE) drawForestClump(ctx, rng, x, y, cell.biome === Biome.Taiga);
+      } else if (cell.biome === Biome.Desert) {
+        drawStipple(ctx, rng, x, y);
+      }
+    });
   }
 }

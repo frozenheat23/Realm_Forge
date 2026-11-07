@@ -2,6 +2,7 @@
 import type { GeneratedWorld } from "../gen";
 import { drawResourceIcon } from "./atlasMarkers";
 import { cssColor, hexToRgb, mixRgb } from "./color";
+import { atMark } from "./marks";
 import {
   ATLAS_PAPER,
   ATLAS_RESOURCE_GROWTH,
@@ -26,19 +27,21 @@ export function drawResources(ctx: CanvasRenderingContext2D, world: GeneratedWor
     if (cell.resource === 0) continue;
     const [x, y] = cell.site;
     const radius = RESOURCE_RADIUS + cell.richness * RESOURCE_RICH_GROWTH;
-    if (look.resourceMarker === "icon") {
-      drawResourceIcon(ctx, x, y, radius * ATLAS_RESOURCE_GROWTH, cell.resource, iconFills[cell.resource]!);
-      continue;
-    }
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = RESOURCE_COLORS[cell.resource]!;
-    ctx.fill();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = RESOURCE_OUTLINE;
-    ctx.stroke();
-    ctx.fillStyle = RESOURCE_OUTLINE;
-    ctx.fillText(RESOURCE_LETTERS[cell.resource]!, x, y + 0.5);
+    atMark(ctx, x, y, () => {
+      if (look.resourceMarker === "icon") {
+        drawResourceIcon(ctx, x, y, radius * ATLAS_RESOURCE_GROWTH, cell.resource, iconFills[cell.resource]!);
+        return;
+      }
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = RESOURCE_COLORS[cell.resource]!;
+      ctx.fill();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = RESOURCE_OUTLINE;
+      ctx.stroke();
+      ctx.fillStyle = RESOURCE_OUTLINE;
+      ctx.fillText(RESOURCE_LETTERS[cell.resource]!, x, y + 0.5);
+    });
   }
   ctx.restore();
 }

@@ -824,6 +824,18 @@ A portrait card floats at the map's top right (`src/ui/rulerCard.ts`), toggled w
 - **Making the files:** `scripts/portraits.py` turns the drafts in `assets/` (not committed) into these files (lifting each seal out by its red color) and prints the opening boxes. Prompts are in `docs/art/portrait-prompts.md`.
 - The card is a page element, not drawn on the map, so it doesn't appear in recorded videos.
 
+### 5.4l Zoom (M19)
+
+Mouse wheel or trackpad pinch zooms toward the pointer, dragging moves the map, double-click zooms in (shift + double-click out), + / − zoom on the centre, and 0 or the **Whole map** button zooms back out. Zoom goes from 1 (the whole map) to `MAX_ZOOM`. Following a war (§5.4j) zooms to fit both capitals (up to `FOLLOW_ZOOM_MAX`); stopping leaves the view where it is.
+
+- **Camera** (`render/camera.ts`): a zoom and the map point at the canvas's top-left corner; canvas pixel (px, py) shows map point (x + px / zoom, y + py / zoom). All the math (zoom about a point, pan, keep inside the map) is pure and tested. Hover and the ruler card read the map through it.
+- **Two ways of drawing.** While the view moves, the whole-map pictures (terrain, nation colors, heatmap, terrain symbols) are stretched through the camera, which is quick. `ZOOM_SHARP_DELAY` after it stops, the part on screen is **redrawn sharp** at screen size, about 0.4 s:
+  - which cell each screen pixel shows (`buildViewCells`): cells found from their true centres, with the same border wobble, and land from heights blended between map pixels, so borders and coasts stay smooth;
+  - nation colors, borders and war fronts: a second nation overlay on that view grid, kept up to date each year like the main one;
+  - the parchment terrain (`renderAtlasTerrain` with a view): paper, sea, waterlines and coast ink from blended coast distances; terrain symbols and rivers redrawn through the camera. The classic maps' terrain is stretched, not redrawn.
+- **Everything drawn with lines and text** (names, castles, cities, resources, alliances, armies, war focus, effects, the frame) is drawn through the camera, so it's always sharp. Markers, names and inked lines grow on screen only as zoom ^ `MARK_ZOOM_GROWTH` (`render/marks.ts`), so close up they stay readable and the map shows more detail rather than bigger symbols. The title panel and year stay fixed on screen.
+- War effects' occupied-land stripes are still a whole-map picture, stretched.
+
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 10 ms, smooth at 50 years per second. Measured after M13: overlay 1.4 ms, effects 0.2 ms, tick ~4.6 ms in the browser, a whole new-year frame ~21 ms.
 - Run the sim on the main thread until M6; move it to a Web Worker only if it slows the screen.

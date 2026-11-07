@@ -92,17 +92,12 @@ function inTheField(state: WorldState, record: WarRecord): { attack: number; def
   return field;
 }
 
-/** "General Arvel of Kethar (12 victories), …" for each army still fighting this war. */
-function generalsText(state: WorldState, record: WarRecord): string {
-  const wars = new Set(state.wars.filter((w) => w.id === record.id || w.joined === record.id).map((w) => w.id));
-  return state.armies
-    .filter((a) => wars.has(a.war) && a.general)
-    .map((a) => {
-      const g = a.general!;
-      const wins = g.wins === 0 ? "" : ` (${g.wins} victor${g.wins === 1 ? "y" : "ies"})`;
-      return `${g.name} of ${nameOf(state, a.owner)}${wins}`;
-    })
-    .join(", ");
+/** "led by Arvel (12 victories)" for `nation`'s army in war `warId`, or "no army in the field". */
+function leaderText(state: WorldState, warId: number, nation: NationId): string {
+  const general = state.armies.find((a) => a.war === warId && a.owner === nation)?.general;
+  if (!general) return "no army in the field";
+  const wins = general.wins === 0 ? "" : ` (${general.wins} victor${general.wins === 1 ? "y" : "ies"})`;
+  return `led by ${general.name}${wins}`;
 }
 
 /** The score line of a war, drawn small. */
@@ -157,8 +152,6 @@ export function reportOf(record: WarRecord, state: WorldState): HTMLElement {
   const won = { attack: 0, defend: 0 };
   for (const b of record.battles) won[sideOf(record, b.winner)]++;
   fact("Battles", record.battles.length === 0 ? "none" : `${record.battles.length}: ${won.attack} won by ${nameOf(state, record.attacker)}'s side, ${won.defend} by ${nameOf(state, record.defender)}'s`);
-  const generals = record.end === undefined ? generalsText(state, record) : "";
-  if (generals) fact("Generals", generals);
   fact("Fallen", `${menText(record.fallen.attack)} on ${nameOf(state, record.attacker)}'s side, ${menText(record.fallen.defend)} on ${nameOf(state, record.defender)}'s`);
   box.append(facts);
 
@@ -264,7 +257,9 @@ export function createWarRoom(panel: HTMLElement, followed: () => number | null,
         el("span", "", `${menText(field.attack)} strong · ${menText(record.fallen.attack)} fallen`),
         el("span", "", `${menText(field.defend)} strong · ${menText(record.fallen.defend)} fallen`),
       );
-      row.append(numbers);
+      const leaders = el("div", "war-numbers");
+      leaders.append(el("span", "", leaderText(state, war.id, record.attacker)), el("span", "", leaderText(state, war.id, record.defender)));
+      row.append(numbers, leaders);
       box.append(row);
     }
   }
