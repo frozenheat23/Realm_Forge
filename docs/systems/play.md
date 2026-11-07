@@ -1,6 +1,6 @@
 # Play as a nation (M20)
 
-> **Planned** 2026-11-07, designed with the user. **Steps 1–3 built** 2026-11-07 (the player's controller, orders and log; choosing a nation and the Your realm panel; order buttons: see "As built" at the end); steps 4–6 still planned. Builds on controllers (`controllers.md`), the command log (`sandbox.md`), the War Room (`warroom.md`) and zoom (SPEC §5.4l).
+> **Planned** 2026-11-07, designed with the user. **Steps 1–4 built** 2026-11-07 (the player's controller, orders and log; choosing a nation and the Your realm panel; order buttons; dispatches: see "As built" at the end); steps 5–6 still planned. Builds on controllers (`controllers.md`), the command log (`sandbox.md`), the War Room (`warroom.md`) and zoom (SPEC §5.4l).
 
 **Goal.** Pick a nation and play its 1,000 years. You make its strategic choices; the same rules as everyone else decide what happens. When your realm falls, you carry on with your people.
 
@@ -115,3 +115,10 @@ Directing armies yourself, fog of war, a score, custom realms at the start, dipl
 - **Sue for peace** appears on a war in Your wars when you're clearly losing your own war (not an ally's); the winner decides at once.
 - **Adopt faith** appears while another faith holds most of the realm.
 - The result of each order, or the reason it was refused, shows under the orders. Clicking a list to choose pauses time, so it doesn't change under you. A press that moves more than `CLICK_SLOP` pixels is a drag, not a map click.
+
+**Step 4** (2026-11-07). Code: `ui/dispatches.ts` (what happened, tested in `tests/dispatches.test.ts`), the dispatch box and "Pause for…" switches in `ui/play.ts`, the pause in `advanceYear` (`main.ts`).
+
+- After each year, `dispatchesFor` reads the year's events and compares the realm with how it was before the year (`watchRealm`: ruler, alive, capital besieged or taken, faith on offer). Eight kinds: wars declared on you (or an ally: whether you joined, and your policy, since "an ally calls you" has no event when you stay out), armies routed and your capital besieged or taken, your wars ending, your rulers (rises, deaths, crises, civil war, and a new ruler no event names), revolts against you, alliances made or broken, a faith on offer or the Old Gods stirring, and your realm's fall.
+- If any are switched on, playback pauses, the Play tab opens and the year's dispatches show at its top; **Carry on** starts playback again.
+- Each kind can be switched off under "Pause for…"; the choice is kept in this browser (`localStorage`), not in saves, since it's how you like to play rather than part of history.
+- Enemy peace offers your policy refused leave no event, so they aren't reported (yet). Your own orders' results show under Orders instead.

@@ -131,7 +131,7 @@ function nearbyCity(state: WorldState, cell: CellId): string | undefined {
 }
 
 /** Where a battle happened, as the start of a sentence. */
-function battlePlace(state: WorldState, cell: CellId): string {
+export function battlePlace(state: WorldState, cell: CellId): string {
   const city = nearbyCity(state, cell);
   if (city) return `at the Battle of ${city}`;
   const { mountain, elevation } = state.cells[cell]!;

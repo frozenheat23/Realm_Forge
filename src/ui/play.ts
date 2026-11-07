@@ -17,6 +17,7 @@ import { giveCommand } from "../sim/sandbox";
 import { suePeaceRefusal } from "../sim/war";
 import { PLAY_LIST_MAX, PLAYER_MOBILIZE_CHOICES } from "./config";
 import { rivalOf } from "./debugInfo";
+import { DISPATCH_KINDS, DISPATCH_NAMES, type Dispatch, type DispatchKind } from "./dispatches";
 import { fallbackPath, portraitPath } from "./portraits";
 import { fill } from "./sandbox";
 import { scoreBar, sides } from "./warRoom";
@@ -30,6 +31,8 @@ export interface PlayHooks {
   changed(events: SimEvent[]): void;
   /** Follow a war in the War Room. */
   follow(war: number): void;
+  /** Starts playback again. */
+  resume(): void;
 }
 
 export interface PlayTab {
@@ -37,6 +40,21 @@ export interface PlayTab {
   update(state: WorldState): void;
   /** A realm clicked on the map: picked as the war target, if it borders yours. */
   pickTarget(nation: number): void;
+  /** Should playback pause for dispatches of this kind? (Each can be switched off.) */
+  wants(kind: DispatchKind): boolean;
+  /** Shows the dispatches of `year` at the top of the tab. */
+  showDispatches(year: number, dispatches: Dispatch[]): void;
+}
+
+/** Where the dispatch kinds switched off are remembered, in this browser only. */
+const DISPATCH_OFF_KEY = "realm-forge-dispatches-off";
+
+function loadDispatchesOff(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(DISPATCH_OFF_KEY) ?? "[]") as string[]);
+  } catch {
+    return new Set();
+  }
 }
 
 const GOAL_NAMES: Record<(typeof WAR_GOALS)[number], string> = { conquer: "Conquer", reclaim: "Reclaim", raid: "Raid" };
@@ -130,7 +148,10 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
   const realm = el("div");
   const head = el("div", "room-head");
   const stop = el("button", "", "Stop playing");
-  stop.addEventListener("click", () => give({ kind: "play", nation: null }, chooseNote));
+  stop.addEventListener("click", () => {
+    news.hidden = true;
+    give({ kind: "play", nation: null }, chooseNote);
+  });
   const fallen = el("div", "play-fallen");
   const ruler = el("div", "play-ruler");
   const portrait = el("img");
@@ -178,9 +199,42 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
   // Choosing stops time, so the lists don't change under you.
   for (const select of [targetPick, friendPick]) select.addEventListener("focus", () => hooks.pause());
 
+  // --- Dispatches: what happened to your realm, with time paused ---
+  const news = el("div", "play-dispatches");
+  news.hidden = true;
+  const newsList = el("ul");
+  const newsHead = el("div", "room-head");
+  const carryOn = el("button", "", "Carry on");
+  carryOn.addEventListener("click", () => {
+    news.hidden = true;
+    hooks.resume();
+  });
+  news.append(newsHead, newsList);
+
+  const off = loadDispatchesOff();
+  const pauseFor = el("details", "sandbox-part");
+  pauseFor.append(el("summary", "", "Pause for…"));
+  for (const kind of DISPATCH_KINDS) {
+    const row = el("label", "play-check");
+    const box = el("input");
+    box.type = "checkbox";
+    box.checked = !off.has(kind);
+    box.addEventListener("change", () => {
+      if (box.checked) off.delete(kind);
+      else off.add(kind);
+      try {
+        localStorage.setItem(DISPATCH_OFF_KEY, JSON.stringify([...off]));
+      } catch {
+        // Not remembered (private window): it still applies until the page is closed.
+      }
+    });
+    row.append(box, document.createTextNode(` ${DISPATCH_NAMES[kind]}`));
+    pauseFor.append(row);
+  }
+
   const policiesPart = part("Policies");
   const policyNote = el("div", "sandbox-note");
-  realm.append(head, fallen, ruler, stats, warsPart, ordersPart, policiesPart);
+  realm.append(head, news, fallen, ruler, stats, warsPart, ordersPart, policiesPart, pauseFor);
   box.append(realm, choose);
 
   // One drop-down per policy, built once; `update` keeps their values in step with the world.
@@ -409,6 +463,13 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
     ordersNote.textContent = `${name} picked as the war target.`;
   }
 
+  function showDispatches(year: number, dispatches: Dispatch[]): void {
+    newsHead.replaceChildren(el("span", "", `Dispatches, year ${year}`), carryOn);
+    newsList.replaceChildren(...dispatches.map((d) => el("li", `dispatch-${d.kind}`, d.text)));
+    news.hidden = false;
+    box.scrollTop = 0;
+  }
+
   update(hooks.state());
-  return { update, pickTarget };
+  return { update, pickTarget, wants: (kind) => !off.has(kind), showDispatches };
 }

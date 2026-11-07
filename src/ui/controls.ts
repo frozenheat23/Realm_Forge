@@ -10,6 +10,8 @@ export interface Controls {
   setSpeed(speed: number): void;
   /** Stops playback (e.g. at the final year). */
   pause(): void;
+  /** Starts playback, as the Play button does. */
+  play(): void;
 }
 
 /** A toolbar button. */
@@ -82,6 +84,10 @@ export function createControls(bar: HTMLElement, onStep: () => void): Controls {
     },
     pause() {
       playing = false;
+      updatePlay();
+    },
+    play() {
+      playing = true;
       updatePlay();
     },
   };

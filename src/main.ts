@@ -34,6 +34,7 @@ import { tick } from "./sim/tick";
 import { FOLLOW_SPEED, FOLLOW_ZOOM_MAX, CLICK_SLOP, HIGHLIGHT_SECONDS, MAP_BESIDE_WIDTH, MAX_ZOOM, SIM_YEARS, ZOOM_SHARP_DELAY } from "./ui/config";
 import { createControls, makeButton } from "./ui/controls";
 import { cellUnderMouse, onKey, showCellOnHover } from "./ui/debugInfo";
+import { dispatchesFor, watchRealm } from "./ui/dispatches";
 import { createEventLog } from "./ui/eventLog";
 import { createRecorder, pickSnapshot, saveSnapshot } from "./ui/files";
 import { createRulerCard } from "./ui/rulerCard";
@@ -363,6 +364,7 @@ const playTab = createPlayTab(element("#tab-play"), {
     warRoom.update(state);
   },
   follow: (war) => follow(war),
+  resume: () => controls.play(),
 });
 const warRoom = createWarRoom(panel, () => followed, follow, {
   sandbox: { update: sandbox.update, opened: () => controls.pause() },
@@ -420,11 +422,19 @@ let yearStart = 0;
 const rulerCard = createRulerCard(rulerCardBox);
 
 function advanceYear(): void {
+  const realmBefore = watchRealm(state);
   const events = tick(state, simRng);
   yearStart = performance.now();
   eventLog.add(events, state);
   effects.noteYear(state, events, performance.now());
   watchFollowed();
+  // Playing (M20): pause on what happened to your realm, and say what it was.
+  const news = dispatchesFor(state, events, realmBefore).filter((d) => playTab.wants(d.kind));
+  if (news.length > 0) {
+    controls.pause();
+    warRoom.showTab("play");
+    playTab.showDispatches(state.year, news);
+  }
   for (const event of events) {
     const nation = event.type === "ruler" ? state.nations.get(event.actors[0]!) : undefined;
     // A great ruler crowned this year is a rise (other ruler events are deaths and crises).
