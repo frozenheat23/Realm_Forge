@@ -313,6 +313,8 @@ export interface War {
   score: number;
   /** Score from battles so far (same sign rule as `score`). */
   battleScore: number;
+  /** Years the defender has held out: the attacker held none of what it came for (M18). Missing = 0. */
+  heldOff?: number;
   goal: WarGoal;
   /** Cells the attacker went to war to take; empty for a raid or support. */
   goalCells: CellId[];

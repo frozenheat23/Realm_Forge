@@ -122,6 +122,10 @@ export const SIM = {
   /** Score a war must reach to have a winner when it ends. Below this it is a white peace. */
   WIN_SCORE: 30,
   WEARINESS_PEACE: 0.9,
+  /** Underdog defense (M18): score to the defender for each year the attacker holds none of what it came for. */
+  HOLD_SCORE: 10,
+  /** × WEARINESS_GAIN for a nation that is only defending: people tire slower fighting for their homes. */
+  DEFEND_WEARINESS: 0.25,
   MAX_WAR_YEARS: 25,
   TRUCE_YEARS: 10,
   /** War chance × (1 + this × value of the best enemy cell on the border). */
@@ -136,6 +140,8 @@ export const SIM = {
   LEVY_SHARE: 0.08,
   /** Share of the gap to the cap refilled per year (× 0.5 + stability). */
   LEVY_REFILL: 0.25,
+  /** × LEVY_REFILL for a nation defending in a war: the invaded rally to the banners. */
+  RALLY_REFILL: 2,
   /** War weariness gained per share of the cap lost in battle. */
   WEARINESS_LOSS_K: 0.25,
   /** Share of the reserve raised into a new army (split between wars still without one). */

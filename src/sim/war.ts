@@ -11,9 +11,9 @@ import { frontCells, neighborPairs, pairKey } from "./helpers";
 import { fightingPower } from "./manpower";
 import { SIM } from "./params";
 import { cellValue, effectiveCapacity, grainBonuses } from "./resources";
-import { occupationCounts, occupationScore } from "./siege";
+import { occupationCounts, occupationScore, occupiedBy } from "./siege";
 import { closeRecord, openRecord, recordScore } from "./warRecords";
-import { claimedCells, claimYears, conquestCells, goalAchieved, payTribute, takeLand } from "./warGoals";
+import { claimedCells, claimYears, conquestCells, goalAchieved, goalsHeld, payTribute, takeLand } from "./warGoals";
 
 // They used to live here; other files still import them from war.ts.
 export { frontCells, neighborPairs, pairKey };
@@ -271,6 +271,8 @@ export function concludeWar(state: WorldState, war: War, winner: Nation | null, 
   const loser = winner === attacker ? defender : attacker;
   const raided = winner === attacker && war.goal === "raid";
   if (raided) payTribute(attacker, defender);
+  // An attacker beaten off pays for it, as a raider's victim would.
+  if (winner === defender) payTribute(defender, attacker);
   const taken = winner && !raided ? takeLand(state, war, winner, loser) : [];
   state.truces.push({ a: attacker.id, b: defender.id, until: state.year + SIM.TRUCE_YEARS });
   if (quietly) return null; // allies go home quietly when the war they joined is over
@@ -293,6 +295,17 @@ export function clearWinnerOf(state: WorldState, war: War): Nation | null {
   return clearWinner(war, state.nations.get(war.attacker)!, state.nations.get(war.defender)!);
 }
 
+/**
+ * Is the defender holding out? The attacker holds none of what it came for: none of
+ * its goal cells, or, in a raid or an ally's war, none of the defender's land at all.
+ * An attacker gets its first year to march in.
+ */
+function holdingOut(state: WorldState, war: War, counts: Map<number, number>): boolean {
+  if (war.startYear >= state.year) return false;
+  if (war.goalCells.length > 0) return goalsHeld(state, war) === 0;
+  return occupiedBy(counts, war.attacker, war.defender) === 0;
+}
+
 /** Step 6b: war scores are brought up to date, and wars that are over end in peace. */
 export function endWars(state: WorldState, controllers: Controllers): SimEvent[] {
   const events: SimEvent[] = [];
@@ -310,7 +323,9 @@ export function endWars(state: WorldState, controllers: Controllers): SimEvent[]
       closeRecord(state, war, { how: "side fell", raid: false, cells: 0, wholeRealm: false, text: `${fallen.name} fell, and the war with it.` });
       continue;
     }
-    war.score = war.battleScore + occupationScore(state, war, counts);
+    // An invasion that takes nothing is failing: each year of it counts for the defender.
+    if (holdingOut(state, war, counts)) war.heldOff = (war.heldOff ?? 0) + 1;
+    war.score = war.battleScore + occupationScore(state, war, counts) - (war.heldOff ?? 0) * SIM.HOLD_SCORE;
     recordScore(state, war);
     const mainOver = war.joined !== undefined && !ongoingIds.has(war.joined);
 

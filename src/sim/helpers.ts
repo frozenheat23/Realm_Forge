@@ -5,6 +5,11 @@ import { BIOME_STATS, MOUNTAIN_COST_MULT, RIVER_COST_MULT } from "../gen/params"
 import { raceTerrainCost } from "../gen/races";
 import { SIM } from "./params";
 
+/** In a war only as a defender: fighting for its homes, attacking no one (M18). */
+export function onlyDefending(state: WorldState, id: NationId): boolean {
+  return state.wars.some((w) => w.defender === id) && !state.wars.some((w) => w.attacker === id);
+}
+
 /** Every living nation's cells, grouped by nation. */
 export function cellsByNation(state: WorldState): Map<NationId, CellId[]> {
   const groups = new Map<NationId, CellId[]>();

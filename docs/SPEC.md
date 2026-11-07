@@ -333,7 +333,7 @@ The chance is capped at `WAR_MAX_PROB`. Only a side whose **estimate** is above 
 **Ending.** Peace when any of these is true:
 - the attacker occupies every goal cell (it wins, whatever the score)
 - `|score| ≥ PEACE_SCORE`
-- either side's war weariness ≥ `WEARINESS_PEACE`
+- either side's war weariness ≥ `WEARINESS_PEACE` (a nation only defending, attacking no one, gains weariness `DEFEND_WEARINESS` times as fast, from the yearly gain and from losses)
 - the war has lasted `MAX_WAR_YEARS`
 
 `score` is brought up to date first (`endWars`, §4.13 "War score and peace"). The peace event names a winner if the goal was reached or `|score|` ≥ `WIN_SCORE`, and that winner takes land by the terms in §4.13, through `setOwner`, with unrest raised to at least `UNREST_CONQUEST`; otherwise it's a white peace. Either way all other occupations end. The two sides then can't fight again for `TRUCE_YEARS`. If the winner took a deposit, the text names it (*"…, taking 6 provinces and its iron."*). Wars with a side that has died end silently. A joined war can end on its own terms the same way, and otherwise ends silently (with a truce) in the year its main war ends.
@@ -508,7 +508,7 @@ Each nation has a **reserve** of trained soldiers who aren't in an army yet.
 ```
 cap      = levyPop × LEVY_SHARE      // levyPop = Σ pop × martial × control (× iron); occupied cells don't count
 soldiers = reserve + size of the nation's armies
-reserve += (cap − soldiers) × LEVY_REFILL × (0.5 + stability)    // only if soldiers < cap
+reserve += (cap − soldiers) × LEVY_REFILL × (0.5 + stability)    // only if soldiers < cap; × RALLY_REFILL while defending in a war (M18)
 power    = soldiers × (0.5 + stability)                           // fightingPower
 ```
 
@@ -585,7 +585,7 @@ Goal cells that break away to rebels stop counting. Joined allies fight in suppo
 
 #### War score and peace
 
-`score = battle score (adds up over the war) + occupation score (worked out fresh each year)`. The occupation score is `SCORE_PER_OCCUPIED` per occupied cell (× `GOAL_SCORE_MULT` for goal cells), plus `CAPITAL_SCORE` for a held capital, attacker's minus defender's.
+`score = battle score (adds up over the war) + occupation score (worked out fresh each year) − years held off × HOLD_SCORE`. The occupation score is `SCORE_PER_OCCUPIED` per occupied cell (× `GOAL_SCORE_MULT` for goal cells), plus `CAPITAL_SCORE` for a held capital, attacker's minus defender's. **Holding out** (M18, [`systems/realwar.md`](systems/realwar.md)): every year after the first in which the attacker holds none of its goal cells (in a raid or an ally's war: none of the defender's land), `War.heldOff` grows by one, so an invasion that takes nothing slowly becomes a defeat.
 
 Occupations can't outlive their war: at the end of each tick any occupier that's no longer at war with the owner lets go (`releaseOccupations`), and `setOwner` clears `occupier` and `siege`.
 
@@ -600,6 +600,7 @@ Occupations can't outlive their war: at the end of each tick any occupier that's
 - the goal cells it occupies (only the attacker has goals);
 - up to `PEACE_EXTRA_CELLS` other occupied cells that touch its own land, most valuable first; each cell taken can make the next one touch;
 - for a raid the **attacker** won, no land. Instead the loser loses `RAID_TRIBUTE` stability, the winner gains it, and the event reads *"…plunders Kethar and goes home laden with spoils."* A defender who beats a raid still takes what it occupies.
+- a **defender** who wins makes the attacker pay as a raid's victim would (`RAID_TRIBUTE` stability moves to the defender), and takes what it occupies; with no land, the event reads *"…Kethar drives off Velmora."*
 
 Taken cells go through `setOwner` (unrest jumps to `UNREST_CONQUEST`). All other occupations end; armies go home and disband. White peace: everyone keeps what they had. Truces and peace text as before.
 

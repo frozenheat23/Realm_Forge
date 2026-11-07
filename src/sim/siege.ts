@@ -103,6 +103,11 @@ export function occupationCounts(state: WorldState): Map<number, number> {
   return counts;
 }
 
+/** How many of `to`'s cells `from` occupies, from `occupationCounts`. */
+export function occupiedBy(counts: Map<number, number>, from: NationId, to: NationId): number {
+  return counts.get(heldKey(from, to)) ?? 0;
+}
+
 /** What occupation is worth to `war`'s score right now: positive favors the attacker. */
 export function occupationScore(state: WorldState, war: War, counts: Map<number, number>): number {
   const { occupier } = state.state;

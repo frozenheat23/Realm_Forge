@@ -1,6 +1,6 @@
 # Real war (M18)
 
-> **Part 1 (misjudgment) built** 2026-11-07, designed with the user. Generals, a stronger underdog defense and choices inside a war come in later parts, measured with the Sandbox's odds (`docs/systems/sandbox.md`).
+> **Part 1 (misjudgment) and part 2 (underdog defense) built** 2026-11-07, designed with the user. Generals and choices inside a war come in a later part, measured with the Sandbox's odds (`docs/systems/sandbox.md`).
 
 **Why.** The Sandbox's first odds showed that wars are decided before they start: in 4 of 5 real wars every one of 20 futures ended the same way. Nations see each other's strength exactly, and only the stronger side ever considers war, so they only pick fights they will win. Real rulers act on poor intelligence, pride and temper, and lose wars they were sure of.
 
@@ -74,7 +74,57 @@ Weak realms now sometimes attack and usually pay for it, which never happened be
 
 **Side effects** (both unseen sets): wars per century 94 → 116 and 94 → 119. These are new wars between pairs that could never fight before (the weaker side never considered war), so `WAR_BASE_PROB` doesn't bring the number down: −20% left it unchanged. Rebellions, peak empire and tick time stayed within noise. Race balance: in one of 30 worlds Humans ended with 68% of the land (old code at most 51%). On the other two sets Humans averaged 20% and 15% (old 21% and 17%), so it looks like chance. The old code also crossed the ~46% line on these seeds (51%, 49%, 49%), but 68% is the furthest yet: worth watching in later balance checks.
 
+## Part 2: underdog defense
+
+**What was wrong.** Measured on 4 tuning worlds: 95% of wars ended because a side reached war weariness `WEARINESS_PEACE` (0.9), usually the defender, and then whoever was `WIN_SCORE` ahead won. Nations go into wars already tired (two in three defenders start above 0.3), white peaces lasted about a year, and a defender could only score by winning battles and occupying land. Driving an invader off was worth nothing: it ended in a white peace.
+
+**Four rules:**
+
+1. **Holding out scores.** Each year after the first in which the attacker holds none of what it came for (its goal cells; in a raid or an ally's war, any of the defender's land), the war's `heldOff` count grows and the score moves `HOLD_SCORE` toward the defender. A stalled invasion slowly turns into a defeat. The first year is free, for marching in.
+2. **Defending homes tires slower.** A nation that is only defending (attacking no one) gains war weariness `DEFEND_WEARINESS` times as fast, both the yearly gain and the weariness from losses. So the attacker is more often the side that gives up.
+3. **The invaded rally.** A nation defending in a war refills its reserve `RALLY_REFILL` times as fast.
+4. **A beaten attacker pays.** A defender who wins takes `RAID_TRIBUTE` stability from the attacker (as a raid's winner does) and whatever it occupies. With no land the log reads *"Kethar drives off Velmora."* (was *"…defeats Velmora, but no land changes hands"*).
+
+A home-ground bonus in battle already existed (`DEFENDER_BONUS` × terrain × the people's `defense`), so none was added.
+
+| Parameter | Value | What it does |
+|---|---|---|
+| `HOLD_SCORE` | 10 | Score to the defender per year held off |
+| `DEFEND_WEARINESS` | 0.25 | × weariness for a nation only defending |
+| `RALLY_REFILL` | 2 | × `LEVY_REFILL` while defending |
+
+`War.heldOff` is optional, so saves keep format v12 (a missing count is 0).
+
+### As built: what part 2 changed
+
+Tuned on 4 seeds (`HOLD_SCORE` 5–15, `DEFEND_WEARINESS` 0.25–0.5, `RALLY_REFILL` 1–4). Checked against part 1 on 2 sets of 10 seeds never tuned on (settled start, 1,000 years):
+
+| | Part 1 | Part 2 |
+|---|---|---|
+| Attacker wins, of wars with a winner | 94%, 94% | 80%, 80% |
+| Defender wins, of all wars | 4%, 3% | 14%, 14% |
+| White peace | 41%, 39% | 26%, 26% |
+| Wars per century | 106, 100 | 69, 70 |
+| Rebellions per century | 8.3, 9.0 | 8.0, 8.6 |
+| Average peak empire | 25%, 27% | 23%, 25% |
+| Biggest race in any world | 48%, 57% | 55%, 50% |
+| Tick (Node, one run alone) | 10.5 ms | 10.9 ms |
+
+By true strength when the war began (4 tuning worlds, part 2):
+
+| Attacker's true strength | Share of wars | Attacker wins | Defender wins |
+|---|---|---|---|
+| Weaker (< 0.8) | 4% | 11% | 65% |
+| About even | 5% | 20% | 58% |
+| Stronger (1.25–3×) | 19% | 42% | 28% |
+| Much stronger (3×+) | 71% | 67% | 7% |
+
+**Reached:** an attacker who can't take what it came for now loses, even a much stronger one (7% of 3×+ wars, was 1%). Near-equal wars now usually go the defender's way. Of 4 real wars run as 20 Sandbox futures, three now end differently in at least one future (18–2, 17–3, 19–1), and one still ends the same way in all 20. In part 1, 4 of 5 wars ended the same way in every future.
+
+**Missed:** attackers still win 80% of decided wars, above the 55–75% target. Seven wars in ten are still a realm at least three times stronger, so the main lever left is who goes to war at all (part 3).
+
+**Side effects:** wars fall by a third (about 103 → 70 a century; ~94 before part 1). Wars last longer now, and a nation fights at most `MAX_WARS_PER_NATION` at once, so fewer new ones start. Empire peaks are about 2 points lower. Rebellions and the race balance are within noise: both versions put one race above ~46% in some world.
+
 ## Next parts
 
-- **Part 2: underdog defense.** Let a defender who holds off the attacker win: score for repelling, a home-ground bonus, quicker levies when invaded. Measure with the table above and the Sandbox's odds.
-- **Part 3: generals and choices in war.**
+- **Part 3: generals and choices in war.** Commanders, and choices such as suing for peace early or fighting on, so wars are less settled by who started them.

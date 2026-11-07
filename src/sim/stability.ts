@@ -3,6 +3,7 @@ import { Faith, Resource, RulerType, type Nation, type WorldState } from "../cor
 import { clamp } from "../core/math";
 import { blessing } from "../gen/faiths";
 import { traits } from "../gen/races";
+import { onlyDefending } from "./helpers";
 import { SIM } from "./params";
 import { resourceBonus } from "./resources";
 import { greatBonus } from "./rulers";
@@ -21,9 +22,11 @@ export function updateStability(state: WorldState): void {
     if (!nation.alive) continue;
     const ruler = traits(nation.race);
 
-    // War weariness builds up during war (slower for enduring races) and fades in peace.
+    // War weariness builds up during war (slower for enduring races, and for a people
+    // only defending their homes) and fades in peace.
+    const gain = (SIM.WEARINESS_GAIN / ruler.endurance) * (onlyDefending(state, nation.id) ? SIM.DEFEND_WEARINESS : 1);
     nation.warWeariness = clamp(
-      nation.warWeariness + (atWar.has(nation.id) ? SIM.WEARINESS_GAIN / ruler.endurance : -SIM.WEARINESS_DECAY),
+      nation.warWeariness + (atWar.has(nation.id) ? gain : -SIM.WEARINESS_DECAY),
       0,
       1,
     );

@@ -194,6 +194,8 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 | `PEACE_SCORE` | 400 | 50–800 | Score needed to force peace | Bigger land grabs per war | Short border wars |
 | `WIN_SCORE` | 30 | 10–100 | Score a war needs to have a winner when it ends some other way; below this it's a white peace | More white peace | Small wins still take land |
 | `WEARINESS_PEACE` | 0.9 | 0.6–1.0 | Weariness that forces peace | Wars fought to exhaustion | Quick white peace |
+| `HOLD_SCORE` | 10 | 0–20 | Score to the defender for each year (after the first) the attacker holds none of what it came for (M18) | Failed invasions become defeats sooner | Holding out counts for nothing (0, before M18) |
+| `DEFEND_WEARINESS` | 0.25 | 0.1–1 | × weariness gained (yearly and from losses) by a nation only defending (M18) | Defenders give in as fast as attackers (1) | Defenders hold on until the attacker tires |
 | `MAX_WAR_YEARS` | 25 | 10–50 | Hard cap on war length | Generational wars | Short conflicts |
 | `TRUCE_YEARS` | 10 | 0–30 | Years before the same pair can fight again | Calmer rivalries | Constant re-matches |
 | `WAR_VALUE_K` | 0.5 | 0–3 | War chance × (1 + this × value of the best enemy border cell) | Wars chase rich land | Land value ignored (0) |
@@ -395,6 +397,7 @@ Measured after step 5, the finished milestone (same 5 seeds, vs step 4): ~113 wa
 |---|---|---|---|---|---|
 | `LEVY_SHARE` | 0.08 | 0.03–0.2 | Most soldiers a nation can have, as a share of `levyPop` (people × martial × control) | Huge armies; wars decided by numbers | Small armies; terrain and forts matter more |
 | `LEVY_REFILL` | 0.25 | 0.03–0.3 | Share of the gap to the cap refilled per year (× 0.5 + stability) | Losers bounce back fast | A lost army means decades of weakness |
+| `RALLY_REFILL` | 2 | 1–4 | × `LEVY_REFILL` while a nation is defending in a war (M18) | Invaded realms raise new armies fast | No rally (1, before M18) |
 | `WEARINESS_LOSS_K` | 0.25 | 0–2 | War weariness gained per share of the cap lost | Bloody wars end quickly | Losses don't push toward peace (0) |
 
 **Raising armies**

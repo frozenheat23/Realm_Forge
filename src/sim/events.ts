@@ -187,6 +187,8 @@ export function peaceEvent(year: number, a: Nation, b: Nation, winner: Nation | 
   const spoils = prize ? ` and its ${prize}` : "";
   // A side can win on the score without holding any land the terms could hand over.
   const gains = cells === 0 ? ", but no land changes hands" : `, taking ${cells} province${cells === 1 ? "" : "s"}${spoils}`;
-  const text = winner ? `Year ${year}: ${winner.name} defeats ${loser.name}${gains}.` : `Year ${year}: ${a.name} and ${b.name} sign a white peace.`;
+  // `a` started the war: a defender who wins without taking land has driven it off.
+  const won = winner === b && cells === 0 ? `${winner.name} drives off ${loser.name}` : `${winner?.name} defeats ${loser.name}${gains}`;
+  const text = winner ? `Year ${year}: ${won}.` : `Year ${year}: ${a.name} and ${b.name} sign a white peace.`;
   return { year, type: "peace", actors: [winner?.id ?? a.id, loser.id], text };
 }

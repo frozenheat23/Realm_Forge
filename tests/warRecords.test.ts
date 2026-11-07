@@ -68,7 +68,8 @@ describe("war records", () => {
     state.wars[0]!.battleScore = SIM.PEACE_SCORE * 2; // decisive for the attacker
     const events = endWars(state, everyoneAI);
     const record = state.warRecords[0]!;
-    expect(record.scores).toEqual([SIM.PEACE_SCORE * 2]);
+    // The raider holds no land, so the defender counts a year of holding out.
+    expect(record.scores).toEqual([SIM.PEACE_SCORE * 2 - SIM.HOLD_SCORE]);
     expect(record.end).toBe(3);
     expect(record.outcome).toMatchObject({ how: "decisive", winner: 1, raid: true, text: events[0]!.text });
   });

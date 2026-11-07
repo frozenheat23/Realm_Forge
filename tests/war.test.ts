@@ -51,7 +51,7 @@ describe("endWars", () => {
   it("ends a decisive war with peace and a truce", () => {
     const state = twoNations();
     state.year = 5;
-    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: SIM.PEACE_SCORE, goal: "conquer" as const, goalCells: [] });
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: 2 * SIM.PEACE_SCORE, goal: "conquer" as const, goalCells: [] });
     const events = endWars(state, everyoneAI);
     expect(state.wars).toHaveLength(0);
     expect(events[0]!.type).toBe("peace");

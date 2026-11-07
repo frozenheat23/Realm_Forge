@@ -237,7 +237,7 @@ describe("alliances", () => {
   it("allies go home when the war they joined ends", () => {
     const state = triangle();
     state.year = 5;
-    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: SIM.PEACE_SCORE, goal: "conquer" as const, goalCells: [] });
+    state.wars.push({ id: 1, attacker: 1, defender: 2, startYear: 1, score: 0, battleScore: 2 * SIM.PEACE_SCORE, goal: "conquer" as const, goalCells: [] });
     state.wars.push({ id: 2, attacker: 1, defender: 3, startYear: 1, score: 0, battleScore: 0, goal: "conquer" as const, goalCells: [], joined: 1 });
     endWars(state, everyoneAI);
     expect(state.wars).toHaveLength(0);

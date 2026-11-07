@@ -3,6 +3,7 @@
 import { Faith, RulerType, type Army, type Nation, type WorldState } from "../core/types";
 import { clamp } from "../core/math";
 import { blessing } from "../gen/faiths";
+import { onlyDefending } from "./helpers";
 import { SIM } from "./params";
 import { greatBonus } from "./rulers";
 import { recordLoss } from "./warRecords";
@@ -19,8 +20,9 @@ export function updateManpower(state: WorldState, nation: Nation, levyPop: numbe
   if (state.year - nation.founded <= 1) {
     nation.reserve = nation.manpowerCap;
   } else if (gap > 0) {
-    // Unstable realms train new soldiers slowly.
-    nation.reserve += gap * SIM.LEVY_REFILL * (0.5 + nation.stability) * blessing(nation, Faith.HollowMother);
+    // Unstable realms train new soldiers slowly; invaded ones rally to the banners.
+    const rally = state.wars.some((w) => w.defender === nation.id) ? SIM.RALLY_REFILL : 1;
+    nation.reserve += gap * SIM.LEVY_REFILL * rally * (0.5 + nation.stability) * blessing(nation, Faith.HollowMother);
   }
 }
 
@@ -72,7 +74,9 @@ export function loseSoldiers(state: WorldState, nation: Nation, lost: number, wa
   left -= fromReserve;
   armies.forEach(fromArmy);
   if (nation.manpowerCap > 0) {
-    nation.warWeariness = clamp(nation.warWeariness + (dead / nation.manpowerCap) * SIM.WEARINESS_LOSS_K, 0, 1);
+    // A people only defending their homes bear losses better (SIM.DEFEND_WEARINESS).
+    const resolve = onlyDefending(state, nation.id) ? SIM.DEFEND_WEARINESS : 1;
+    nation.warWeariness = clamp(nation.warWeariness + (dead / nation.manpowerCap) * SIM.WEARINESS_LOSS_K * resolve, 0, 1);
   }
 }
 
