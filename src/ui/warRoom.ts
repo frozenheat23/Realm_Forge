@@ -5,7 +5,7 @@ import { menText } from "../sim/events";
 import { SIM } from "../sim/params";
 import { sideOf } from "../sim/warRecords";
 
-export type Tab = "wars" | "past" | "log" | "sandbox";
+export type Tab = "wars" | "past" | "log" | "sandbox" | "play";
 
 export interface WarRoom {
   /** Brings the lists up to date (after each year, or when following changes). */
@@ -56,7 +56,7 @@ function swatch(state: WorldState, id: NationId): HTMLElement {
 }
 
 /** "Kethar ⚔ Velmora (+2 allies)" with color swatches. */
-function sides(record: WarRecord, state: WorldState): HTMLElement {
+export function sides(record: WarRecord, state: WorldState): HTMLElement {
   const row = el("div", "war-sides");
   const allies = (side: "attack" | "defend") => record.allies.filter((a) => a.side === side).length;
   const more = (n: number) => (n > 0 ? el("span", "allies", `+${n}`) : el("span"));
@@ -73,7 +73,7 @@ function sides(record: WarRecord, state: WorldState): HTMLElement {
 }
 
 /** A bar from the defender's win (left) to the attacker's (right), filled toward whoever leads. */
-function scoreBar(state: WorldState, record: WarRecord, score: number): HTMLElement {
+export function scoreBar(state: WorldState, record: WarRecord, score: number): HTMLElement {
   const bar = el("div", "score");
   const share = Math.max(-1, Math.min(1, score / SIM.PEACE_SCORE));
   const fill = el("div", "fill");
@@ -183,8 +183,8 @@ const sortKey: Record<Sort, (r: WarRecord) => number> = {
 /** Most past wars the list shows at once. */
 const PAST_SHOWN = 150;
 
-/** What the panel needs from the Sandbox tab (M17), which lives in `ui/sandbox.ts`. */
-export interface SandboxTab {
+/** What the panel needs from a tab that lives in its own file: the Sandbox (M17, `ui/sandbox.ts`) and Play (M20, `ui/play.ts`). */
+export interface PanelTab {
   update(state: WorldState): void;
   /** The tab was opened. */
   opened(): void;
@@ -194,9 +194,9 @@ export interface SandboxTab {
  * Builds the panel. `onFollow` runs with a war's id when a war going on is clicked,
  * or null to stop following.
  */
-export function createWarRoom(panel: HTMLElement, followed: () => number | null, onFollow: (id: number | null) => void, sandbox: SandboxTab): WarRoom {
+export function createWarRoom(panel: HTMLElement, followed: () => number | null, onFollow: (id: number | null) => void, others: { sandbox: PanelTab; play: PanelTab }): WarRoom {
   const tab = (id: string) => panel.querySelector<HTMLElement>(`#tab-${id}`)!;
-  const tabs = { wars: tab("wars"), past: tab("past"), log: tab("log"), sandbox: tab("sandbox") };
+  const tabs = { wars: tab("wars"), past: tab("past"), log: tab("log"), sandbox: tab("sandbox"), play: tab("play") };
   const buttons = [...panel.querySelectorAll<HTMLButtonElement>(".tabs button")];
   let shown: Tab = "wars";
   let report: { record: WarRecord } | null = null;
@@ -208,7 +208,7 @@ export function createWarRoom(panel: HTMLElement, followed: () => number | null,
     shown = tab;
     for (const [name, section] of Object.entries(tabs)) section.classList.toggle("shown", name === tab);
     for (const b of buttons) b.classList.toggle("active", b.dataset.tab === tab);
-    if (tab === "sandbox") sandbox.opened();
+    if (tab === "sandbox" || tab === "play") others[tab].opened();
     if (lastState) room.update(lastState);
   };
   for (const b of buttons) b.addEventListener("click", () => showTab(b.dataset.tab as Tab));
@@ -301,7 +301,7 @@ export function createWarRoom(panel: HTMLElement, followed: () => number | null,
       lastState = state;
       if (shown === "wars") drawWars(state);
       if (shown === "past") drawPast(state);
-      if (shown === "sandbox") sandbox.update(state);
+      if (shown === "sandbox" || shown === "play") others[shown].update(state);
     },
     showReport(record, state) {
       report = { record };

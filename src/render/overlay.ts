@@ -22,8 +22,9 @@ export interface NationOverlay {
   /**
    * Brings `pixels` up to date. If `highlight` has nations in it, every other nation
    * is drawn faded. `tint` picks the land color; borders are drawn the same either way.
+   * `played` is the player's nation (M20), whose border is drawn heavier.
    */
-  update(state: WorldState, highlight?: Set<NationId>, tint?: OverlayTint): void;
+  update(state: WorldState, highlight?: Set<NationId>, tint?: OverlayTint, played?: NationId): void;
 }
 
 /** War borders are thick, so a change reaches 2 pixels into the next cell, and the wobbly edges can reach one cell further. */
@@ -45,6 +46,9 @@ export function createNationOverlay(world: Pick<GeneratedWorld, "width" | "heigh
   let shownMode: OverlayTint | null = null; // null = nothing painted yet
   let shownHighlight = new Set<NationId>();
   let shownWars = new Set<number>();
+  let shownPlayed: NationId | undefined;
+  const playedWidth = look.playedBorderWidth;
+  const playedBorder = packPixel(hexToRgb(look.playedBorder), 255);
 
   const raceFill = RACE_COLORS.map((hex, r) => (r === 0 ? 0 : packPixel(tinted(hex), Math.round(look.overlayAlpha * 255))));
   const faithFill = FAITH_COLORS.map((hex, f) => (f === 0 ? 0 : packPixel(tinted(hex), Math.round(look.overlayAlpha * 255))));
@@ -58,7 +62,7 @@ export function createNationOverlay(world: Pick<GeneratedWorld, "width" | "heigh
     }
   }
 
-  function update(state: WorldState, highlight: Set<NationId> = new Set(), tint: OverlayTint = "nation"): void {
+  function update(state: WorldState, highlight: Set<NationId> = new Set(), tint: OverlayTint = "nation", played?: NationId): void {
     const { owner, race, culture, faith } = state.state;
     const tintOf = tint === "race" ? race : tint === "culture" ? culture : tint === "faith" ? faith : owner;
 
@@ -91,6 +95,16 @@ export function createNationOverlay(world: Pick<GeneratedWorld, "width" | "heigh
       );
     };
 
+    /** Is land not owned by `me` within `playedWidth` pixels, in any of the four directions? (Water doesn't count.) */
+    const nearOtherLand = (me: number, i: number, x: number, y: number): boolean => {
+      const other = (o: number) => o !== -1 && o !== me;
+      for (let d = 1; d <= playedWidth; d++) {
+        if ((x >= d && other(pixelOwner[i - d]!)) || (x < width - d && other(pixelOwner[i + d]!))) return true;
+        if ((y >= d && other(pixelOwner[i - d * width]!)) || (y < height - d && other(pixelOwner[i + d * width]!))) return true;
+      }
+      return false;
+    };
+
     // Borders between nations at war are drawn in red.
     const atWar = new Set(state.wars.map((w) => pairKey(w.attacker, w.defender)));
     const isEnemy = (me: number, other: number) => other > 0 && other !== me && atWar.has(pairKey(me, other));
@@ -120,6 +134,12 @@ export function createNationOverlay(world: Pick<GeneratedWorld, "width" | "heigh
           (x < width - 2 && isEnemy(me, pixelOwner[i + 2]!)) ||
           (y > 1 && isEnemy(me, pixelOwner[i - 2 * width]!)) ||
           (y < height - 2 && isEnemy(me, pixelOwner[i + 2 * width]!)));
+
+      // The played realm's border is heavier, except where it's a war front.
+      if (me === played && !nearEnemy2 && nearOtherLand(me, i, x, y)) {
+        pixels[i] = playedBorder;
+        return;
+      }
 
       if (!onBorder) {
         const cell = displayCells[i]!;
@@ -152,7 +172,7 @@ export function createNationOverlay(world: Pick<GeneratedWorld, "width" | "heigh
 
     // Changing the tint or the faded nations changes everything.
     const sameHighlight = highlight.size === shownHighlight.size && [...highlight].every((id) => shownHighlight.has(id));
-    if (tint !== shownMode || !sameHighlight) {
+    if (tint !== shownMode || !sameHighlight || played !== shownPlayed) {
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) paintPixel(y * width + x, x, y);
       }
@@ -170,6 +190,7 @@ export function createNationOverlay(world: Pick<GeneratedWorld, "width" | "heigh
     shownMode = tint;
     shownHighlight = new Set(highlight);
     shownWars = atWar;
+    shownPlayed = played;
   }
 
   /** Marks the border cells of every nation in a war that began or ended. */

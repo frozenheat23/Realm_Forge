@@ -836,6 +836,10 @@ Mouse wheel or trackpad pinch zooms toward the pointer, dragging moves the map, 
 - **Everything drawn with lines and text** (names, castles, cities, resources, alliances, armies, war focus, effects, the frame) is drawn through the camera, so it's always sharp. Markers, names and inked lines grow on screen only as zoom ^ `MARK_ZOOM_GROWTH` (`render/marks.ts`), so close up they stay readable and the map shows more detail rather than bigger symbols. The title panel and year stay fixed on screen.
 - War effects' occupied-land stripes are still a whole-map picture, stretched.
 
+### 5.4m Play tab (M20)
+
+A fifth side-panel tab (`src/ui/play.ts`). With no one playing it lists the living realms of a chosen race, largest first; clicking one takes it over (the "play" order) at the year shown. Then it shows **Your realm**: the ruler with their portrait, land, people, faith, soldiers and reserve, stability, war weariness, unrest, allies, worst rival, your wars (click to follow one), and a drop-down per policy, each change a "setPolicy" order. If your realm falls, the list comes back so you can pick another. On the map the played realm's border is drawn heavier (`playedBorderWidth`), sharp when zoomed. Opening the tab pauses only while choosing. See [`systems/play.md`](systems/play.md).
+
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 10 ms, smooth at 50 years per second. Measured after M13: overlay 1.4 ms, effects 0.2 ms, tick ~4.6 ms in the browser, a whole new-year frame ~21 ms.
 - Run the sim on the main thread until M6; move it to a Web Worker only if it slows the screen.

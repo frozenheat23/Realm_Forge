@@ -1,6 +1,6 @@
 # Play as a nation (M20)
 
-> **Planned** 2026-11-07, designed with the user. **Step 1 built** 2026-11-07 (the player's controller, orders and log, no screen yet: see "As built" at the end); steps 2–6 still planned. Builds on controllers (`controllers.md`), the command log (`sandbox.md`), the War Room (`warroom.md`) and zoom (SPEC §5.4l).
+> **Planned** 2026-11-07, designed with the user. **Steps 1–2 built** 2026-11-07 (the player's controller, orders and log; choosing a nation and the Your realm panel: see "As built" at the end); steps 3–6 still planned. Builds on controllers (`controllers.md`), the command log (`sandbox.md`), the War Room (`warroom.md`) and zoom (SPEC §5.4l).
 
 **Goal.** Pick a nation and play its 1,000 years. You make its strategic choices; the same rules as everyone else decide what happens. When your realm falls, you carry on with your people.
 
@@ -98,3 +98,12 @@ Directing armies yourself, fog of war, a score, custom realms at the start, dipl
 - **Policy names in the code:** `joinWar` (always / defending / kin / never), `acceptAlliance` (opinion / always / never), `wonWar` (peace / fightOn), `suePeace` (never / weary), `enemySues` (accept / weary / refuse), `mobilize` (a share of the reserve, above 0 and at most 1), `rebels` (fight / letGo). "Weary" means war weariness ≥ `PLAYER_WEARY` (0.6). Defaults: defending, opinion, peace, weary, weary, `MOBILIZE_SHARE`, fight.
 - **Orders given at year 0** (before the first year) are logged at year 0, so a replay applies the log once before the first tick, then after each year.
 - **Measured** (3 worlds × 1,000 years, settled start, first kingdom played, no orders): attacked 1–13 times, never attacked anyone except its own rebels; one of the three fell (year 406).
+
+**Step 2** (2026-11-07). Code: `ui/play.ts`, a heavier border in `render/overlay.ts` (SPEC §5.4m).
+
+- The Play tab lists the chosen race's living realms, largest first (at most `PLAY_LIST_MAX`), with land and ruler; one click takes it over.
+- **Your realm** shows the ruler (portrait, title, dynasty, great type), land, people (and how many aren't the ruling race), faith, soldiers in the field and in reserve, stability, war weariness, unrest, allies, worst rival, your wars (whose side you're on, how it's going, the War Room score bar; click to follow), and the seven policies as drop-downs.
+- Land, people and unrest are counted from the map, since a nation's own totals are only filled in after its first year.
+- If your realm falls, the panel says so and the list of realms comes back (step 5 will narrow it to your people).
+- Opening the tab pauses playback only when no one is playing, so a player can keep it open while time runs.
+- Seen while testing: in the settled start a kingdom can rule land with none of its own race living there (Mairna, Humans ruling elves and orcs). The panel says "none of them Humans".

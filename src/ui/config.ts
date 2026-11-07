@@ -25,3 +25,9 @@ export const ZOOM_STEP = 2;
 export const ZOOM_SHARP_DELAY = 150;
 /** Following a war zooms to its two capitals, but no closer than this. */
 export const FOLLOW_ZOOM_MAX = 3;
+
+// --- Playing a nation (M20). See docs/PARAMS.md ("Playback"). ---
+/** The "Raise for a new war" choices: shares of the reserve. */
+export const PLAYER_MOBILIZE_CHOICES = [0.25, 0.5, 0.8, 1];
+/** Most nations listed when choosing one to play (the largest first). */
+export const PLAY_LIST_MAX = 40;

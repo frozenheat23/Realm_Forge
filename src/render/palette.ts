@@ -258,6 +258,9 @@ export interface MapLook {
   /** One color for every border, or null to use a darker shade of each realm's color. */
   borderInk: string | null;
   borderAlpha: number;
+  /** The played realm's border (M20): drawn this many pixels wide, in this color. */
+  playedBorderWidth: number;
+  playedBorder: string;
   labelFont: string;
   labelWeight: number;
   /** Capital letters for realm names, or the name as it's spelled (for small-caps fonts). */
@@ -298,6 +301,8 @@ export const LOOK_STANDARD: MapLook = {
   tintShare: 0,
   borderInk: null,
   borderAlpha: BORDER_ALPHA,
+  playedBorderWidth: 3,
+  playedBorder: "#f3dd90",
   labelFont: LABEL_FONT,
   labelWeight: 600,
   labelUpper: true,
@@ -392,6 +397,8 @@ export const LOOK_ATLAS: MapLook = {
   tintShare: 0.32,
   borderInk: ATLAS_INK,
   borderAlpha: 0.88,
+  playedBorderWidth: 3,
+  playedBorder: ATLAS_INK,
   labelFont: "'IM Fell English SC', Georgia, serif",
   labelWeight: 400,
   labelUpper: false,

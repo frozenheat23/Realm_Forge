@@ -38,6 +38,7 @@ import { createEventLog } from "./ui/eventLog";
 import { createRecorder, pickSnapshot, saveSnapshot } from "./ui/files";
 import { createRulerCard } from "./ui/rulerCard";
 import { applyParams, createSettings, type Layers } from "./ui/settings";
+import { createPlayTab } from "./ui/play";
 import { createSandbox } from "./ui/sandbox";
 import { createWarRoom, nationsOf } from "./ui/warRoom";
 import { attachZoom } from "./ui/zoom";
@@ -152,7 +153,7 @@ const overlay = createNationOverlay(world, displayCells, cellPixels, look);
 // Shares the overlay's memory, so it never needs rebuilding.
 const nationImage = new ImageData(new Uint8ClampedArray(overlay.pixels.buffer), world.width, world.height);
 function redrawNations(): void {
-  overlay.update(state, highlight(), overlayTint());
+  overlay.update(state, highlight(), overlayTint(), state.player?.nation);
   nationCtx.putImageData(nationImage, 0, 0);
   if (heat) heatCtx.putImageData(renderHeatmap(world, displayCells, state, heat), 0, 0);
   if (sharp) refreshSharp(sharp);
@@ -190,9 +191,13 @@ function buildSharp(): SharpView | null {
   const view: ViewGrid = { width: world.width, height: world.height, zoom: camera.zoom, x: camera.x, y: camera.y };
   const cells = buildViewCells(world, view);
   const grid = { width: view.width, height: view.height, cells: world.cells };
-  // The tinted band along borders keeps its look: as wide as at zoom 1, grown like a marker.
-  const edge = Math.round(look.overlayEdgeWidth * camera.zoom * markScale(camera.zoom));
-  const viewOverlay = createNationOverlay(grid, cells, groupPixelsByCell(cells, world.cells.length), { ...look, overlayEdgeWidth: edge });
+  // The tinted band and the played realm's border keep their look: as wide as at zoom 1, grown like a marker.
+  const grow = (width: number) => Math.round(width * camera.zoom * markScale(camera.zoom));
+  const viewOverlay = createNationOverlay(grid, cells, groupPixelsByCell(cells, world.cells.length), {
+    ...look,
+    overlayEdgeWidth: grow(look.overlayEdgeWidth),
+    playedBorderWidth: grow(look.playedBorderWidth),
+  });
   const [nation, viewNationCtx] = offscreen();
   const [heatCanvas, viewHeatCtx] = offscreen();
   let terrainCanvas: HTMLCanvasElement | null = null;
@@ -225,7 +230,7 @@ function buildSharp(): SharpView | null {
 
 /** Brings a sharp view's nation colors and heatmap up to date with the world. */
 function refreshSharp(view: SharpView): void {
-  view.overlay.update(state, highlight(), overlayTint());
+  view.overlay.update(state, highlight(), overlayTint(), state.player?.nation);
   view.nationCtx.putImageData(view.nationImage, 0, 0);
   if (heat) view.heatCtx.putImageData(renderHeatmap(world, view.cells, state, heat), 0, 0);
 }
@@ -320,7 +325,23 @@ const sandbox = createSandbox(element("#tab-sandbox"), {
     warRoom.update(state);
   },
 });
-const warRoom = createWarRoom(panel, () => followed, follow, { update: sandbox.update, opened: () => controls.pause() });
+// The Play tab (M20): taking over a nation and its policies are orders, as god commands are.
+const playTab = createPlayTab(element("#tab-play"), {
+  state: () => state,
+  pause: () => controls.pause(),
+  changed(events) {
+    eventLog.add(events, state);
+    redrawNations();
+    draw();
+    warRoom.update(state);
+  },
+  follow: (war) => follow(war),
+});
+const warRoom = createWarRoom(panel, () => followed, follow, {
+  sandbox: { update: sandbox.update, opened: () => controls.pause() },
+  // Opening it pauses only to choose a nation; a player keeps it open while time runs.
+  play: { update: playTab.update, opened: () => state.player === undefined && controls.pause() },
+});
 
 /** Starts following a war (dimming everyone else and slowing time), or stops with null. */
 function follow(id: number | null): void {

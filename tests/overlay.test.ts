@@ -72,4 +72,31 @@ describe("the parchment chart", () => {
     expect(chart.panelX).toBeLessThan(width);
     expect(chart.panelY).toBeLessThan(height);
   });
+  it("draws the played realm's border heavier, only on its own land, and still matches a full paint", () => {
+    const { world, state } = generateWorld("overlay");
+    const display = buildDisplayCells(world);
+    const groups = groupPixelsByCell(display, world.cells.length);
+    const played = [...state.nations.keys()][0]!;
+    const kept = createNationOverlay(world, display, groups, LOOK_ATLAS);
+    const rng = createRng("overlay").fork("sim");
+    kept.update(state, new Set(), "nation", played);
+    for (let year = 1; year <= 60; year++) {
+      tick(state, rng);
+      kept.update(state, new Set(), "nation", played);
+    }
+    const fresh = createNationOverlay(world, display, groups, LOOK_ATLAS);
+    fresh.update(state, new Set(), "nation", played);
+    const plain = createNationOverlay(world, display, groups, LOOK_ATLAS);
+    plain.update(state);
+    let wrong = 0;
+    let heavier = 0;
+    for (let i = 0; i < fresh.pixels.length; i++) {
+      if (fresh.pixels[i] !== kept.pixels[i]) wrong++;
+      if (fresh.pixels[i] === plain.pixels[i]) continue;
+      heavier++;
+      expect(state.state.owner[display[i]!]).toBe(played); // nobody else's pixels change
+    }
+    expect(wrong).toBe(0);
+    expect(heavier).toBeGreaterThan(0);
+  }, 60_000);
 });

@@ -611,6 +611,7 @@ An old chart: aged paper, pale sea, thin ink outlines, drawn terrain symbols. Co
 | `LOOK_ATLAS.overlayEdgeWidth` | 3 | 0–5 | Width of that band in pixels (keep ≤ 5, or redraws can miss it) | Wider band | 0 = no band |
 | `LOOK_ATLAS.tintShare` | 0.32 | 0–0.7 | How far realm colors lean toward sepia | Calmer, realms look alike | Brighter colors |
 | `LOOK_ATLAS.borderAlpha` | 0.88 | 0.3–1 | Darkness of border lines | Crisper | Softer |
+| `playedBorderWidth`, `playedBorder` | 3, ink (gold `#f3dd90` on the classic maps) | 1–5 | The played realm's border (M20): width in pixels and color, in `LOOK_ATLAS` and `LOOK_STANDARD`. Keep ≤ 5, or redraws can miss it | Bolder outline | Like any other border |
 | `ATLAS_HILL_CHANCE` | 0.3 | 0–1 | Share of hill cells with a symbol | Busier | Calmer |
 | `ATLAS_FOREST_CHANCE` | 0.3 | 0–1 | Share of forest cells with trees | Busier | Calmer |
 | `ATLAS_PEAK_SIZE` | 13 | 8–20 | Mountain symbol size in pixels | Taller peaks | Smaller peaks |
@@ -734,6 +735,8 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | `ZOOM_SHARP_DELAY` | 150 | 0–1000 | Milliseconds after the view stops moving before it's redrawn sharp (the redraw takes ~0.4 s) |
 | `FOLLOW_ZOOM_MAX` | 3 | 1–4 | Following a war zooms to fit its two capitals, but no closer than this |
 | `MARK_ZOOM_GROWTH` | 0.5 | 0–1 | Zoomed in, markers, names, rivers, terrain symbols and inked lines grow on screen as zoom ^ this (×2 at 4×). 1 = they grow with the map; 0 = they stay the same size (`render/palette.ts`) |
+| `PLAYER_MOBILIZE_CHOICES` | [0.25, 0.5, 0.8, 1] | — | The Play tab's "Raise for a new war" choices, as shares of the reserve (`src/ui/config.ts`); the current policy is listed too if it isn't one of them |
+| `PLAY_LIST_MAX` | 40 | 10–200 | Most realms listed when choosing a nation to play, largest first |
 | `ODDS_RUNS` | 20 | 5–100 | Futures the Sandbox's odds run (`src/sim/params.ts`, not in Settings or saves). More = finer percentages, but slower (~1.5 s each in the browser) |
 | `ODDS_YEARS` | 50 | 1–500 | Years each future runs by default; the tab's Years box can change it per run |
 

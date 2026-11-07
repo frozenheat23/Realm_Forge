@@ -51,11 +51,8 @@ export function onKey(key: string, action: () => void): void {
 /** Settlement level names, indexed by level (0 = none). */
 const SETTLEMENT_NAMES = ["", "village", "town", "city"];
 
-/** " · allies X, Y · rival Z (−0.62)" for a nation, or "" if it has neither. */
-function diplomacyText(state: WorldState, id: NationId): string {
-  const name = (other: NationId) => state.nations.get(other)?.name ?? "?";
-  const allies = alliesOf(state, id);
-  // The worst opinion this nation holds of any living nation it has met.
+/** The living nation `id` thinks worst of, among those it has met, with that opinion; null if it dislikes no one. */
+export function rivalOf(state: WorldState, id: NationId): { id: NationId; opinion: number } | null {
   let rival: NationId | null = null;
   let worst = 0;
   for (const key of state.relations.keys()) {
@@ -66,9 +63,17 @@ function diplomacyText(state: WorldState, id: NationId): string {
     const value = opinion(state, id, other);
     if (value < worst && state.nations.get(other)?.alive) [rival, worst] = [other, value];
   }
+  return rival === null ? null : { id: rival, opinion: worst };
+}
+
+/** " · allies X, Y · rival Z (−0.62)" for a nation, or "" if it has neither. */
+function diplomacyText(state: WorldState, id: NationId): string {
+  const name = (other: NationId) => state.nations.get(other)?.name ?? "?";
+  const allies = alliesOf(state, id);
+  const rival = rivalOf(state, id);
   return (
     (allies.length ? ` · allies ${allies.map(name).join(", ")}` : "") +
-    (rival !== null ? ` · rival ${name(rival)} (${worst.toFixed(2)})` : "")
+    (rival !== null ? ` · rival ${name(rival.id)} (${rival.opinion.toFixed(2)})` : "")
   );
 }
 
