@@ -8,6 +8,7 @@ import { defaultPolicies, POLICY_CHOICES } from "./ai/player";
 import type { CommandOf, CommandResult } from "./commands";
 import { allianceRefusal, applyBreakAlliance, applyFormAlliance } from "./diplomacy";
 import { applyAdoptFaith, offeredFaith } from "./faith";
+import { livingNations } from "./helpers";
 import { applyDeclareWar, applySuePeace, callAllies, declareWarRefusal, helpers, suePeaceRefusal, warLookups, winningSide } from "./war";
 
 /** The player order of one kind, e.g. `OrderOf<"declareWar">`. */
@@ -54,6 +55,26 @@ function applyPlayerWar(state: WorldState, me: Nation, cmd: OrderOf<"declareWar"
   if (!declared.ok) return declared;
   const events = [...declared.events, ...callAllies(state, lookups, declared.war!, myHelpers, theirHelpers, rng, controllers)];
   return done(events, declared.war);
+}
+
+/**
+ * Who the player may carry on as when their realm has fallen (docs/systems/play.md): the living
+ * realms of their people (culture); if none, of their race; if none, nobody. Largest first.
+ */
+export function heirsOf(state: WorldState): { by: "people" | "race" | "none"; nations: Nation[] } {
+  const player = state.player;
+  const played = player ? state.nations.get(player.nation) : undefined;
+  if (!player || !played) return { by: "none", nations: [] };
+  const area = new Map<NationId, number>();
+  for (const owner of state.state.owner) if (owner !== 0) area.set(owner, (area.get(owner) ?? 0) + 1);
+  const living = livingNations(state)
+    .filter((n) => n.id !== played.id)
+    .sort((a, b) => (area.get(b.id) ?? 0) - (area.get(a.id) ?? 0));
+  const people = living.filter((n) => n.culture === player.culture);
+  if (people.length > 0) return { by: "people", nations: people };
+  const race = living.filter((n) => n.race === played.race);
+  if (race.length > 0) return { by: "race", nations: race };
+  return { by: "none", nations: [] };
 }
 
 /** The goals a player's war may have. */

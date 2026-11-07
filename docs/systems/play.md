@@ -1,6 +1,6 @@
 # Play as a nation (M20)
 
-> **Planned** 2026-11-07, designed with the user. **Steps 1–4 built** 2026-11-07 (the player's controller, orders and log; choosing a nation and the Your realm panel; order buttons; dispatches: see "As built" at the end); steps 5–6 still planned. Builds on controllers (`controllers.md`), the command log (`sandbox.md`), the War Room (`warroom.md`) and zoom (SPEC §5.4l).
+> **Planned** 2026-11-07, designed with the user. **Steps 1–5 built** 2026-11-07 (the player's controller, orders and log; choosing a nation and the Your realm panel; order buttons; dispatches; following your people and the end summary: see "As built" at the end); step 6, the playtest pass, still to do. Builds on controllers (`controllers.md`), the command log (`sandbox.md`), the War Room (`warroom.md`) and zoom (SPEC §5.4l).
 
 **Goal.** Pick a nation and play its 1,000 years. You make its strategic choices; the same rules as everyone else decide what happens. When your realm falls, you carry on with your people.
 
@@ -122,3 +122,10 @@ Directing armies yourself, fog of war, a score, custom realms at the start, dipl
 - If any are switched on, playback pauses, the Play tab opens and the year's dispatches show at its top; **Carry on** starts playback again.
 - Each kind can be switched off under "Pause for…"; the choice is kept in this browser (`localStorage`), not in saves, since it's how you like to play rather than part of history.
 - Enemy peace offers your policy refused leave no event, so they aren't reported (yet). Your own orders' results show under Orders instead.
+
+**Step 5** (2026-11-07). Code: `heirsOf` (`sim/play.ts`), the Carry on list in `ui/play.ts`, `ui/summary.ts`; tests in `tests/playEnd.test.ts`.
+
+- **When your realm falls** the dispatch says so, and right under it the Play tab lists who you can carry on as: living realms of your people (culture), largest first; if none, realms of your race; if none, you can only stop playing and watch. Choosing one is an ordinary "play" order, so your policies come with you. Carrying on as another race's realm makes its culture the people you follow from then on.
+- Your people's realms include whoever conquered you, if they're your own culture (seen in testing: Ugruk fell to Gorgash, another realm of its people).
+- **At year 1000** playback stops and the tab shows **The end of history**: each realm you played with its years and what became of it (fell, still stands with how much land, or left by you), then how many realms your people rule and their share of the land, and your race's share. No score. It's worked out from the command log's "play" orders, so nothing new is saved.
+- Fixed while testing: a page-wide `[hidden]` rule, since a class's `display` was showing elements meant to be hidden (the fallen realm's ruler and stats).

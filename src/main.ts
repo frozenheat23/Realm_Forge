@@ -435,6 +435,12 @@ function advanceYear(): void {
     warRoom.showTab("play");
     playTab.showDispatches(state.year, news);
   }
+  // The last year: what became of the realms you played, and your people.
+  if (state.player && state.year === SIM_YEARS) {
+    controls.pause();
+    warRoom.showTab("play");
+    playTab.showSummary(state);
+  }
   for (const event of events) {
     const nation = event.type === "ruler" ? state.nations.get(event.actors[0]!) : undefined;
     // A great ruler crowned this year is a rise (other ruler events are deaths and crises).

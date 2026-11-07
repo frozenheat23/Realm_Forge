@@ -12,13 +12,14 @@ import { livingNations, neighborPairs } from "../sim/helpers";
 import { soldiers } from "../sim/manpower";
 import { SIM } from "../sim/params";
 import { offeredFaith } from "../sim/faith";
-import { playerWarRefusals, WAR_GOALS } from "../sim/play";
+import { heirsOf, playerWarRefusals, WAR_GOALS } from "../sim/play";
 import { giveCommand } from "../sim/sandbox";
 import { suePeaceRefusal } from "../sim/war";
 import { PLAY_LIST_MAX, PLAYER_MOBILIZE_CHOICES } from "./config";
 import { rivalOf } from "./debugInfo";
 import { DISPATCH_KINDS, DISPATCH_NAMES, type Dispatch, type DispatchKind } from "./dispatches";
 import { fallbackPath, portraitPath } from "./portraits";
+import { summaryLines } from "./summary";
 import { fill } from "./sandbox";
 import { scoreBar, sides } from "./warRoom";
 
@@ -44,6 +45,8 @@ export interface PlayTab {
   wants(kind: DispatchKind): boolean;
   /** Shows the dispatches of `year` at the top of the tab. */
   showDispatches(year: number, dispatches: Dispatch[]): void;
+  /** Shows what became of your realms and people, at the end of the run. */
+  showSummary(state: WorldState): void;
 }
 
 /** Where the dispatch kinds switched off are remembered, in this browser only. */
@@ -142,7 +145,9 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
   }
   const chooseNote = el("div", "sandbox-note");
   const nationList = el("div");
-  choose.append(el("p", "play-hint", "Pick a people, then one of their realms. You can take over now or at any later year."), raceButtons, nationList, chooseNote);
+  const PICK_HINT = "Pick a people, then one of their realms. You can take over now or at any later year.";
+  const chooseHint = el("p", "play-hint", PICK_HINT);
+  choose.append(chooseHint, raceButtons, nationList, chooseNote);
 
   // --- Your realm ---
   const realm = el("div");
@@ -265,31 +270,55 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
     // A refusal by the rules, or by the other side ("Lirelor turns the offer down").
     note.textContent = result.ok ? (result.events.at(-1)?.text.replace(/^Year -?\d+: /, "") ?? "") : `Refused: ${result.reason}.`;
     if (result.ok) hooks.changed(result.events);
+    if (result.ok && command.kind === "play") news.hidden = true; // old news belongs to the realm you left
     update(state);
   }
 
   // --- Drawing ---
+  /** A clickable list of realms to play, with their land and ruler. */
+  function listRealms(state: WorldState, realms: Nation[], verb: string): void {
+    const sizes = realmSizes(state);
+    nationList.replaceChildren();
+    for (const nation of realms.slice(0, PLAY_LIST_MAX)) {
+      const row = el("div", "war-row");
+      row.title = `${verb} ${nation.name}`;
+      const name = el("div", "war-sides");
+      const sw = el("span", "sw");
+      sw.style.background = nation.color;
+      name.append(sw, document.createTextNode(nation.name));
+      row.append(name, el("div", "war-meta", `${sizes.get(nation.id)?.cells ?? 0} provinces · ${rulerName(nation.ruler, nation.race)} of ${nation.ruler.dynasty}`));
+      row.addEventListener("click", () => give({ kind: "play", nation: nation.id }, chooseNote));
+      nationList.append(row);
+    }
+    if (realms.length > PLAY_LIST_MAX) nationList.append(el("div", "room-note", `${realms.length - PLAY_LIST_MAX} smaller realms not shown.`));
+  }
+
+  /** Not playing: pick a race, then one of its realms. */
   function drawChooser(state: WorldState): void {
+    choose.querySelector("h4")!.textContent = "Play as a nation";
+    chooseHint.textContent = PICK_HINT;
+    raceButtons.hidden = false;
     for (const b of raceButtons.querySelectorAll("button")) b.classList.toggle("active", Number(b.dataset.race) === race);
     const sizes = realmSizes(state);
     const cellsOf = (n: Nation) => sizes.get(n.id)?.cells ?? 0;
     const realms = livingNations(state)
       .filter((n) => n.race === race)
       .sort((a, b) => cellsOf(b) - cellsOf(a));
-    nationList.replaceChildren();
+    listRealms(state, realms, "Play as");
     if (realms.length === 0) nationList.append(el("div", "room-note", `No realm of ${traits(race).plural} stands now.`));
-    for (const nation of realms.slice(0, PLAY_LIST_MAX)) {
-      const row = el("div", "war-row");
-      row.title = `Play as ${nation.name}`;
-      const name = el("div", "war-sides");
-      const sw = el("span", "sw");
-      sw.style.background = nation.color;
-      name.append(sw, document.createTextNode(nation.name));
-      row.append(name, el("div", "war-meta", `${cellsOf(nation)} provinces · ${rulerName(nation.ruler, nation.race)} of ${nation.ruler.dynasty}`));
-      row.addEventListener("click", () => give({ kind: "play", nation: nation.id }, chooseNote));
-      nationList.append(row);
-    }
-    if (realms.length > PLAY_LIST_MAX) nationList.append(el("div", "room-note", `${realms.length - PLAY_LIST_MAX} smaller realms not shown.`));
+  }
+
+  /** Your realm has fallen: carry on as a realm of your people, or else of your race. */
+  function drawHeirs(state: WorldState, me: Nation): void {
+    choose.querySelector("h4")!.textContent = "Carry on";
+    raceButtons.hidden = true;
+    const heirs = heirsOf(state);
+    const people = state.nations.get(state.player!.culture)?.name ?? me.name;
+    chooseHint.textContent =
+      heirs.by === "people" ? `Your people, the folk of ${people}, still rule here. Choose a realm to carry on as; your policies come with you.`
+      : heirs.by === "race" ? `Your people, the folk of ${people}, rule nowhere now, but these realms of ${traits(me.race).plural} stand. Choose one to carry on as.`
+      : `No realm of your people or of the ${traits(me.race).plural} stands. Stop playing to watch the rest of history.`;
+    listRealms(state, heirs.nations, "Carry on as");
   }
 
   function drawRealm(state: WorldState, me: Nation): void {
@@ -301,7 +330,7 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
     head.append(title, stop);
 
     fallen.hidden = me.alive;
-    fallen.textContent = me.alive ? "" : `${me.name} fell in year ${me.fell ?? state.year}. Choose another realm below, or stop playing.`;
+    fallen.textContent = me.alive ? "" : `${me.name} fell in year ${me.fell ?? state.year}.`;
     ruler.hidden = !me.alive;
     stats.hidden = !me.alive;
     warsPart.hidden = !me.alive;
@@ -382,8 +411,8 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
       if (why !== null) reasons.push(`${GOAL_NAMES[goal]}: ${why}`);
     });
     // The same reason for every goal is said once.
-    const unique = refusals && new Set(WAR_GOALS.map((g) => refusals[g])).size === 1 && refusals.raid !== null;
-    goalWhy.textContent = unique ? `Not now: ${refusals.raid}.` : reasons.join(" · ");
+    const unique = !refusals || (new Set(WAR_GOALS.map((g) => refusals[g])).size === 1 && refusals.raid !== null);
+    goalWhy.textContent = unique ? `Not now: ${refusals?.raid ?? "no neighbor to fight"}.` : reasons.join(" · ");
   }
 
   function drawPropose(state: WorldState): void {
@@ -446,7 +475,11 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
       if (me.alive) drawOrders(state, me);
       drawPolicies(state.player!.policies);
     }
-    if (!me?.alive) drawChooser(state);
+    if (!me) drawChooser(state);
+    else if (!me.alive) drawHeirs(state, me);
+    // Choosing who to carry on as comes first, right under the news of the fall.
+    if (me && !me.alive) fallen.after(choose);
+    else if (choose.parentElement !== box || box.lastElementChild !== choose) box.append(choose);
   }
 
   function pickTarget(id: number): void {
@@ -470,6 +503,15 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
     box.scrollTop = 0;
   }
 
+  function showSummary(state: WorldState): void {
+    const close = el("button", "", "Close");
+    close.addEventListener("click", () => (news.hidden = true));
+    newsHead.replaceChildren(el("span", "", `The end of history, year ${state.year}`), close);
+    newsList.replaceChildren(...summaryLines(state).map((line) => el("li", "", line)));
+    news.hidden = false;
+    box.scrollTop = 0;
+  }
+
   update(hooks.state());
-  return { update, pickTarget, wants: (kind) => !off.has(kind), showDispatches };
+  return { update, pickTarget, wants: (kind) => !off.has(kind), showDispatches, showSummary };
 }
