@@ -328,11 +328,12 @@ The chance is capped at `WAR_MAX_PROB`. Only a side whose **estimate** is above 
 
 **Allies join.** Right after a declaration, each of the defender's helpers joins with chance `ALLY_DEFEND_PROB`, and each of the attacker's with `ALLY_ATTACK_PROB`. A helper is an ally that borders the enemy or the ally it's helping, isn't allied with the enemy too, isn't already at war or in a truce with it, and isn't at its own war limit. Each joining ally gets its own `War` with the enemy (its own army and score), with `joined` set to the main war's id.
 
-**Fighting.** Armies do this now, in seasons: march, battle, siege (§4.13). `DEFENDER_BONUS` helps the army that stood its ground. Cells don't change owner during a war; they're **occupied**.
+**Fighting.** Armies do this now, in seasons: march, battle, siege (§4.13). `DEFENDER_BONUS` helps the army that stood its ground. Every army has a **general** whose skill and victories multiply its power (M18, [`systems/realwar.md`](systems/realwar.md)). Cells don't change owner during a war; they're **occupied**.
 
 **Ending.** Peace when any of these is true:
 - the attacker occupies every goal cell (it wins, whatever the score)
 - `|score| ≥ PEACE_SCORE`
+- the losing side **sues for peace** and the winner accepts (M18, [`systems/realwar.md`](systems/realwar.md)): only a side behind by `WIN_SCORE` or more, after the war's first year; the winner takes only the goal cells it holds
 - either side's war weariness ≥ `WEARINESS_PEACE` (a nation only defending, attacking no one, gains weariness `DEFEND_WEARINESS` times as fast, from the yearly gain and from losses)
 - the war has lasted `MAX_WAR_YEARS`
 

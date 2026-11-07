@@ -178,6 +178,19 @@ export function battleEvent(year: number, place: string, winner: Nation, loser: 
   return { year, type: "battle", actors: [winner.id, loser.id], text: `Year ${year}: ${place}, ${winner.name} ${verb} the host of ${loser.name} (${menText(lost)} fell).` };
 }
 
+/** A famous general's renown or death, `place` being where the battle was ("at the Battle of Arvenna"). */
+export function generalEvent(year: number, place: string, name: string, nation: Nation, news: "renown" | "fell"): SimEvent {
+  const where = place.charAt(0).toLowerCase() + place.slice(1);
+  const text = news === "renown" ? `Year ${year}: General ${name} of ${nation.name} wins renown ${where}.` : `Year ${year}: The famed General ${name} of ${nation.name} falls ${where}.`;
+  return { year, type: "general", actors: [nation.id], text };
+}
+
+/** The losing side sued for peace (M18) and the winner agreed. */
+export function suedEvent(year: number, loser: Nation, winner: Nation, cells: number): SimEvent {
+  const terms = cells === 0 ? `and pays ${winner.name} to end the war` : `and cedes ${cells} province${cells === 1 ? "" : "s"} to ${winner.name}`;
+  return { year, type: "peace", actors: [winner.id, loser.id], text: `Year ${year}: ${loser.name} sues for peace ${terms}.` };
+}
+
 export function raidEvent(year: number, winner: Nation, loser: Nation): SimEvent {
   return { year, type: "peace", actors: [winner.id, loser.id], text: `Year ${year}: ${winner.name} plunders ${loser.name} and goes home laden with spoils.` };
 }

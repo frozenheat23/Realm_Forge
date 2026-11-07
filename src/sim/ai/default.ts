@@ -108,6 +108,18 @@ export const AI: Controller = {
     return true; // a won war is ended at once
   },
 
+  suePeace(_view, me, _war, rng) {
+    // The wearier the realm, the readier to cut its losses.
+    return rng.chance(SIM.SUE_PROB * (1 + me.warWeariness));
+  },
+
+  acceptTerms(view, me, war, rng) {
+    // Never while holding the loser's capital: the whole realm is about to fall.
+    const loser = view.nations.get(war.attacker === me.id ? war.defender : war.attacker)!;
+    if (view.state.occupier[loser.capital] === me.id) return false;
+    return rng.chance(SIM.ACCEPT_PROB + me.warWeariness);
+  },
+
   mobilize(_view, me, wars) {
     // The same share of the reserve for each new war.
     const size = (me.reserve * SIM.MOBILIZE_SHARE) / Math.max(1, wars.length);

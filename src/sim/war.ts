@@ -1,12 +1,12 @@
 // Steps 5 and 6b (SPEC §4.5): neighbors go to war (allies may join), and wars end in peace and a truce.
-import type { Rng } from "../core/rng";
+import { createRng, type Rng } from "../core/rng";
 import type { CellId, Nation, NationId, ResourceKind, SimEvent, War, WarGoal, WarOutcome, WorldState } from "../core/types";
 import { RESOURCES } from "../gen/params";
 import { traits } from "../gen/races";
 import { carryOut, done, refuse, type Controllers, type WarContext } from "./ai/controller";
 import type { CommandOf, CommandResult } from "./commands";
 import { allied, alliesOf, opinion } from "./diplomacy";
-import { conquestEvent, joinAttackEvent, joinDefenseEvent, peaceEvent, raidEvent, warEvent } from "./events";
+import { conquestEvent, joinAttackEvent, joinDefenseEvent, peaceEvent, raidEvent, suedEvent, warEvent } from "./events";
 import { frontCells, neighborPairs, pairKey } from "./helpers";
 import { fightingPower } from "./manpower";
 import { SIM } from "./params";
@@ -269,16 +269,21 @@ export function concludeWar(state: WorldState, war: War, winner: Nation | null, 
   const attacker = state.nations.get(war.attacker)!;
   const defender = state.nations.get(war.defender)!;
   const loser = winner === attacker ? defender : attacker;
+  const sued = how === "terms";
   const raided = winner === attacker && war.goal === "raid";
   if (raided) payTribute(attacker, defender);
   // An attacker beaten off pays for it, as a raider's victim would.
   if (winner === defender) payTribute(defender, attacker);
-  const taken = winner && !raided ? takeLand(state, war, winner, loser) : [];
+  const taken = winner && !raided ? takeLand(state, war, winner, loser, sued) : [];
+  // A loser who sued and gave up no land pays in other ways.
+  if (sued && winner === attacker && !raided && taken.length === 0) payTribute(attacker, defender);
   state.truces.push({ a: attacker.id, b: defender.id, until: state.year + SIM.TRUCE_YEARS });
   if (quietly) return null; // allies go home quietly when the war they joined is over
 
   let event: SimEvent;
-  if (raided) {
+  if (sued) {
+    event = suedEvent(state.year, loser, winner!, taken.length);
+  } else if (raided) {
     event = raidEvent(state.year, attacker, defender);
   } else {
     // Name a deposit the winner took, if any.
@@ -306,8 +311,57 @@ function holdingOut(state: WorldState, war: War, counts: Map<number, number>): b
   return occupiedBy(counts, war.attacker, war.defender) === 0;
 }
 
+/** The side losing `war` by SIM.WIN_SCORE or more, with the side winning it; null if neither is that far behind. */
+function losingSide(state: WorldState, war: War): { loser: Nation; winner: Nation } | null {
+  if (Math.abs(war.score) < SIM.WIN_SCORE) return null;
+  const [winner, loser] = war.score > 0 ? [war.attacker, war.defender] : [war.defender, war.attacker];
+  return { loser: state.nations.get(loser)!, winner: state.nations.get(winner)! };
+}
+
+/** Why `nation` can't sue for peace in `war` (the main war, not an ally's), or null if it can. */
+function sueRefusal(state: WorldState, war: War | undefined, nation: NationId): string | null {
+  if (!war || war.joined !== undefined) return "there's no such war to end";
+  const sides = losingSide(state, war);
+  if (!sides || sides.loser.id !== nation) return "only a side clearly losing can sue for peace";
+  if (!sides.loser.alive || !sides.winner.alive) return "a side has already fallen";
+  return null;
+}
+
+/** The "suePeace" command: the losing side's offer, which the winner has accepted. The war ends on its terms. */
+export function applySuePeace(state: WorldState, cmd: CommandOf<"suePeace">): CommandResult {
+  const war = state.wars.find((w) => w.id === cmd.war);
+  const why = sueRefusal(state, war, cmd.nation);
+  if (why !== null || !war) return refuse(why ?? "there's no such war to end");
+  const event = concludeWar(state, war, losingSide(state, war)!.winner, "terms", false)!;
+  // Allies' wars end with it, as when any war ends.
+  for (const joined of state.wars.filter((w) => w.joined === war.id)) concludeWar(state, joined, clearWinner(joined, state.nations.get(joined.attacker)!, state.nations.get(joined.defender)!), "terms", true);
+  const over = new Set([war.id, ...state.wars.filter((w) => w.joined === war.id).map((w) => w.id)]);
+  state.wars = state.wars.filter((w) => !over.has(w.id));
+  return done([event]);
+}
+
+/**
+ * A war still going may end on terms: the losing side's controller may sue, and the
+ * winner's may accept. Only main wars (allies follow theirs) after their first year.
+ * Returns the side that won on terms, or null if the war goes on.
+ */
+function sueForPeace(state: WorldState, war: War, controllers: Controllers, rng: Rng): Nation | null {
+  const sides = losingSide(state, war);
+  if (!sides || war.joined !== undefined || war.startYear >= state.year) return null;
+  const loserController = controllers(sides.loser.id);
+  if (!loserController.suePeace(state, sides.loser, war, rng.fork(`sue-${war.id}`))) return null;
+  if (!controllers(sides.winner.id).acceptTerms(state, sides.winner, war, rng.fork(`terms-${war.id}`))) return null;
+  const why = sueRefusal(state, war, sides.loser.id);
+  if (why !== null) {
+    loserController.refused?.({ kind: "suePeace", nation: sides.loser.id, war: war.id }, why);
+    return null;
+  }
+  return sides.winner;
+}
+
 /** Step 6b: war scores are brought up to date, and wars that are over end in peace. */
-export function endWars(state: WorldState, controllers: Controllers): SimEvent[] {
+/** `rng` rolls only the peace offers; tests may leave it out. */
+export function endWars(state: WorldState, controllers: Controllers, rng: Rng = createRng("peace")): SimEvent[] {
   const events: SimEvent[] = [];
   const ongoing: War[] = [];
   // Wars still going after this year. A joined war always comes after its main war in the list.
@@ -331,6 +385,12 @@ export function endWars(state: WorldState, controllers: Controllers): SimEvent[]
 
     const reason = peaceReason(state, war, attacker, defender);
     if (!mainOver && !endsNow(state, war, attacker, defender, reason, controllers)) {
+      // Going on, unless the losing side sues for peace and is heard (its allies' wars end with it).
+      const onTerms = sueForPeace(state, war, controllers, rng);
+      if (onTerms) {
+        events.push(concludeWar(state, war, onTerms, "terms", false)!);
+        continue;
+      }
       ongoing.push(war);
       ongoingIds.add(war.id);
       continue;

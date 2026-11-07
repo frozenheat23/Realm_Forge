@@ -222,14 +222,30 @@ export interface BattleReport {
   lost: number;
   /** Was the loser's army destroyed? */
   routed: boolean;
+  /** A famous general's news from this battle, for the log. */
+  general?: { name: string; nation: NationId; news: "renown" | "fell" };
 }
 
 /** Army.target when it has nowhere to go. */
 export const NO_TARGET = -1;
 
 /** One side's soldiers in one war, marching across the map (SPEC §4.13). */
+/** Who leads an army (M18 part 3, docs/systems/realwar.md). */
+export interface General {
+  name: string;
+  female: boolean;
+  /** × the army's power, rolled when appointed (between e^-GENERAL_SPREAD and e^+GENERAL_SPREAD). */
+  skill: number;
+  /** Battles won. Each sharpens them a little; GENERAL_FAMOUS of them make them famous. */
+  wins: number;
+  /** Year appointed. They retire GENERAL_CAREER years later. */
+  since: number;
+}
+
 export interface Army {
   id: number;
+  /** Who leads it. Missing in saves from before generals: an ordinary leader. */
+  general?: General;
   owner: NationId;
   /** The war it was raised for. */
   war: number;
@@ -256,6 +272,8 @@ export interface Nation {
   founded: number;
   /** Set if born from a rebellion. */
   parent?: NationId;
+  /** Its best living general between wars, who leads its next army (M18). */
+  marshal?: General;
   /** The ruling race. Fixed for the nation's whole life. */
   race: RaceId;
   /** Culture of its rulers: the id of the realm they descend from (SPEC §4.14). */
@@ -335,7 +353,7 @@ export interface BattleRecord {
 
 /** How a war ended. */
 export interface WarOutcome {
-  how: "goal" | "decisive" | "exhausted" | "too long" | "side fell" | "imposed";
+  how: "goal" | "decisive" | "exhausted" | "too long" | "side fell" | "imposed" | "terms";
   /** Missing for a white peace, or when a side fell. */
   winner?: NationId;
   /** The attacker won a raid: spoils, no land. */
@@ -383,7 +401,7 @@ export interface Alliance {
 
 export interface SimEvent {
   year: number;
-  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved" | "alliance" | "alliance_ended" | "city_founded" | "battle" | "faith" | "ruler";
+  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved" | "alliance" | "alliance_ended" | "city_founded" | "battle" | "faith" | "ruler" | "general";
   actors: NationId[];
   text: string;
 }

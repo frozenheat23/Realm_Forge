@@ -127,6 +127,10 @@ export const SIM = {
   /** × WEARINESS_GAIN for a nation that is only defending: people tire slower fighting for their homes. */
   DEFEND_WEARINESS: 0.25,
   MAX_WAR_YEARS: 25,
+  /** Peace offers (M18 part 3): yearly chance a side losing by WIN_SCORE or more sues for peace (× 1 + its weariness). */
+  SUE_PROB: 0.05,
+  /** Chance the winning side accepts terms, + its war weariness. */
+  ACCEPT_PROB: 0.2,
   TRUCE_YEARS: 10,
   /** War chance × (1 + this × value of the best enemy cell on the border). */
   WAR_VALUE_K: 0.5,
@@ -184,6 +188,18 @@ export const SIM = {
   /** Extra siege time per settlement level. */
   SIEGE_SETTLEMENT_K: 1.5,
   CAPITAL_SIEGE_MULT: 2,
+  /** Generals (M18 part 3): a new general's skill is between e^-this and e^+this. */
+  GENERAL_SPREAD: 0.3,
+  /** Each battle a general wins adds this share to their skill, up to GENERAL_MAX_WINS wins. */
+  GENERAL_WIN_BONUS: 0.05,
+  GENERAL_MAX_WINS: 10,
+  /** Wins that make a general famous (their deeds reach the log). */
+  GENERAL_FAMOUS: 30,
+  /** Chance the losing army's general dies in a battle, and when the army is destroyed. */
+  GENERAL_DEATH: 0.05,
+  GENERAL_DEATH_ROUT: 0.3,
+  /** Years a general serves before retiring. */
+  GENERAL_CAREER: 30,
   /** Score for winning a battle, and extra for destroying the enemy army. */
   BATTLE_SCORE: 4,
   ROUT_SCORE: 6,

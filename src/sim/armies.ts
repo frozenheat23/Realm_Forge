@@ -12,6 +12,7 @@ import { armiesOf, loseSoldiers } from "./manpower";
 import { findPath, homeCell, marchRights } from "./marching";
 import { SIM } from "./params";
 import { grainBonuses } from "./resources";
+import { appointGeneral, retireGeneral } from "./generals";
 import { besiege, hostileNear, liberate, occupiedLand } from "./siege";
 
 // Moved to marching.ts; tests still import it from here.
@@ -51,7 +52,8 @@ function musterCell(state: WorldState, nation: Nation, enemy: Nation): CellId {
 
 export function raiseArmy(state: WorldState, nation: Nation, war: War, enemy: Nation, size: number): void {
   const cell = musterCell(state, nation, enemy);
-  state.armies.push({ id: state.nextArmyId++, owner: nation.id, war: war.id, cell, size, morale: 1, target: NO_TARGET, path: [], trail: [cell] });
+  const id = state.nextArmyId++;
+  state.armies.push({ id, owner: nation.id, war: war.id, cell, size, morale: 1, target: NO_TARGET, path: [], trail: [cell], general: appointGeneral(state, nation, id) });
   nation.reserve -= size;
 }
 
@@ -250,6 +252,7 @@ export function disbandArmies(state: WorldState): void {
     const nation = state.nations.get(army.owner)!;
     if (nation.alive && wars.has(army.war) && army.size >= SIM.MIN_ARMY_SIZE) return true;
     if (nation.alive) nation.reserve += army.size;
+    retireGeneral(state, nation, army.general);
     return false;
   });
 }

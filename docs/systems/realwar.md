@@ -1,6 +1,6 @@
 # Real war (M18)
 
-> **Part 1 (misjudgment) and part 2 (underdog defense) built** 2026-11-07, designed with the user. Generals and choices inside a war come in a later part, measured with the Sandbox's odds (`docs/systems/sandbox.md`).
+> **Built** 2026-11-07, designed with the user, in three parts: misjudgment, underdog defense, and generals with peace offers. Measured with the Sandbox's odds (`docs/systems/sandbox.md`).
 
 **Why.** The Sandbox's first odds showed that wars are decided before they start: in 4 of 5 real wars every one of 20 futures ended the same way. Nations see each other's strength exactly, and only the stronger side ever considers war, so they only pick fights they will win. Real rulers act on poor intelligence, pride and temper, and lose wars they were sure of.
 
@@ -125,6 +125,49 @@ By true strength when the war began (4 tuning worlds, part 2):
 
 **Side effects:** wars fall by a third (about 103 → 70 a century; ~94 before part 1). Wars last longer now, and a nation fights at most `MAX_WARS_PER_NATION` at once, so fewer new ones start. Empire peaks are about 2 points lower. Rebellions and the race balance are within noise: both versions put one race above ~46% in some world.
 
-## Next parts
+## Part 3: generals and peace offers
 
-- **Part 3: generals and choices in war.** Commanders, and choices such as suing for peace early or fighting on, so wars are less settled by who started them.
+The user picked these two from four ideas (fear coalitions and army stances were left out).
+
+**Generals** (`sim/generals.ts`). Every army is led by a named general (`Army.general`):
+- **Skill** is rolled when they're appointed, between e^-`GENERAL_SPREAD` and e^+`GENERAL_SPREAD` (×0.74 – ×1.35), and multiplies the army's power in battle (`armyPower`).
+- **Each victory** adds `GENERAL_WIN_BONUS` to their power, for up to `GENERAL_MAX_WINS` wins (+50% at most).
+- **A beaten general may die:** chance `GENERAL_DEATH`, or `GENERAL_DEATH_ROUT` when the army is destroyed. An army still in the field gets a new general at once.
+- **The marshal.** When an army goes home, a general with more wins than the realm's marshal (`Nation.marshal`) takes that place and leads its next army. Generals retire `GENERAL_CAREER` years after appointment.
+- **Fame.** At `GENERAL_FAMOUS` wins the log says *"General Arvel of Kethar wins renown at the Battle of Arvenna."*, and a famous general's death is logged too (new event type `general`, filter "Generals"). The War Room lists each war's generals.
+- **Dice.** A general rolls from a fork named after the army (and whom they replace), from the world's seed, not the year's dice. So in the Sandbox's futures the same army gets the same general; battles still differ.
+
+**Peace offers.** Each year after a war's first, a side losing by `WIN_SCORE` or more may **sue for peace** (controller choice `suePeace`; the AI's chance is `SUE_PROB` × (1 + its weariness)). The winning side may **accept** (`acceptTerms`; the AI's chance is `ACCEPT_PROB` + its weariness, and never while it holds the loser's capital). On terms, the winner takes only the goal cells it holds: no extra provinces and no whole realm. A loser who cedes no land pays tribute (`RAID_TRIBUTE`); an attacker who sues always does. The log reads *"Velmora sues for peace and cedes 2 provinces to Kethar."* The command is `suePeace` (`sim/war.ts`), applied after the winner agrees, as alliances are proposed and accepted. War outcomes gain `how: "terms"`.
+
+| Parameter | Value | What it does |
+|---|---|---|
+| `GENERAL_SPREAD` | 0.3 | Range of a new general's skill |
+| `GENERAL_WIN_BONUS` | 0.05 | Power per victory |
+| `GENERAL_MAX_WINS` | 10 | Victories that still count |
+| `GENERAL_FAMOUS` | 30 | Victories that make a general famous |
+| `GENERAL_DEATH` | 0.05 | Chance a beaten general dies |
+| `GENERAL_DEATH_ROUT` | 0.3 | … when their army is destroyed |
+| `GENERAL_CAREER` | 30 | Years before a general retires |
+| `SUE_PROB` | 0.05 | Yearly chance a badly losing side sues (× 1 + weariness) |
+| `ACCEPT_PROB` | 0.2 | Chance the winner accepts (+ weariness) |
+
+`Army.general` and `Nation.marshal` are optional, so saves stay v12 (armies in old saves have an ordinary leader).
+
+### As built: what part 3 changed
+
+Tuned on 4 seeds. At first, peace offers (sue 0.2, accept 0.3) ended 48% of wars and made wars small and frequent (84 → 98 a century), and 5 victories made ~600 generals famous per run, because armies fight many small battles. Checked against part 2 on the same 2 sets of 10 unseen seeds:
+
+| | Part 2 | Part 3 |
+|---|---|---|
+| Attacker wins, of wars with a winner | 80%, 80% | 80%, 80% |
+| Defender wins, of all wars | 14%, 14% | 15%, 15% |
+| White peace | 26%, 26% | 22%, 22% |
+| Wars per century | 69, 70 | 72, 76 |
+| Rebellions per century | 8.0, 8.6 | 9.0, 9.5 |
+| Average peak empire | 23%, 25% | 24%, 24% |
+| Biggest race in any world | 55%, 50% | 47%, 52% |
+| Tick (Node, one run alone) | 10.75 ms | 11.45 ms |
+
+18% of wars end on terms (79% of them in the attacker's favor, 2.5 provinces each), and ~17 generals a century become famous (3 of them fall in battle). The Sandbox's odds split more: of 4 real wars, 3 now end differently across 20 futures (8–1–11, 13–7, 5–15), and one still ends the same way in all 20.
+
+**Not changed:** attackers still win 80% of decided wars, above the 55–75% target. Both new systems are mostly choices and color: neither changes who picks fights. Ideas left for that: fear coalitions (neighbors joining the victim of a fast-growing aggressor) and army stances.

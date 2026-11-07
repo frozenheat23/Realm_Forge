@@ -8,7 +8,7 @@ import { applyMobilize, applyOrderArmy } from "./armies";
 import { applyBreakAlliance, applyFormAlliance } from "./diplomacy";
 import { applyAdoptFaith } from "./faith";
 import { applyCrushRevolt } from "./rebellion";
-import { applyDeclareWar, applyJoinWar } from "./war";
+import { applyDeclareWar, applyJoinWar, applySuePeace } from "./war";
 
 export type Command =
   | { kind: "declareWar"; nation: NationId; target: NationId; goal: WarGoal }
@@ -18,7 +18,9 @@ export type Command =
   | { kind: "mobilize"; nation: NationId; war: number; size: number }
   | { kind: "orderArmy"; army: number; target: CellId }
   | { kind: "crushRevolt"; nation: NationId; rebels: NationId }
-  | { kind: "adoptFaith"; nation: NationId; faith: FaithId };
+  | { kind: "adoptFaith"; nation: NationId; faith: FaithId }
+  // The losing side's offer, already accepted by the winner (as an alliance is proposed and accepted).
+  | { kind: "suePeace"; nation: NationId; war: number };
 
 /** The command of one kind, e.g. `CommandOf<"mobilize">`. */
 export type CommandOf<K extends Command["kind"]> = Extract<Command, { kind: K }>;
@@ -45,5 +47,7 @@ export function applyCommand(state: WorldState, command: Command): CommandResult
       return applyCrushRevolt(state, command);
     case "adoptFaith":
       return applyAdoptFaith(state, command);
+    case "suePeace":
+      return applySuePeace(state, command);
   }
 }

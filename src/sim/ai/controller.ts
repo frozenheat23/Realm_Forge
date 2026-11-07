@@ -55,6 +55,10 @@ export interface Controller {
   keepAlliance(view: View, me: Nation, other: Nation, idleYears: number, rng: Rng): boolean;
   /** End `war` now? Asked of the side that's winning. */
   acceptPeace(view: View, me: Nation, war: War, reason: PeaceReason): boolean;
+  /** Sue for peace in `war`? Asked each year of a side losing by SIM.WIN_SCORE or more (M18). */
+  suePeace(view: View, me: Nation, war: War, rng: Rng): boolean;
+  /** Accept the losing side's offer: end `war` now, taking only the goal land it holds? */
+  acceptTerms(view: View, me: Nation, war: War, rng: Rng): boolean;
   /** Soldiers to raise for each of `wars` (wars this nation has no army in yet). */
   mobilize(view: View, me: Nation, wars: War[]): number[];
   /** Where `army` should go this season: a cell it can reach, or NO_TARGET to stand still. */

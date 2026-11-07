@@ -39,11 +39,12 @@ async function fingerprint(seed: string, years: number, width?: number, height?:
 // 2026-11-06: civil-war pretenders now rise from the ruling people, and again when
 // alliances began to fade and break under new rulers (history changed both times). Re-recorded
 // 2026-11-07: nations go to war on what they believe, not on exact strength (M18 misjudgment),
-// and again when defenders who hold out began to win (M18 underdog defense).
+// and again when defenders who hold out began to win (M18 underdog defense), and for
+// generals and peace offers (M18 part 3).
 const GOLDEN = {
-  full: "b5415681",
-  smallA: "61899f50",
-  smallB: "f3f714bd",
+  full: "17f40311",
+  smallA: "31ff0a90",
+  smallB: "3ace8ec4",
 };
 
 describe("golden history", () => {

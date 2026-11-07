@@ -47,7 +47,7 @@ export function tick(state: WorldState, rng: Rng, controllers: Controllers = eve
   musterArmies(state, controllers); //                                 5b. Armies raised and reinforced
   campaign(state, year.fork("campaign"), controllers); //              6. Campaign: armies march, fight and besiege
   events.push(...battleEvents(state));
-  events.push(...endWars(state, controllers)); //                      6b. Peace
+  events.push(...endWars(state, controllers, year.fork("peace"))); //  6b. Peace
   events.push(...rebellions(state, year.fork("rebellion"), controllers)); // 7. Rebellion
   events.push(...succession(state, year.fork("succession"), controllers)); // 7b. Succession
   events.push(...collapses(state)); //                    8. Collapse

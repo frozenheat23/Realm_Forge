@@ -3,6 +3,7 @@
 import { Faith, RulerType, type Army, type Nation, type WorldState } from "../core/types";
 import { clamp } from "../core/math";
 import { blessing } from "../gen/faiths";
+import { generalBonus } from "./generals";
 import { onlyDefending } from "./helpers";
 import { SIM } from "./params";
 import { greatBonus } from "./rulers";
@@ -48,9 +49,9 @@ export function fightingPower(state: WorldState, nation: Nation, share = 1): num
   return soldiers(state, nation) * share * fightingSpirit(nation);
 }
 
-/** One army's strength in battle, before the ground helps: morale counts, and so does how shaky its realm is. */
+/** One army's strength in battle, before the ground helps: morale counts, its general, and how shaky its realm is. */
 export function armyPower(state: WorldState, army: Army): number {
-  return army.size * army.morale * fightingSpirit(state.nations.get(army.owner)!);
+  return army.size * army.morale * generalBonus(army.general) * fightingSpirit(state.nations.get(army.owner)!);
 }
 
 /**

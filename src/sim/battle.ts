@@ -1,10 +1,11 @@
 // Battles (SPEC §4.13): when hostile armies meet, one weighted roll decides it.
 import type { Rng } from "../core/rng";
-import { Faith, Resource, type Army, type CellId, type SimEvent, type WorldState } from "../core/types";
+import { Faith, Resource, type Army, type BattleReport, type CellId, type SimEvent, type WorldState } from "../core/types";
 import { blessing } from "../gen/faiths";
 import { HILL_H } from "../gen/params";
 import { traits } from "../gen/races";
-import { battleEvent } from "./events";
+import { battleEvent, generalEvent } from "./events";
+import { afterBattle } from "./generals";
 import { pairKey } from "./helpers";
 import { armyPower, battleLosses, loseSoldiers } from "./manpower";
 import { SIM } from "./params";
@@ -93,7 +94,8 @@ function fight(state: WorldState, a: Army, b: Army, moved: Set<number>, rng: Rng
     const points = SIM.BATTLE_SCORE + (routed ? SIM.ROUT_SCORE : 0);
     war.battleScore += war.attacker === winner.owner ? points : -points;
   }
-  const report = { cell: site, winner: winner.owner, loser: loser.owner, lost: winnerDead + loserDead, routed };
+  const report: BattleReport = { cell: site, winner: winner.owner, loser: loser.owner, lost: winnerDead + loserDead, routed };
+  afterBattle(state, winner, loser, routed, report, rng);
   state.battles.push(report);
   if (war) recordBattle(state, war.id, report, routed ? battlePlace(state, site) : "");
 }
@@ -138,9 +140,13 @@ function battlePlace(state: WorldState, cell: CellId): string {
   return owner ? `in the ${ground} of ${owner.name}` : `in the empty ${ground}`;
 }
 
-/** This year's battles, for the event log. */
+/** This year's battles, for the event log, and any famous general's news from them. */
 export function battleEvents(state: WorldState): SimEvent[] {
-  return state.battles.map((b) =>
-    battleEvent(state.year, battlePlace(state, b.cell), state.nations.get(b.winner)!, state.nations.get(b.loser)!, b.lost, b.routed),
-  );
+  const events: SimEvent[] = [];
+  for (const b of state.battles) {
+    const place = battlePlace(state, b.cell);
+    events.push(battleEvent(state.year, place, state.nations.get(b.winner)!, state.nations.get(b.loser)!, b.lost, b.routed));
+    if (b.general) events.push(generalEvent(state.year, place, b.general.name, state.nations.get(b.general.nation)!, b.general.news));
+  }
+  return events;
 }

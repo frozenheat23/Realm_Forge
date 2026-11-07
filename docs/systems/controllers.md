@@ -48,6 +48,8 @@ interface Controller {
   acceptAlliance(view: View, me: Nation, other: Nation): boolean;
   keepAlliance(view: View, me: Nation, other: Nation, idleYears: number, rng: Rng): boolean; // idleYears = since they last fought a shared enemy
   acceptPeace(view: View, me: Nation, war: War, reason: "goal" | "decisive"): boolean;
+  suePeace(view: View, me: Nation, war: War, rng: Rng): boolean;     // M18: losing side offers terms
+  acceptTerms(view: View, me: Nation, war: War, rng: Rng): boolean;  // M18: winning side takes them
   mobilize(view: View, me: Nation, wars: War[]): number[];                     // soldiers for each war without an army
   orderArmy(view: View, army: Army, orders: ArmyOrders): CellId;             // NO_TARGET = stand still; orders.reach(cell) checks a cell can be reached
   refused?(command: Command, reason: string): void;                          // told when the rules turn a command down
@@ -130,7 +132,7 @@ Each step ends with the full test suite green.
   - `mobilize` returns the number of soldiers for each war, not a share, so the AI can keep raising the same share of the year's starting reserve for each war.
   - An alliance is `proposeAlliance` (which may roll) plus `acceptAlliance` (which doesn't), so asking both sides costs no extra dice.
   - An optional `refused(command, reason)` tells a controller when the rules turn it down. Later this is how a player hears "you can't do that".
-- **Peace has no command.** `acceptPeace` is a yes/no answered inside the peace step (6b), because peace terms need that year's final score. A sandbox "force peace" comes in M17.
+- **Peace has no command.** `acceptPeace` is a yes/no answered inside the peace step (6b), because peace terms need that year's final score. A sandbox "force peace" comes in M17. In M18 a losing side can also sue for peace: `suePeace` and `acceptTerms` are asked in the same step, and an accepted offer becomes the `suePeace` command (like an alliance, proposed then accepted).
 - **Controllers are a required parameter of the rule steps.** `tick(state, rng, controllers = everyoneAI)` defaults to the AI, but `declareWars`, `endWars`, `musterArmies`, `campaign`, `updateAlliances`, `convertRealms`, `rebellions` and `succession` all take the controllers explicitly. So the rule files never import the AI, and the AI can read any rule file without a circular import. Tests pass `everyoneAI`.
 - **Files moved.** The read-only map questions armies need (`findPath`, `marchRights`, `homeCell`, `nearestHostile`, `goalCell`…) moved from `armies.ts` to a new `marching.ts`; `frontCells` moved to `helpers.ts`; `warChance` and the goal choice (`chooseGoal`) moved to the AI. Old import paths still work where tests used them.
 - **Dice (step 5).** Each choice now rolls from its own stream: `war-<me>-<them>`, `join-<ally>-<friend>-<enemy>`, `alliance-<a>-<b>`, `faith-<nation>`. Crushing a revolt already had its own stream per uprising. **Rule dice still share streams**: battles (one stream per season), expansion, and the spread of culture and faith. A choice that changes the map can therefore still shift rolls far away within a few years. Isolate those too in M17 if the sandbox's odds need it.

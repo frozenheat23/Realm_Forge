@@ -1,6 +1,6 @@
 // Rulers (docs/systems/rulers.md): naming them, how long they reign, and what they're called.
 import type { Rng } from "../core/rng";
-import type { RaceId, Ruler } from "../core/types";
+import type { General, RaceId, Ruler } from "../core/types";
 import { RULER_NAMES } from "./nameCorpus";
 import { buildChain, generateName, type NameChain } from "./names";
 import { REIGN_SPREAD, RULER_TITLES } from "./params";
@@ -34,6 +34,15 @@ export function makeRuler(rng: Rng, race: RaceId, year: number, dynasty: string)
   // after the ruler: a fork depends only on its name, so one shared name would give everyone the same temper.
   const boldness = Math.exp(rng.fork(`temper-${dynasty}-${name}-${year}`).range(-t.temper, t.temper));
   return { name, dynasty, female, crowned: year, ends: year + Math.max(1, Math.round(reign)), boldness };
+}
+
+/** A new general of `race`, appointed in `year`, with skill between e^-spread and e^+spread. */
+export function makeGeneral(rng: Rng, race: RaceId, year: number, spread: number): General {
+  const t = traits(race);
+  const female = rng.chance(t.femaleChance);
+  const names = RULER_NAMES[t.family];
+  const name = personalName(rng, female ? names.female : names.male);
+  return { name, female, skill: Math.exp(rng.range(-spread, spread)), wins: 0, since: year };
 }
 
 /** Starts a ruler partway through their reign, so a world's first rulers don't all die together. */

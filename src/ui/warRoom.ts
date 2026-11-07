@@ -33,6 +33,7 @@ const ENDINGS: Record<NonNullable<WarRecord["outcome"]>["how"], string> = {
   "too long": "it dragged on until both gave up",
   "side fell": "one side fell",
   imposed: "the gods imposed peace",
+  terms: "the losing side sued for peace",
 };
 
 const nameOf = (state: WorldState, id: NationId) => state.nations.get(id)?.name ?? "?";
@@ -91,6 +92,19 @@ function inTheField(state: WorldState, record: WarRecord): { attack: number; def
   return field;
 }
 
+/** "General Arvel of Kethar (12 victories), …" for each army still fighting this war. */
+function generalsText(state: WorldState, record: WarRecord): string {
+  const wars = new Set(state.wars.filter((w) => w.id === record.id || w.joined === record.id).map((w) => w.id));
+  return state.armies
+    .filter((a) => wars.has(a.war) && a.general)
+    .map((a) => {
+      const g = a.general!;
+      const wins = g.wins === 0 ? "" : ` (${g.wins} victor${g.wins === 1 ? "y" : "ies"})`;
+      return `${g.name} of ${nameOf(state, a.owner)}${wins}`;
+    })
+    .join(", ");
+}
+
 /** The score line of a war, drawn small. */
 function sparkline(scores: number[]): SVGSVGElement {
   const ns = "http://www.w3.org/2000/svg";
@@ -143,6 +157,8 @@ export function reportOf(record: WarRecord, state: WorldState): HTMLElement {
   const won = { attack: 0, defend: 0 };
   for (const b of record.battles) won[sideOf(record, b.winner)]++;
   fact("Battles", record.battles.length === 0 ? "none" : `${record.battles.length}: ${won.attack} won by ${nameOf(state, record.attacker)}'s side, ${won.defend} by ${nameOf(state, record.defender)}'s`);
+  const generals = record.end === undefined ? generalsText(state, record) : "";
+  if (generals) fact("Generals", generals);
   fact("Fallen", `${menText(record.fallen.attack)} on ${nameOf(state, record.attacker)}'s side, ${menText(record.fallen.defend)} on ${nameOf(state, record.defender)}'s`);
   box.append(facts);
 

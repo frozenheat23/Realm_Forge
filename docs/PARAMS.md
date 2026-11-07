@@ -195,6 +195,8 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 | `WIN_SCORE` | 30 | 10–100 | Score a war needs to have a winner when it ends some other way; below this it's a white peace | More white peace | Small wins still take land |
 | `WEARINESS_PEACE` | 0.9 | 0.6–1.0 | Weariness that forces peace | Wars fought to exhaustion | Quick white peace |
 | `HOLD_SCORE` | 10 | 0–20 | Score to the defender for each year (after the first) the attacker holds none of what it came for (M18) | Failed invasions become defeats sooner | Holding out counts for nothing (0, before M18) |
+| `SUE_PROB` | 0.05 | 0–0.3 | Yearly chance a side losing by `WIN_SCORE`+ sues for peace (× 1 + weariness) (M18) | Many short wars ending on small terms | Wars only end by force (0) |
+| `ACCEPT_PROB` | 0.2 | 0–1 | Chance the winner accepts terms (+ its weariness) (M18) | Winners settle for less | Winners fight on for everything |
 | `DEFEND_WEARINESS` | 0.25 | 0.1–1 | × weariness gained (yearly and from losses) by a nation only defending (M18) | Defenders give in as fast as attackers (1) | Defenders hold on until the attacker tires |
 | `MAX_WAR_YEARS` | 25 | 10–50 | Hard cap on war length | Generational wars | Short conflicts |
 | `TRUCE_YEARS` | 10 | 0–30 | Years before the same pair can fight again | Calmer rivalries | Constant re-matches |
@@ -397,6 +399,11 @@ Measured after step 5, the finished milestone (same 5 seeds, vs step 4): ~113 wa
 |---|---|---|---|---|---|
 | `LEVY_SHARE` | 0.08 | 0.03–0.2 | Most soldiers a nation can have, as a share of `levyPop` (people × martial × control) | Huge armies; wars decided by numbers | Small armies; terrain and forts matter more |
 | `LEVY_REFILL` | 0.25 | 0.03–0.3 | Share of the gap to the cap refilled per year (× 0.5 + stability) | Losers bounce back fast | A lost army means decades of weakness |
+| `GENERAL_SPREAD` | 0.3 | 0–0.7 | A new general's skill is between e^-this and e^+this (M18) | Battles turn on who leads | Every general alike (0) |
+| `GENERAL_WIN_BONUS` | 0.05 | 0–0.2 | × power per victory, up to `GENERAL_MAX_WINS` (10) | Veteran generals dominate | Experience doesn't count |
+| `GENERAL_FAMOUS` | 30 | 5–100 | Victories that make a general famous (log only) | Few famous generals | The log fills with generals |
+| `GENERAL_DEATH` / `GENERAL_DEATH_ROUT` | 0.05 / 0.3 | 0–1 | Chance a beaten general dies, and when the army is destroyed | Generals come and go | Generals last whole careers |
+| `GENERAL_CAREER` | 30 | 10–60 | Years before a general retires | Marshals lead for generations | Short careers |
 | `RALLY_REFILL` | 2 | 1–4 | × `LEVY_REFILL` while a nation is defending in a war (M18) | Invaded realms raise new armies fast | No rally (1, before M18) |
 | `WEARINESS_LOSS_K` | 0.25 | 0–2 | War weariness gained per share of the cap lost | Bloody wars end quickly | Losses don't push toward peace (0) |
 

@@ -93,13 +93,15 @@ function takeWholeNation(state: WorldState, winner: Nation, loser: Nation): Cell
 /**
  * Peace terms. Whoever holds the loser's capital takes the whole nation. Otherwise: the
  * goal cells the winner holds, then up to SIM.PEACE_EXTRA_CELLS more that touch its land.
+ * `negotiated` terms, which the loser sued for (M18), give only the goal cells held.
  * Returns all it took.
  */
-export function takeLand(state: WorldState, war: War, winner: Nation, loser: Nation): CellId[] {
+export function takeLand(state: WorldState, war: War, winner: Nation, loser: Nation, negotiated = false): CellId[] {
   const { owner, occupier } = state.state;
-  if (occupier[loser.capital] === winner.id) return takeWholeNation(state, winner, loser);
+  if (occupier[loser.capital] === winner.id && !negotiated) return takeWholeNation(state, winner, loser);
   const taken = war.attacker === winner.id ? goalsStanding(state, war).filter((c) => occupier[c] === winner.id) : [];
   for (const c of taken) takeCell(state, c, winner);
+  if (negotiated) return taken;
 
   const grain = grainBonuses(state);
   const value = (c: CellId) => cellValue(state, c, winner.race, effectiveCapacity(state, c, grain));
