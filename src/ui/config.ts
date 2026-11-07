@@ -33,3 +33,5 @@ export const FOLLOW_ZOOM_MAX = 3;
 export const PLAYER_MOBILIZE_CHOICES = [0.25, 0.5, 0.8, 1];
 /** Most nations listed when choosing one to play (the largest first). */
 export const PLAY_LIST_MAX = 40;
+/** A press that moves further than this (screen pixels) is a drag, not a click on the map. */
+export const CLICK_SLOP = 4;

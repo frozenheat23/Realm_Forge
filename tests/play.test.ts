@@ -6,6 +6,7 @@ import { generateWorld } from "../src/gen";
 import { controllersOf, PLAYER } from "../src/sim/ai/player";
 import { pairKey } from "../src/sim/helpers";
 import { SIM } from "../src/sim/params";
+import { playerWarRefusals } from "../src/sim/play";
 import { giveCommand, replayCommands } from "../src/sim/sandbox";
 import { fromSnapshot, toSnapshot } from "../src/sim/snapshot";
 import { tick } from "../src/sim/tick";
@@ -107,6 +108,14 @@ describe("the player's orders", () => {
     expect(giveCommand(state, { kind: "declareWar", target: 2, goal: "raid" }).ok).toBe(true);
     expect(state.wars[0]).toMatchObject({ attacker: 1, defender: 2, goal: "raid" });
     expect(state.commands.at(-1)).toEqual({ year: 0, command: { kind: "declareWar", target: 2, goal: "raid" }, by: "player" });
+  });
+
+  it("say which war goals the rules would allow, and why not, exactly as the order is judged", () => {
+    const state = playing();
+    expect(playerWarRefusals(state, 2)).toEqual({ conquer: null, reclaim: "there's no claim to reclaim", raid: null });
+    state.alliances.push({ a: 1, b: 2, since: 0, renewed: 0 });
+    expect(playerWarRefusals(state, 2).raid).toBe("they're allies");
+    expect(giveCommand(state, { kind: "declareWar", target: 2, goal: "raid" })).toEqual({ ok: false, reason: "they're allies" });
   });
 
   it("propose alliances the other side may turn down", () => {

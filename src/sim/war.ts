@@ -125,30 +125,36 @@ export function helpers(state: WorldState, lookups: WarLookups, friend: NationId
 }
 
 /** The "declareWar" command: the rules check it's allowed, work out the goal cells, and start the war. */
-export function applyDeclareWar(state: WorldState, cmd: CommandOf<"declareWar">, lookups = warLookups(state), ignoreLimit = false): CommandResult {
+/**
+ * Why the "declareWar" command `cmd` isn't allowed, or null if it is. Changes nothing, so the
+ * screen can ask it too (the player's war buttons). `ignoreLimit` lets the gods break the war limit.
+ */
+export function declareWarRefusal(state: WorldState, cmd: CommandOf<"declareWar">, lookups = warLookups(state), ignoreLimit = false): string | null {
   const me = state.nations.get(cmd.nation);
   const them = state.nations.get(cmd.target);
-  if (!me?.alive || !them?.alive || me === them) return refuse("there's no such pair of nations");
-  if (!lookups.touching.has(pairKey(me.id, them.id))) return refuse("they don't share a border");
-  if (atWar(state, me.id, them.id)) return refuse("they're already at war");
-  if (allied(state, me.id, them.id)) return refuse("they're allies");
-  if (inTruce(state, me.id, them.id)) return refuse("there's a truce between them");
+  if (!me?.alive || !them?.alive || me === them) return "there's no such pair of nations";
+  if (!lookups.touching.has(pairKey(me.id, them.id))) return "they don't share a border";
+  if (atWar(state, me.id, them.id)) return "they're already at war";
+  if (allied(state, me.id, them.id)) return "they're allies";
+  if (inTruce(state, me.id, them.id)) return "there's a truce between them";
   const tooMany = warsOf(state, me.id) >= SIM.MAX_WARS_PER_NATION || warsOf(state, them.id) >= SIM.MAX_WARS_PER_NATION;
-  if (tooMany && !ignoreLimit) return refuse("one of them has too many wars");
+  if (tooMany && !ignoreLimit) return "one of them has too many wars";
+  if (cmd.goal === "reclaim" && !lookups.claims.has(directedKey(me.id, them.id))) return "there's no claim to reclaim";
+  if (cmd.goal === "conquer" && !lookups.prizes.has(directedKey(me.id, them.id))) return "there's nothing to conquer";
+  if (cmd.goal === "support") return "a war can't be declared with that goal";
+  return null;
+}
 
+export function applyDeclareWar(state: WorldState, cmd: CommandOf<"declareWar">, lookups = warLookups(state), ignoreLimit = false): CommandResult {
+  const why = declareWarRefusal(state, cmd, lookups, ignoreLimit);
+  if (why !== null) return refuse(why);
+  const me = state.nations.get(cmd.nation)!;
+  const them = state.nations.get(cmd.target)!;
   const prize = lookups.prizes.get(directedKey(me.id, them.id));
-  let goalCells: CellId[];
-  if (cmd.goal === "reclaim") {
-    if (!lookups.claims.has(directedKey(me.id, them.id))) return refuse("there's no claim to reclaim");
-    goalCells = claimedCells(state, me, them);
-  } else if (cmd.goal === "conquer") {
-    if (!prize) return refuse("there's nothing to conquer");
-    goalCells = conquestCells(state, me, them, prize.cell);
-  } else if (cmd.goal === "raid") {
-    goalCells = [];
-  } else {
-    return refuse("a war can't be declared with that goal");
-  }
+  const goalCells: CellId[] =
+    cmd.goal === "reclaim" ? claimedCells(state, me, them)
+    : cmd.goal === "conquer" ? conquestCells(state, me, them, prize!.cell)
+    : [];
   const war = startWar(state, me, them, cmd.goal, goalCells);
   return done([warEvent(state.year, me, them, warMotive(state, me, cmd.goal, goalCells, prize?.cell))], war);
 }

@@ -31,7 +31,7 @@ import { drawWarFocus } from "./render/warFocus";
 import { fromSnapshot, type Snapshot } from "./sim/snapshot";
 import { createWorld, startFromText, startToText } from "./sim/start";
 import { tick } from "./sim/tick";
-import { FOLLOW_SPEED, FOLLOW_ZOOM_MAX, HIGHLIGHT_SECONDS, MAP_BESIDE_WIDTH, MAX_ZOOM, SIM_YEARS, ZOOM_SHARP_DELAY } from "./ui/config";
+import { FOLLOW_SPEED, FOLLOW_ZOOM_MAX, CLICK_SLOP, HIGHLIGHT_SECONDS, MAP_BESIDE_WIDTH, MAX_ZOOM, SIM_YEARS, ZOOM_SHARP_DELAY } from "./ui/config";
 import { createControls, makeButton } from "./ui/controls";
 import { cellUnderMouse, onKey, showCellOnHover } from "./ui/debugInfo";
 import { createEventLog } from "./ui/eventLog";
@@ -587,6 +587,17 @@ canvas.addEventListener("mousemove", (event) => {
   rulerCard.hover((cell && state.nations.get(state.state.owner[cell.id]!)) ?? null);
 });
 canvas.addEventListener("mouseleave", () => rulerCard.hover(null));
+// Playing (M20): click a realm to pick it as your war target. A drag to move the map isn't a click.
+let pressedAt: [number, number] = [0, 0];
+canvas.addEventListener("mousedown", (event) => (pressedAt = [event.clientX, event.clientY]));
+canvas.addEventListener("click", (event) => {
+  if (!state.player || Math.hypot(event.clientX - pressedAt[0], event.clientY - pressedAt[1]) > CLICK_SLOP) return;
+  const cell = cellUnderMouse(canvas, world, event, camera);
+  const owner = cell ? state.state.owner[cell.id]! : 0;
+  if (owner === 0) return;
+  warRoom.showTab("play");
+  playTab.pickTarget(owner);
+});
 
 redrawNations();
 draw();

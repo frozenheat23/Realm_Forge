@@ -2,13 +2,13 @@
 // same rules as every nation's commands, and logged like the sandbox's god commands
 // (`giveCommand` in sandbox.ts), so a replay gives the same history.
 import type { Rng } from "../core/rng";
-import type { Nation, Policies, PlayerCommand, WorldState } from "../core/types";
+import type { Nation, NationId, Policies, PlayerCommand, WorldState } from "../core/types";
 import { carryOut, done, refuse, type Controllers } from "./ai/controller";
 import { defaultPolicies, POLICY_CHOICES } from "./ai/player";
 import type { CommandOf, CommandResult } from "./commands";
 import { allianceRefusal, applyBreakAlliance, applyFormAlliance } from "./diplomacy";
 import { applyAdoptFaith, offeredFaith } from "./faith";
-import { applyDeclareWar, applySuePeace, callAllies, helpers, suePeaceRefusal, warLookups, winningSide } from "./war";
+import { applyDeclareWar, applySuePeace, callAllies, declareWarRefusal, helpers, suePeaceRefusal, warLookups, winningSide } from "./war";
 
 /** The player order of one kind, e.g. `OrderOf<"declareWar">`. */
 type OrderOf<K extends PlayerCommand["kind"]> = Extract<PlayerCommand, { kind: K }>;
@@ -54,6 +54,20 @@ function applyPlayerWar(state: WorldState, me: Nation, cmd: OrderOf<"declareWar"
   if (!declared.ok) return declared;
   const events = [...declared.events, ...callAllies(state, lookups, declared.war!, myHelpers, theirHelpers, rng, controllers)];
   return done(events, declared.war);
+}
+
+/** The goals a player's war may have. */
+export const WAR_GOALS = ["conquer", "reclaim", "raid"] as const;
+
+/**
+ * For the Play tab: why the played nation couldn't go to war on `target` with each goal, or null
+ * where it could. The same check the "declareWar" order makes, without changing anything.
+ */
+export function playerWarRefusals(state: WorldState, target: NationId): Record<(typeof WAR_GOALS)[number], string | null> {
+  const me = state.player?.nation ?? 0;
+  const lookups = warLookups(state);
+  const why = (goal: (typeof WAR_GOALS)[number]) => declareWarRefusal(state, { kind: "declareWar", nation: me, target, goal }, lookups);
+  return { conquer: why("conquer"), reclaim: why("reclaim"), raid: why("raid") };
 }
 
 /** "suePeace": the player offers terms in a war they're losing; the winner's controller decides at once. */

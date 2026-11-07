@@ -6,15 +6,19 @@ import { faithInfo } from "../gen/faiths";
 import { PLAYABLE_RACES, traits } from "../gen/races";
 import { rulerName } from "../gen/rulers";
 import { POLICY_CHOICES } from "../sim/ai/player";
-import { alliesOf } from "../sim/diplomacy";
+import { allianceRefusal, alliesOf, opinion } from "../sim/diplomacy";
 import { menText } from "../sim/events";
-import { livingNations } from "../sim/helpers";
+import { livingNations, neighborPairs } from "../sim/helpers";
 import { soldiers } from "../sim/manpower";
 import { SIM } from "../sim/params";
+import { offeredFaith } from "../sim/faith";
+import { playerWarRefusals, WAR_GOALS } from "../sim/play";
 import { giveCommand } from "../sim/sandbox";
+import { suePeaceRefusal } from "../sim/war";
 import { PLAY_LIST_MAX, PLAYER_MOBILIZE_CHOICES } from "./config";
 import { rivalOf } from "./debugInfo";
 import { fallbackPath, portraitPath } from "./portraits";
+import { fill } from "./sandbox";
 import { scoreBar, sides } from "./warRoom";
 
 export interface PlayHooks {
@@ -31,7 +35,11 @@ export interface PlayHooks {
 export interface PlayTab {
   /** Brings the tab up to date (after each year, or an order). */
   update(state: WorldState): void;
+  /** A realm clicked on the map: picked as the war target, if it borders yours. */
+  pickTarget(nation: number): void;
 }
+
+const GOAL_NAMES: Record<(typeof WAR_GOALS)[number], string> = { conquer: "Conquer", reclaim: "Reclaim", raid: "Raid" };
 
 // What each policy and its answers are called on screen.
 type ChoicePolicy = keyof typeof POLICY_CHOICES;
@@ -134,9 +142,45 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
   const warsPart = part("Your wars");
   const warList = el("div");
   warsPart.append(warList);
+  // --- Orders: each one goes to the rules, which may refuse it (and say why) ---
+  const ordersPart = part("Orders");
+  const ordersNote = el("div", "sandbox-note");
+  const targetPick = el("select");
+  const goalButtons = WAR_GOALS.map((goal) => {
+    const b = el("button", "", GOAL_NAMES[goal]);
+    b.addEventListener("click", () => give({ kind: "declareWar", target: Number(targetPick.value), goal }, ordersNote));
+    return b;
+  });
+  const goalRow = el("div", "sandbox-row");
+  goalRow.append(el("span", "", "Go to war to:"), ...goalButtons);
+  const goalWhy = el("div", "sandbox-note");
+  const friendPick = el("select");
+  const propose = el("button", "", "Propose alliance");
+  propose.addEventListener("click", () => give({ kind: "proposeAlliance", other: Number(friendPick.value) }, ordersNote));
+  const proposeRow = el("div", "sandbox-row");
+  proposeRow.append(propose);
+  const proposeWhy = el("div", "sandbox-note");
+  const allyRows = el("div");
+  const faithRow = el("div", "sandbox-row");
+  ordersPart.append(
+    labelled("War on", targetPick),
+    goalRow,
+    goalWhy,
+    labelled("Alliance with", friendPick),
+    proposeRow,
+    proposeWhy,
+    allyRows,
+    faithRow,
+    ordersNote,
+  );
+  targetPick.addEventListener("change", () => drawGoals(hooks.state()));
+  friendPick.addEventListener("change", () => drawPropose(hooks.state()));
+  // Choosing stops time, so the lists don't change under you.
+  for (const select of [targetPick, friendPick]) select.addEventListener("focus", () => hooks.pause());
+
   const policiesPart = part("Policies");
   const policyNote = el("div", "sandbox-note");
-  realm.append(head, fallen, ruler, stats, warsPart, policiesPart);
+  realm.append(head, fallen, ruler, stats, warsPart, ordersPart, policiesPart);
   box.append(realm, choose);
 
   // One drop-down per policy, built once; `update` keeps their values in step with the world.
@@ -164,7 +208,8 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
     hooks.pause();
     const state = hooks.state();
     const result = giveCommand(state, command);
-    note.textContent = result.ok ? "" : `The rules refuse: ${result.reason}.`;
+    // A refusal by the rules, or by the other side ("Lirelor turns the offer down").
+    note.textContent = result.ok ? (result.events.at(-1)?.text.replace(/^Year -?\d+: /, "") ?? "") : `Refused: ${result.reason}.`;
     if (result.ok) hooks.changed(result.events);
     update(state);
   }
@@ -206,6 +251,7 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
     ruler.hidden = !me.alive;
     stats.hidden = !me.alive;
     warsPart.hidden = !me.alive;
+    ordersPart.hidden = !me.alive;
     if (!me.alive) return;
 
     const path = portraitPath(me.race, me.ruler);
@@ -255,7 +301,74 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
       const standing = Math.abs(main.score) < SIM.WIN_SCORE ? "even" : ahead > 0 ? "winning" : "losing";
       const role = war.joined !== undefined ? "as an ally" : onAttack ? "you attacked" : "you were attacked";
       row.append(sides(record, state), el("div", "war-meta", `${role} · year ${state.year - record.start + 1} · ${standing}`), scoreBar(state, record, main.score));
+      // Only a side clearly losing its own war can offer terms.
+      if (war.joined === undefined && suePeaceRefusal(state, war.id, me.id) === null) {
+        const sue = el("button", "", "Sue for peace");
+        sue.title = "Offer the winner the goal land it holds; it may refuse";
+        sue.addEventListener("click", (event) => {
+          event.stopPropagation(); // not a click to follow the war
+          give({ kind: "suePeace", war: war.id }, ordersNote);
+        });
+        const sueRow = el("div", "sandbox-row");
+        sueRow.append(sue);
+        row.append(sueRow);
+      }
       warList.append(row);
+    }
+  }
+
+  /** Greys out the goals the rules wouldn't allow, and says why. */
+  function drawGoals(state: WorldState): void {
+    const refusals = targetPick.value ? playerWarRefusals(state, Number(targetPick.value)) : null;
+    const reasons: string[] = [];
+    WAR_GOALS.forEach((goal, i) => {
+      const why = refusals ? refusals[goal] : "no neighbor to fight";
+      goalButtons[i]!.disabled = why !== null;
+      goalButtons[i]!.title = why ?? `Go to war to ${goal}`;
+      if (why !== null) reasons.push(`${GOAL_NAMES[goal]}: ${why}`);
+    });
+    // The same reason for every goal is said once.
+    const unique = refusals && new Set(WAR_GOALS.map((g) => refusals[g])).size === 1 && refusals.raid !== null;
+    goalWhy.textContent = unique ? `Not now: ${refusals.raid}.` : reasons.join(" · ");
+  }
+
+  function drawPropose(state: WorldState): void {
+    const me = state.player!.nation;
+    const why = friendPick.value ? allianceRefusal(state, me, Number(friendPick.value)) : "no neighbor to ally with";
+    propose.disabled = why !== null;
+    proposeWhy.textContent = why === null ? "They decide at once: on good terms, they usually accept." : `Not now: ${why}.`;
+  }
+
+  function drawOrders(state: WorldState, me: Nation): void {
+    const neighbors = neighborPairs(state)
+      .filter(([a, b]) => a === me.id || b === me.id)
+      .map(([a, b]) => state.nations.get(a === me.id ? b : a)!)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const feeling = (n: Nation) => `${n.name} (opinion ${opinion(state, me.id, n.id).toFixed(2)})`;
+    fill(targetPick, neighbors.map((n) => [String(n.id), feeling(n)]));
+    drawGoals(state);
+    const allies = alliesOf(state, me.id);
+    fill(friendPick, neighbors.filter((n) => !allies.includes(n.id)).map((n) => [String(n.id), feeling(n)]));
+    drawPropose(state);
+
+    allyRows.replaceChildren();
+    for (const id of allies) {
+      const ally = state.nations.get(id)!;
+      const row = el("div", "sandbox-row");
+      const leave = el("button", "", "Break");
+      leave.title = `End the alliance with ${ally.name}`;
+      leave.addEventListener("click", () => give({ kind: "breakAlliance", other: id }, ordersNote));
+      row.append(leave, el("span", "", `the alliance with ${ally.name}`));
+      allyRows.append(row);
+    }
+
+    // A faith is offered while most of the realm holds it.
+    faithRow.replaceChildren();
+    const faith = offeredFaith(state, me);
+    if (faith !== null) {
+      const adopt = el("button", "", `Adopt ${faithInfo(faith).name}`);
+      adopt.addEventListener("click", () => give({ kind: "adoptFaith", faith }, ordersNote));
+      faithRow.append(adopt, el("span", "war-meta", "most of your people hold it"));
     }
   }
 
@@ -276,11 +389,26 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
     choose.hidden = !!me?.alive;
     if (me) {
       drawRealm(state, me);
+      if (me.alive) drawOrders(state, me);
       drawPolicies(state.player!.policies);
     }
     if (!me?.alive) drawChooser(state);
   }
 
+  function pickTarget(id: number): void {
+    const state = hooks.state();
+    const me = state.player ? state.nations.get(state.player.nation) : undefined;
+    if (!me?.alive || id === me.id) return;
+    const name = state.nations.get(id)?.name ?? "That land";
+    if (![...targetPick.options].some((o) => o.value === String(id))) {
+      ordersNote.textContent = `${name} doesn't border your realm.`;
+      return;
+    }
+    targetPick.value = String(id);
+    drawGoals(state);
+    ordersNote.textContent = `${name} picked as the war target.`;
+  }
+
   update(hooks.state());
-  return { update };
+  return { update, pickTarget };
 }

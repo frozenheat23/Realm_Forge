@@ -1,6 +1,6 @@
 # Play as a nation (M20)
 
-> **Planned** 2026-11-07, designed with the user. **Steps 1–2 built** 2026-11-07 (the player's controller, orders and log; choosing a nation and the Your realm panel: see "As built" at the end); steps 3–6 still planned. Builds on controllers (`controllers.md`), the command log (`sandbox.md`), the War Room (`warroom.md`) and zoom (SPEC §5.4l).
+> **Planned** 2026-11-07, designed with the user. **Steps 1–3 built** 2026-11-07 (the player's controller, orders and log; choosing a nation and the Your realm panel; order buttons: see "As built" at the end); steps 4–6 still planned. Builds on controllers (`controllers.md`), the command log (`sandbox.md`), the War Room (`warroom.md`) and zoom (SPEC §5.4l).
 
 **Goal.** Pick a nation and play its 1,000 years. You make its strategic choices; the same rules as everyone else decide what happens. When your realm falls, you carry on with your people.
 
@@ -107,3 +107,11 @@ Directing armies yourself, fog of war, a score, custom realms at the start, dipl
 - If your realm falls, the panel says so and the list of realms comes back (step 5 will narrow it to your people).
 - Opening the tab pauses playback only when no one is playing, so a player can keep it open while time runs.
 - Seen while testing: in the settled start a kingdom can rule land with none of its own race living there (Mairna, Humans ruling elves and orcs). The panel says "none of them Humans".
+
+**Step 3** (2026-11-07). Code: the Orders part of `ui/play.ts`; `declareWarRefusal` (`sim/war.ts`) and `playerWarRefusals` (`sim/play.ts`).
+
+- **War:** pick a neighbor (with your opinion of it), or click its land on the map; Conquer / Reclaim / Raid buttons are greyed where the rules wouldn't allow them, with the reasons written underneath. The AI's declarations, the gods' and the player's buttons all go through the one check, `declareWarRefusal`, so a button is never enabled for a war the order would refuse (history unchanged: golden test passes).
+- **Alliance:** pick a neighbor you aren't allied with and propose; the rules' reason shows if it can't be offered, and the other side answers at once ("Lirelor turns the offer down"). Each ally has a **Break** button.
+- **Sue for peace** appears on a war in Your wars when you're clearly losing your own war (not an ally's); the winner decides at once.
+- **Adopt faith** appears while another faith holds most of the realm.
+- The result of each order, or the reason it was refused, shows under the orders. Clicking a list to choose pauses time, so it doesn't change under you. A press that moves more than `CLICK_SLOP` pixels is a drag, not a map click.

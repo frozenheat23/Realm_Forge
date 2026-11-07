@@ -35,7 +35,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = "", text 
 }
 
 /** Fills a drop-down with options, keeping the chosen one if it's still there. */
-function fill(select: HTMLSelectElement, options: [string, string][], blank?: string): void {
+export function fill(select: HTMLSelectElement, options: [string, string][], blank?: string): void {
   const before = select.value;
   select.replaceChildren();
   if (blank !== undefined) select.append(new Option(blank, ""));
