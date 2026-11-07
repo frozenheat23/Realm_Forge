@@ -3,15 +3,15 @@
 // `Map` and typed arrays don't survive JSON.stringify, so they're converted to plain
 // arrays here. The map itself (cells, terrain) isn't saved: it's rebuilt from the seed,
 // which always gives the same map.
-import type { Alliance, Army, CellState, LoggedCommand, Nation, RaceHome, SimEvent, War, WarRecord, WorldState } from "../core/types";
+import type { Alliance, Army, CellState, LoggedCommand, Nation, Player, RaceHome, SimEvent, War, WarRecord, WorldState } from "../core/types";
 import type { GeneratedWorld } from "../gen";
 import type { SimParams } from "./params";
 
-/** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9), 5 armies (M11), 8 culture and faith (M12), 9 rulers (M13), 10 war records (M16), 11 the sandbox's command log (M17), 12 rulers' boldness (M18). */
-export const SNAPSHOT_VERSION = 12;
+/** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9), 5 armies (M11), 8 culture and faith (M12), 9 rulers (M13), 10 war records (M16), 11 the sandbox's command log (M17), 12 rulers' boldness (M18), 13 the played nation and its policies (M20). */
+export const SNAPSHOT_VERSION = 13;
 
 /** Older versions that still load, with what they lack filled in. */
-const STILL_LOADS = new Set([10, 11]);
+const STILL_LOADS = new Set([10, 11, 12]);
 
 /** Why older saves can't be loaded, by version. */
 const TOO_OLD: Record<number, string> = {
@@ -51,6 +51,8 @@ export interface Snapshot {
   warRecords: WarRecord[];
   /** Missing in v10 saves. */
   commands?: LoggedCommand[];
+  /** The played nation (v13); missing when no one plays. */
+  player?: Player;
 }
 
 export function toSnapshot(state: WorldState, params: SimParams): Snapshot {
@@ -90,6 +92,7 @@ export function toSnapshot(state: WorldState, params: SimParams): Snapshot {
     cityNames: [...state.cityNames],
     warRecords: state.warRecords,
     commands: state.commands,
+    ...(state.player ? { player: state.player } : {}),
   };
 }
 
@@ -138,5 +141,6 @@ export function fromSnapshot(snapshot: Snapshot, world: GeneratedWorld): WorldSt
     alliances: snapshot.alliances.map((al) => ({ ...al, renewed: al.renewed ?? al.since })),
     cityNames: new Map(snapshot.cityNames),
     commands: structuredClone(snapshot.commands ?? []),
+    ...(snapshot.player ? { player: structuredClone(snapshot.player) } : {}),
   };
 }

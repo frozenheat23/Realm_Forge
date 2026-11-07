@@ -3,7 +3,6 @@
 // handed to the rules (`giveCommand`), and odds run on copies.
 import type { GodCommand, NationId, SimEvent, WorldState } from "../core/types";
 import type { GeneratedWorld } from "../gen";
-import { everyoneAI } from "../sim/ai/default";
 import { livingNations, neighborPairs } from "../sim/helpers";
 import { runFutures, type Odds } from "../sim/odds";
 import { ODDS_RUNS, ODDS_YEARS, SIM } from "../sim/params";
@@ -185,7 +184,7 @@ export function createSandbox(box: HTMLElement, hooks: SandboxHooks): Sandbox {
   function give(command: GodCommand, note: HTMLElement): void {
     hooks.pause();
     const state = hooks.state();
-    const result = giveCommand(state, command, everyoneAI);
+    const result = giveCommand(state, command);
     note.textContent = result.ok ? "Done." : `The rules refuse: ${result.reason}.`;
     if (result.ok) hooks.changed(result.events);
     update(state);

@@ -197,6 +197,7 @@ Terrain effects come from the Biomes move-cost table and the river/mountain modi
 | `HOLD_SCORE` | 10 | 0–20 | Score to the defender for each year (after the first) the attacker holds none of what it came for (M18) | Failed invasions become defeats sooner | Holding out counts for nothing (0, before M18) |
 | `SUE_PROB` | 0.05 | 0–0.3 | Yearly chance a side losing by `WIN_SCORE`+ sues for peace (× 1 + weariness) (M18) | Many short wars ending on small terms | Wars only end by force (0) |
 | `ACCEPT_PROB` | 0.2 | 0–1 | Chance the winner accepts terms (+ its weariness) (M18) | Winners settle for less | Winners fight on for everything |
+| `PLAYER_WEARY` | 0.6 | 0–1 | War weariness at which the player's "when war-weary" policies (sue for peace, accept terms) take effect (M20) | The player's realm holds out longer before giving in | It gives in at the first losses |
 | `DEFEND_WEARINESS` | 0.25 | 0.1–1 | × weariness gained (yearly and from losses) by a nation only defending (M18) | Defenders give in as fast as attackers (1) | Defenders hold on until the attacker tires |
 | `MAX_WAR_YEARS` | 25 | 10–50 | Hard cap on war length | Generational wars | Short conflicts |
 | `TRUCE_YEARS` | 10 | 0–30 | Years before the same pair can fight again | Calmer rivalries | Constant re-matches |

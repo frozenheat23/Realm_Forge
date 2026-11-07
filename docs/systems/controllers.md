@@ -61,7 +61,7 @@ interface Controller {
 - **`View`** is the world as a controller may see it: `Readonly<WorldState>` for now, plus the yearly lookups the rules already compute (claims, border prizes, helpers' power), so controllers don't recompute them. A controller must never change it.
 - **Context objects** (`WarContext`, `ArmyOrders`) carry what the decision needs: the power ratio, whether there's a claim, the border prize, nearby hostile armies, open goal cells. Built by the rules, read by the controller.
 - **Synchronous and pure.** A controller answers immediately from the view and its own `rng`. A player's answers will come from orders and standing policies set beforehand, with the game pausing when a decision is due (M19). M15 doesn't design that, but it mustn't rule it out.
-- **Who controls whom** is passed to `tick(state, rng, controllers)` as a function `NationId → Controller`, defaulting to the AI for every nation. It isn't stored in `WorldState` (functions can't be saved). M19 will save *which* nations a player holds.
+- **Who controls whom** is passed to `tick(state, rng, controllers)` as a function `NationId → Controller`, defaulting to the AI for every nation. It isn't stored in `WorldState` (functions can't be saved). Since M20 step 1 the default is `controllersOf(state)` (`sim/ai/player.ts`), which reads the saved `WorldState.player` and gives that nation the player's controller.
 
 ## Commands
 

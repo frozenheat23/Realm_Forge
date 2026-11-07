@@ -1,10 +1,13 @@
 // The sandbox's god commands (M17, docs/systems/sandbox.md): changes you make to history.
 // Like every command they go through the rules here; the screen never changes the world itself.
 // Every one given is logged, so history = seed + settings + the command log.
+// The player's orders (M20, play.ts) go through the same log.
 import { createRng, type Rng } from "../core/rng";
-import type { GodCommand, LoggedCommand, NationId, SimEvent, WorldState } from "../core/types";
+import type { GodCommand, LoggedCommand, NationId, PlayerCommand, SimEvent, WorldState } from "../core/types";
 import { done, refuse, type Controllers } from "./ai/controller";
+import { controllersOf } from "./ai/player";
 import type { CommandResult } from "./commands";
+import { applyPlayerCommand } from "./play";
 import { pairKey } from "./helpers";
 import { applyDeclareWar, atWar, callAllies, clearWinnerOf, concludeWar, directedKey, helpers, warLookups } from "./war";
 
@@ -94,20 +97,26 @@ export function applyGodCommand(state: WorldState, cmd: GodCommand, rng: Rng, co
   }
 }
 
-/** The dice for the `index`-th god command of `year`: named, so a replay rolls the same. */
-function godRng(state: WorldState, index: number): Rng {
-  return createRng(state.seed).fork("sim").fork(`god-${state.year}-${index}`);
+/** Is this a god command (rather than a player's order)? */
+function isGod(command: GodCommand | PlayerCommand): command is GodCommand {
+  return command.kind === "godWar" || command.kind === "godPeace";
+}
+
+/** The dice for the `index`-th command of `year`: named, so a replay rolls the same. */
+function commandRng(state: WorldState, command: GodCommand | PlayerCommand, index: number): Rng {
+  return createRng(state.seed).fork("sim").fork(`${isGod(command) ? "god" : "player"}-${state.year}-${index}`);
 }
 
 /**
- * Gives a god command now, between years: carries it out, logs it and adds its events
- * to the history. Returns the result, so a refusal's reason can be shown.
+ * Gives a god command or a player's order now, between years: carries it out, logs it
+ * and adds its events to the history. Returns the result, so a refusal's reason can be shown.
  */
-export function giveCommand(state: WorldState, command: GodCommand, controllers: Controllers): CommandResult {
+export function giveCommand(state: WorldState, command: GodCommand | PlayerCommand, controllers: Controllers = controllersOf(state)): CommandResult {
   const index = state.commands.filter((c) => c.year === state.year).length;
-  const result = applyGodCommand(state, command, godRng(state, index), controllers);
+  const rng = commandRng(state, command, index);
+  const result = isGod(command) ? applyGodCommand(state, command, rng, controllers) : applyPlayerCommand(state, command, rng, controllers);
   if (!result.ok) return result;
-  state.commands.push({ year: state.year, command });
+  state.commands.push(isGod(command) ? { year: state.year, command } : { year: state.year, command, by: "player" });
   state.events.push(...result.events);
   return result;
 }
@@ -116,6 +125,6 @@ export function giveCommand(state: WorldState, command: GodCommand, controllers:
  * For replaying a history: carries out the logged commands given in the current year,
  * as they were the first time. Call after each year's tick.
  */
-export function replayCommands(state: WorldState, log: LoggedCommand[], controllers: Controllers): void {
+export function replayCommands(state: WorldState, log: LoggedCommand[], controllers: Controllers = controllersOf(state)): void {
   for (const entry of log) if (entry.year === state.year) giveCommand(state, entry.command, controllers);
 }

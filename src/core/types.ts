@@ -316,10 +316,51 @@ export type GodCommand =
   /** `winner` null = white peace. */
   | { kind: "godPeace"; war: number; winner: NationId | null };
 
-/** A god command and the year it was given (after that year's tick). */
+/**
+ * How the player's controller answers the questions that come up during a year (docs/systems/play.md).
+ * Each starts at, or near, what the AI does.
+ */
+export interface Policies {
+  /** Join an ally's war: always, only when the ally is attacked, only allies of my race, or never. */
+  joinWar: "always" | "defending" | "kin" | "never";
+  /** Accept an alliance offered: when opinion is good (the AI's rule), always, or never. */
+  acceptAlliance: "opinion" | "always" | "never";
+  /** When a war is won: make peace (the AI's rule) or fight on for more. */
+  wonWar: "peace" | "fightOn";
+  /** Sue for peace in a losing war: never by itself, or once war-weary. */
+  suePeace: "never" | "weary";
+  /** When the enemy sues: accept, accept once war-weary, or refuse. */
+  enemySues: "accept" | "weary" | "refuse";
+  /** Share of the reserve raised for each new war, 0..1. */
+  mobilize: number;
+  /** When rebels break away: go to war on them, or let them go. */
+  rebels: "fight" | "letGo";
+}
+
+/** The nation a player plays, and the people (culture) they follow when it falls. */
+export interface Player {
+  nation: NationId;
+  culture: number;
+  policies: Policies;
+}
+
+/** What a player does, between years (docs/systems/play.md). The played nation is `WorldState.player`. */
+export type PlayerCommand =
+  /** Take over a nation, or (null) stop playing and watch. */
+  | { kind: "play"; nation: NationId | null }
+  | { kind: "setPolicy"; policies: Partial<Policies> }
+  | { kind: "declareWar"; target: NationId; goal: Exclude<WarGoal, "support"> }
+  | { kind: "suePeace"; war: number }
+  | { kind: "proposeAlliance"; other: NationId }
+  | { kind: "breakAlliance"; other: NationId }
+  | { kind: "adoptFaith"; faith: FaithId };
+
+/** A god command or player order and the year it was given (after that year's tick). */
 export interface LoggedCommand {
   year: number;
-  command: GodCommand;
+  command: GodCommand | PlayerCommand;
+  /** Set for the player's orders and policies. */
+  by?: "player";
 }
 
 export interface War {
@@ -474,8 +515,10 @@ export interface WorldState {
   alliances: Alliance[];
   /** Names of cells that have grown into cities (kept if the city shrinks, so it keeps its name if it regrows). */
   cityNames: Map<CellId, string>;
-  /** Every god command given so far, in order. History = seed + settings + this log (docs/systems/sandbox.md). */
+  /** Every god command and player order given so far, in order. History = seed + settings + this log (docs/systems/sandbox.md). */
   commands: LoggedCommand[];
+  /** The nation a player plays, if any (M20, docs/systems/play.md). Set only by the "play" order. */
+  player?: Player;
 }
 
 /** How history opens (docs/systems/start.md): small nations in an empty world, or old kingdoms sharing all of it. */

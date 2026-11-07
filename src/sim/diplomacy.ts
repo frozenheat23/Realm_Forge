@@ -94,14 +94,23 @@ export function updateOpinions(state: WorldState, pairs: [NationId, NationId][])
   }
 }
 
+/** Why `a` and `b` can't become allies, or null if they can. */
+export function allianceRefusal(state: WorldState, a: NationId, b: NationId): string | null {
+  const na = state.nations.get(a);
+  const nb = state.nations.get(b);
+  if (!na?.alive || !nb?.alive || na === nb) return "there's no such pair of nations";
+  if (allied(state, a, b)) return "they're already allies";
+  if (enemiesOf(state).get(a)?.has(b)) return "they're at war with each other";
+  if (alliesOf(state, a).length >= SIM.MAX_ALLIES || alliesOf(state, b).length >= SIM.MAX_ALLIES) return "one of them has as many allies as it can keep";
+  return null;
+}
+
 /** The "formAlliance" command: `a` and `b` pledge to fight beside each other. */
 export function applyFormAlliance(state: WorldState, cmd: CommandOf<"formAlliance">): CommandResult {
-  const a = state.nations.get(cmd.a);
-  const b = state.nations.get(cmd.b);
-  if (!a?.alive || !b?.alive || a === b) return refuse("there's no such pair of nations");
-  if (allied(state, a.id, b.id)) return refuse("they're already allies");
-  if (enemiesOf(state).get(a.id)?.has(b.id)) return refuse("they're at war with each other");
-  if (alliesOf(state, a.id).length >= SIM.MAX_ALLIES || alliesOf(state, b.id).length >= SIM.MAX_ALLIES) return refuse("one of them has as many allies as it can keep");
+  const why = allianceRefusal(state, cmd.a, cmd.b);
+  if (why !== null) return refuse(why);
+  const a = state.nations.get(cmd.a)!;
+  const b = state.nations.get(cmd.b)!;
   state.alliances.push({ a: Math.min(a.id, b.id), b: Math.max(a.id, b.id), since: state.year, renewed: state.year });
   return done([allianceEvent(state.year, a, b)]);
 }

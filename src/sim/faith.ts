@@ -69,6 +69,23 @@ export function applyAdoptFaith(state: WorldState, cmd: CommandOf<"adoptFaith">)
   return done([conversionEvent(state.year, nation)]);
 }
 
+/** The biggest faith among a realm's people (`tally` = people per faith), if it isn't the realm's and holds SIM.FAITH_MAJORITY. */
+function rivalFaith(nation: Nation, tally: Float64Array): FaithId | null {
+  const total = tally.reduce((sum, count) => sum + count, 0);
+  let rival: number = nation.faith;
+  for (let f = 1; f < FAITH_COUNT; f++) if (tally[f]! > tally[rival]!) rival = f;
+  if (rival === nation.faith || tally[rival]! < total * SIM.FAITH_MAJORITY) return null;
+  return rival as FaithId;
+}
+
+/** The faith `nation` is offered: the one it would be asked to adopt this year, or null. For the player's orders. */
+export function offeredFaith(state: WorldState, nation: Nation): FaithId | null {
+  const tally = new Float64Array(FAITH_COUNT);
+  const { owner, faith, pop } = state.state;
+  for (let c = 0; c < owner.length; c++) if (owner[c] === nation.id) tally[faith[c]!] = tally[faith[c]!]! + pop[c]!;
+  return rivalFaith(nation, tally);
+}
+
 /** A realm where another faith holds the majority is asked whether to adopt it. */
 export function convertRealms(state: WorldState, rng: Rng, controllers: Controllers): SimEvent[] {
   const events: SimEvent[] = [];
@@ -83,14 +100,11 @@ export function convertRealms(state: WorldState, rng: Rng, controllers: Controll
 
   for (const [id, tally] of believers) {
     const nation = state.nations.get(id)!;
-    const total = tally.reduce((sum, count) => sum + count, 0);
-    // The biggest faith, if it isn't already the realm's.
-    let rival: number = nation.faith;
-    for (let f = 1; f < FAITH_COUNT; f++) if (tally[f]! > tally[rival]!) rival = f;
-    if (rival === nation.faith || tally[rival]! < total * SIM.FAITH_MAJORITY) continue;
+    const rival = rivalFaith(nation, tally);
+    if (rival === null) continue;
     const controller = controllers(id);
-    if (!controller.adoptFaith(state, nation, rival as FaithId, rng.fork(`faith-${id}`))) continue;
-    const cmd: CommandOf<"adoptFaith"> = { kind: "adoptFaith", nation: id, faith: rival as FaithId };
+    if (!controller.adoptFaith(state, nation, rival, rng.fork(`faith-${id}`))) continue;
+    const cmd: CommandOf<"adoptFaith"> = { kind: "adoptFaith", nation: id, faith: rival };
     const result = applyAdoptFaith(state, cmd);
     if (carryOut(controller, cmd, result)) events.push(...result.events);
   }

@@ -17,7 +17,7 @@ import { succession } from "./succession";
 import { updateTotals } from "./totals";
 import { releaseOccupations } from "./siege";
 import type { Controllers } from "./ai/controller";
-import { everyoneAI } from "./ai/default";
+import { controllersOf } from "./ai/player";
 import { declareWars, endWars } from "./war";
 
 /**
@@ -27,9 +27,10 @@ import { declareWars, endWars } from "./war";
  * `rng` is the simulation's random stream. Each year (and each step within it)
  * gets its own fork, so adding randomness to one step never changes another.
  *
- * `controllers` says who makes each nation's choices: the AI unless told otherwise.
+ * `controllers` says who makes each nation's choices: unless told otherwise, the player's
+ * nation (if anyone plays one) by the player's policies and everyone else by the AI.
  */
-export function tick(state: WorldState, rng: Rng, controllers: Controllers = everyoneAI): SimEvent[] {
+export function tick(state: WorldState, rng: Rng, controllers: Controllers = controllersOf(state)): SimEvent[] {
   state.year += 1;
   const year = rng.fork(`year-${state.year}`);
   const events: SimEvent[] = [];

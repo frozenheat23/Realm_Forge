@@ -131,6 +131,8 @@ export const SIM = {
   SUE_PROB: 0.05,
   /** Chance the winning side accepts terms, + its war weariness. */
   ACCEPT_PROB: 0.2,
+  /** Playing a nation (M20): war weariness at which the player's "when war-weary" policies take effect. */
+  PLAYER_WEARY: 0.6,
   TRUCE_YEARS: 10,
   /** War chance × (1 + this × value of the best enemy cell on the border). */
   WAR_VALUE_K: 0.5,

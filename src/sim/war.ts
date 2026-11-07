@@ -327,6 +327,17 @@ function sueRefusal(state: WorldState, war: War | undefined, nation: NationId): 
   return null;
 }
 
+/** Why `nation` can't sue for peace in war `warId`, or null if it can. For the player's orders. */
+export function suePeaceRefusal(state: WorldState, warId: number, nation: NationId): string | null {
+  return sueRefusal(state, state.wars.find((w) => w.id === warId), nation);
+}
+
+/** The side winning war `warId` (by SIM.WIN_SCORE or more), or null. */
+export function winningSide(state: WorldState, warId: number): Nation | null {
+  const war = state.wars.find((w) => w.id === warId);
+  return war ? (losingSide(state, war)?.winner ?? null) : null;
+}
+
 /** The "suePeace" command: the losing side's offer, which the winner has accepted. The war ends on its terms. */
 export function applySuePeace(state: WorldState, cmd: CommandOf<"suePeace">): CommandResult {
   const war = state.wars.find((w) => w.id === cmd.war);

@@ -1,6 +1,6 @@
 # Play as a nation (M20)
 
-> **Planned** 2026-11-07, designed with the user. Nothing here is built yet. Builds on controllers (`controllers.md`), the command log (`sandbox.md`), the War Room (`warroom.md`) and zoom (SPEC §5.4l).
+> **Planned** 2026-11-07, designed with the user. **Step 1 built** 2026-11-07 (the player's controller, orders and log, no screen yet: see "As built" at the end); steps 2–6 still planned. Builds on controllers (`controllers.md`), the command log (`sandbox.md`), the War Room (`warroom.md`) and zoom (SPEC §5.4l).
 
 **Goal.** Pick a nation and play its 1,000 years. You make its strategic choices; the same rules as everyone else decide what happens. When your realm falls, you carry on with your people.
 
@@ -88,3 +88,13 @@ You can pick a nation at year 0, play it to year 1000 with orders and policies, 
 ## Not in M20
 
 Directing armies yourself, fog of war, a score, custom realms at the start, diplomacy beyond alliances (vassals, tribute deals), and an AI that treats the player differently.
+
+## As built
+
+**Step 1** (2026-11-07). Code: `sim/ai/player.ts` (the controller `PLAYER`, `POLICY_CHOICES`, `defaultPolicies`, `controllersOf`), `sim/play.ts` (orders), `tests/play.test.ts`.
+
+- **Who plays** is `WorldState.player` (`{ nation, culture, policies }`), set only by the **play** order, saved in save format v13 (v12 still loads, with no one playing). `controllersOf(state)` reads it each time it's asked, so `tick`, the Sandbox and odds futures all use the player's controller for the played nation with no extra wiring; with no player it is the AI for everyone, and the golden history is unchanged.
+- **Orders** are `PlayerCommand`s given through the same `giveCommand` as god commands, logged with `by: "player"`. Their dice (allies joining a declared war, the enemy hearing terms) come from streams named `player-<year>-<n>`. A refused order changes nothing and isn't logged. Orders: `play` (a living nation, or null to stop), `setPolicy`, `declareWar`, `suePeace`, `proposeAlliance`, `breakAlliance`, `adoptFaith`.
+- **Policy names in the code:** `joinWar` (always / defending / kin / never), `acceptAlliance` (opinion / always / never), `wonWar` (peace / fightOn), `suePeace` (never / weary), `enemySues` (accept / weary / refuse), `mobilize` (a share of the reserve, above 0 and at most 1), `rebels` (fight / letGo). "Weary" means war weariness ≥ `PLAYER_WEARY` (0.6). Defaults: defending, opinion, peace, weary, weary, `MOBILIZE_SHARE`, fight.
+- **Orders given at year 0** (before the first year) are logged at year 0, so a replay applies the log once before the first tick, then after each year.
+- **Measured** (3 worlds × 1,000 years, settled start, first kingdom played, no orders): attacked 1–13 times, never attacked anyone except its own rebels; one of the three fell (year 406).
