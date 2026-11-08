@@ -1,6 +1,6 @@
 # Play as a nation (M20)
 
-> **Planned** 2026-11-07, designed with the user. **Built** 2026-11-07 to 2026-11-08 in 6 steps (the player's controller, orders and log; choosing a nation and the Your realm panel; order buttons; dispatches; following your people and the end summary; a playtest pass: see "As built" at the end). Builds on controllers (`controllers.md`), the command log (`sandbox.md`), the War Room (`warroom.md`) and zoom (SPEC §5.4l).
+> **Planned** 2026-11-07, designed with the user. **Built** 2026-11-07 to 2026-11-08 (see "As built" at the end). Builds on controllers (`controllers.md`), the command log (`sandbox.md`), the War Room (`warroom.md`) and zoom (SPEC §5.4l).
 
 **Goal.** Pick a nation and play its 1,000 years. You make its strategic choices; the same rules as everyone else decide what happens. When your realm falls, you carry on with your people.
 
@@ -91,57 +91,14 @@ Directing armies yourself, fog of war, a score, custom realms at the start, dipl
 
 ## As built
 
-**Step 1** (2026-11-07). Code: `sim/ai/player.ts` (the controller `PLAYER`, `POLICY_CHOICES`, `defaultPolicies`, `controllersOf`), `sim/play.ts` (orders), `tests/play.test.ts`.
+Built 2026-11-07 to 2026-11-08 in the six steps above, one commit each. Code: `sim/ai/player.ts` (controller, policies, `controllersOf`), `sim/play.ts` (orders, `heirsOf`), `ui/play.ts` (Play tab), `ui/dispatches.ts`, `ui/summary.ts`; tests in `tests/play.test.ts`, `tests/dispatches.test.ts`, `tests/playEnd.test.ts`.
 
-- **Who plays** is `WorldState.player` (`{ nation, culture, policies }`), set only by the **play** order, saved in save format v13 (v12 still loads, with no one playing). `controllersOf(state)` reads it each time it's asked, so `tick`, the Sandbox and odds futures all use the player's controller for the played nation with no extra wiring; with no player it is the AI for everyone, and the golden history is unchanged.
-- **Orders** are `PlayerCommand`s given through the same `giveCommand` as god commands, logged with `by: "player"`. Their dice (allies joining a declared war, the enemy hearing terms) come from streams named `player-<year>-<n>`. A refused order changes nothing and isn't logged. Orders: `play` (a living nation, or null to stop), `setPolicy`, `declareWar`, `suePeace`, `proposeAlliance`, `breakAlliance`, `adoptFaith`.
-- **Policy names in the code:** `joinWar` (always / defending / kin / never), `acceptAlliance` (opinion / always / never), `wonWar` (peace / fightOn), `suePeace` (never / weary), `enemySues` (accept / weary / refuse), `mobilize` (a share of the reserve, above 0 and at most 1), `rebels` (fight / letGo). "Weary" means war weariness ≥ `PLAYER_WEARY` (0.6). Defaults: defending, opinion, peace, weary, weary, `MOBILIZE_SHARE`, fight.
-- **Orders given at year 0** (before the first year) are logged at year 0, so a replay applies the log once before the first tick, then after each year.
-- **Measured** (3 worlds × 1,000 years, settled start, first kingdom played, no orders): attacked 1–13 times, never attacked anyone except its own rebels; one of the three fell (year 406).
+- **Who plays** is `WorldState.player` (`{ nation, culture, policies }`), set only by the **play** order and saved (save v13; v12 loads with no one playing). `controllersOf(state)` is the default for `tick`, the Sandbox and odds, so with no player it's the AI for everyone and the golden history is unchanged.
+- **Orders** are `PlayerCommand`s (`play`, `setPolicy`, `declareWar`, `suePeace`, `proposeAlliance`, `breakAlliance`, `adoptFaith`) given through `giveCommand` and logged with `by: "player"`; their dice come from `player-<year>-<n>`. Refused orders change nothing and aren't logged. Orders given at year 0 replay once before the first tick.
+- **Policies** in the code: `joinWar` (always / defending / kin / never), `acceptAlliance` (opinion / always / never), `wonWar` (peace / fightOn), `suePeace` (never / weary), `enemySues` (accept / weary / refuse), `mobilize` (share of the reserve), `rebels` (fight / letGo). "Weary" = war weariness ≥ `PLAYER_WEARY`. The player's controller never starts a war, alliance, pact break or conversion by itself.
+- **One check for every war:** the AI, the gods and the player's buttons all use `declareWarRefusal`, so a button is never enabled for a war the order would refuse. Disallowed orders are greyed with the rules' reasons; clicking a realm on the map picks it as the war target.
+- **Your realm** counts land, people and unrest from the map, since a nation's totals are filled only after its first year. The played realm's border is drawn heavier.
+- **Dispatches** compare the realm before and after each year (`watchRealm`) with the year's events. Kinds: wars on you or your allies (and why you stayed out), your first rout in each war and your capital besieged or taken, your wars ending, great rulers, crises and civil wars, every new ruler (off by default), revolts, alliances, a faith on offer or the Old Gods, your fall. "Pause for…" switches are kept in `localStorage`, not saves.
+- **When your realm falls** you carry on as a living realm of your people (culture), else of your race, else watch; your policies come with you. **At year 1000** the end summary lists each realm you played and what became of it, then your people's and race's share of the land. No score; worked out from the command log.
 
-**Step 2** (2026-11-07). Code: `ui/play.ts`, a heavier border in `render/overlay.ts` (SPEC §5.4m).
-
-- The Play tab lists the chosen race's living realms, largest first (at most `PLAY_LIST_MAX`), with land and ruler; one click takes it over.
-- **Your realm** shows the ruler (portrait, title, dynasty, great type), land, people (and how many aren't the ruling race), faith, soldiers in the field and in reserve, stability, war weariness, unrest, allies, worst rival, your wars (whose side you're on, how it's going, the War Room score bar; click to follow), and the seven policies as drop-downs.
-- Land, people and unrest are counted from the map, since a nation's own totals are only filled in after its first year.
-- If your realm falls, the panel says so and the list of realms comes back (step 5 will narrow it to your people).
-- Opening the tab pauses playback only when no one is playing, so a player can keep it open while time runs.
-- Seen while testing: in the settled start a kingdom can rule land with none of its own race living there (Mairna, Humans ruling elves and orcs). The panel says "none of them Humans".
-
-**Step 3** (2026-11-07). Code: the Orders part of `ui/play.ts`; `declareWarRefusal` (`sim/war.ts`) and `playerWarRefusals` (`sim/play.ts`).
-
-- **War:** pick a neighbor (with your opinion of it), or click its land on the map; Conquer / Reclaim / Raid buttons are greyed where the rules wouldn't allow them, with the reasons written underneath. The AI's declarations, the gods' and the player's buttons all go through the one check, `declareWarRefusal`, so a button is never enabled for a war the order would refuse (history unchanged: golden test passes).
-- **Alliance:** pick a neighbor you aren't allied with and propose; the rules' reason shows if it can't be offered, and the other side answers at once ("Lirelor turns the offer down"). Each ally has a **Break** button.
-- **Sue for peace** appears on a war in Your wars when you're clearly losing your own war (not an ally's); the winner decides at once.
-- **Adopt faith** appears while another faith holds most of the realm.
-- The result of each order, or the reason it was refused, shows under the orders. Clicking a list to choose pauses time, so it doesn't change under you. A press that moves more than `CLICK_SLOP` pixels is a drag, not a map click.
-
-**Step 4** (2026-11-07). Code: `ui/dispatches.ts` (what happened, tested in `tests/dispatches.test.ts`), the dispatch box and "Pause for…" switches in `ui/play.ts`, the pause in `advanceYear` (`main.ts`).
-
-- After each year, `dispatchesFor` reads the year's events and compares the realm with how it was before the year (`watchRealm`: ruler, alive, capital besieged or taken, faith on offer). Eight kinds: wars declared on you (or an ally: whether you joined, and your policy, since "an ally calls you" has no event when you stay out), armies routed and your capital besieged or taken, your wars ending, your rulers (rises, deaths, crises, civil war, and a new ruler no event names), revolts against you, alliances made or broken, a faith on offer or the Old Gods stirring, and your realm's fall.
-- If any are switched on, playback pauses, the Play tab opens and the year's dispatches show at its top; **Carry on** starts playback again.
-- Each kind can be switched off under "Pause for…"; the choice is kept in this browser (`localStorage`), not in saves, since it's how you like to play rather than part of history.
-- Enemy peace offers your policy refused leave no event, so they aren't reported (yet). Your own orders' results show under Orders instead.
-
-**Step 5** (2026-11-07). Code: `heirsOf` (`sim/play.ts`), the Carry on list in `ui/play.ts`, `ui/summary.ts`; tests in `tests/playEnd.test.ts`.
-
-- **When your realm falls** the dispatch says so, and right under it the Play tab lists who you can carry on as: living realms of your people (culture), largest first; if none, realms of your race; if none, you can only stop playing and watch. Choosing one is an ordinary "play" order, so your policies come with you. Carrying on as another race's realm makes its culture the people you follow from then on.
-- Your people's realms include whoever conquered you, if they're your own culture (seen in testing: Ugruk fell to Gorgash, another realm of its people).
-- **At year 1000** playback stops and the tab shows **The end of history**: each realm you played with its years and what became of it (fell, still stands with how much land, or left by you), then how many realms your people rule and their share of the land, and your race's share. No score. It's worked out from the command log's "play" orders, so nothing new is saved.
-- Fixed while testing: a page-wide `[hidden]` rule, since a class's `display` was showing elements meant to be hidden (the fallen realm's ruler and stats).
-
-**Step 6, playtest pass** (2026-11-08). Measured 6 worlds × 1,000 years (settled start, second kingdom played on default policies, carrying on as the largest heir after a fall), counting the years playback pauses:
-
-| World | Pauses before | Pauses after | Played realm fell |
-|---|---|---|---|
-| pt1 | 50 | 29 | never |
-| pt2 | 32 | 19 | never |
-| pt3 | 16 | 11 | never |
-| pt4 | 333 | 169 | 579, 857, 924, 962 |
-| pt5 | 45 | 31 | never |
-| pt6 | 142 | 117 | 63 |
-
-- **Too many pauses** came from two things: a long war paused on a rout almost every year (10 pauses in one 25-year war), and every ordinary succession (a new ruler every ~20–35 years) paused. Now only **your first rout in each war** pauses (later ones are in the War Room), and ordinary successions are their own kind, **Every new ruler**, switched off by default (`DISPATCH_DEFAULT_OFF`). Great rulers rising and dying, crises and civil wars still pause.
-- What's left is mostly real news: in pt4 the realm is at war almost all the time, so a pause every ~6 years is the story. Any kind can be switched off.
-- The played realm on default policies never starts a war of its own, so it does no better than the AI: in pt4 it fell where the AI's realm survived, in pt1 the AI's fell (year 872) and the played one stood. Playing well means giving orders.
-- Played a run in the browser to year 1000 with Carry on, through a war in year 33 and the end summary. Save and load in the middle of a played run is covered by `tests/play.test.ts` (a played save loads and plays on to the same history).
+**Playtest** (6 worlds × 1,000 years, settled start, second kingdom on default policies, carrying on after falls). Pauses per run were 16–333, mostly a rout every year of a long war and every ordinary succession; after limiting routs to the first per war and turning "every new ruler" off by default, 11–169 (the top one is a realm at war almost all the time). A realm left on default policies never starts a war and does no better than the AI, sometimes worse: playing well means giving orders. Save and load mid-run is tested (a played save replays to the same history).

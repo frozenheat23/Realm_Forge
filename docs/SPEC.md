@@ -37,7 +37,7 @@ src/
   ui/      controls.ts, eventLog.ts, timeline.ts, export.ts
   main.ts
 tests/
-docs/      SPEC.md, PARAMS.md, GLOSSARY.md, ref/ (reference screenshots)
+docs/      SPEC.md, PARAMS.md, GLOSSARY.md, systems/ (one file per later system), art/
 ```
 
 ---
@@ -610,15 +610,6 @@ Taken cells go through `setOwner` (unrest jumps to `UNREST_CONQUEST`). All other
 - **Rebel armies.** When a rebellion starts, the old nation loses `REBEL_LEVY` of its reserve (its soldiers defect). With chance `REBEL_WAR_PROB`, if it isn't already at `MAX_WARS_PER_NATION`, it goes straight to war to take them back (goal **Reclaim**, goal cells = the rebel region), and the rebels raise an army at once: `size = the region's Σ pop × martial × REBEL_LEVY`. Otherwise there's no war for now, though the old nation's claim can bring one later (§4.5).
 - **Allies.** A helper (§4.5) needs to border the enemy *or* the ally it's helping, because its army can march through allied land. If it doesn't touch the enemy it musters at its capital.
 
-#### Done when (M11)
-
-- Wars show armies marching, fighting and besieging; most wars are decided by a few battles and sieges, not by grinding the whole border.
-- A nation that loses its army is visibly weak for decades; big empires in two wars are stretched.
-- Tick still under ~10 ms; history identical with every effect layer on or off; same seed = same history.
-- 10-seed balance check: no race takes over; rebellions still break up big empires (rebels win their independence war at least sometimes).
-
-Met: tick 9.3 ms; biggest race 40%; of ~8 rebel wars a century, rebels win ~2, are crushed ~3.5, and in ~2 the old nation dies.
-
 ### 4.14 Culture and faith
 
 > Built in M12, in six steps (see the Decision log). Numbers are in `PARAMS.md` → "Culture and faith". Code: `sim/culture.ts`, `sim/faith.ts`, `gen/faiths.ts`.
@@ -692,27 +683,11 @@ Schisms, holy wars and holy cities (could return as their own step), morale bonu
 
 #### What it gives
 
-Measured on 20 seeds never used for tuning, each 1,000 years, against the same seeds before M12:
-
-| | Before | After |
-|---|---|---|
-| Realms reborn per run | 0 | 17 |
-| Realm conversions per run | 0 | 4.8 (target was 10, see below) |
-| Realms where the Old Gods first stir, per run | 0 | 17 |
-| Rebellions per century | 4.6 | 4.5 |
-| Wars per century | 54 | 56 |
-| Average biggest empire at its peak | 30% of the land | 31% |
-| Worlds reaching 25% / 40% | 60% / 15% | 65% / 25% |
-
-- 8.4 of 9 faiths alive at year 1000, on 90% solid blobs. A culture is on 91% solid land at year 500. No culture ever crossed a race.
-- The Old Gods hold 5.5% of the land at year 1000; 15% at the worst moment of any run.
-- Land at unrest ≥ 0.9: 22.5%. Tick 8.3 ms (was 6.9). 10-seed race balance: biggest race 42%, no takeovers.
-- Every blessing changed what it should when switched off and on: Order stability 0.938 → 0.964 (at 1.3, before it was cut to 1.1), Forge development 0.57 → 0.65, Warpath wars 31 → 42 per 1,000 nation-years, Grudges reclaim wars 1% → 9%, Kinship cells assimilated 3,320 → 5,304, Remembrance 605 → 316, Devotion reserve 83.5% → 85.8%, Whispers unrest beside shrines 0.76 → 0.83. Sanctuary is the weakest: Evergreen land 404 → 439, within noise, kept because it directly multiplies battle power.
-- Realm conversions missed their target: rulers' faith spreads faster than any rival's, so a realm rarely holds a majority against it. Raising cross-border spread further got ~7 a run but cut rebellions and rebirths. Kept at ~5 a run, since each one is a moment worth seeing.
+On 20 unseen seeds: ~17 realms reborn and ~5 realm conversions per run, ~8 of 9 faiths alive at year 1000, no culture ever crossing a race; wars, rebellions and empire sizes within noise of before. Conversions stay below the hoped-for 10: rulers' faith spreads fastest, so a realm rarely holds a rival majority (the full measurements are in git history, commit for M12 step 6).
 
 ### 4.15 Rulers and dynasties
 
-> Built in M13. The full description is in [`systems/rulers.md`](systems/rulers.md), because this doc is past the size limit in §9. Numbers are in `PARAMS.md` → "Rulers and dynasties".
+> Built in M13. The full description is in [`systems/rulers.md`](systems/rulers.md), so this doc stays short. Numbers are in `PARAMS.md` → "Rulers and dynasties".
 
 Every nation has a named ruler and dynasty. A few rulers are great (Conqueror, Lawgiver, Builder, Prophet, Schemer): each race leans toward one type, and bigger realms draw them more often. When a reign ends, a crisis can strike, and big nations fall into civil war, worst after a great ruler. One new tick step: 7b Succession. Golden ages are designed in the same file but not built.
 
@@ -720,13 +695,13 @@ Every nation has a named ruler and dynasty. A few rulers are great (Conqueror, L
 
 > Built in M15. The full description is in [`systems/controllers.md`](systems/controllers.md).
 
-Every choice a nation makes (declare war and its goal, join an ally, form or break an alliance, accept peace, mobilize, campaign orders, crush a revolt, adopt a faith) is asked of the nation's **controller** and comes back as a **command** that the rules validate and apply. The AI controller is today's logic, moved; a player controller can replace it for one nation later (M19). Battle rolls, revolts, spreading, succession and everything else stay rules. No new tick step.
+Every choice a nation makes (declare war and its goal, join an ally, form or break an alliance, accept peace, mobilize, campaign orders, crush a revolt, adopt a faith) is asked of the nation's **controller** and comes back as a **command** that the rules validate and apply. The AI controller is today's logic, moved; a player controller replaces it for the played nation (M20, [`systems/play.md`](systems/play.md)). Battle rolls, revolts, spreading, succession and everything else stay rules. No new tick step.
 
 ---
 
 ## 5. Rendering (`render/`)
 
-**Target look:** game-like, atmospheric and readable while borders change every year. Reference screenshots go in `docs/ref/`.
+**Target look:** game-like, atmospheric and readable while borders change every year.
 
 ### 5.1 Terrain layer (drawn once, cached)
 - Color each pixel from elevation + biome (lowland greens → highland browns → snow).
@@ -871,37 +846,33 @@ A fifth side-panel tab (`src/ui/play.ts`). With no one playing it lists the livi
 
 ## 8. Backlog systems
 
-Not designed yet. When one is picked up, give it its own section in §4 and matching parameters in `PARAMS.md`.
+Not designed yet. When one is picked up, give it its own `docs/systems/` file (§9) and matching parameters in `PARAMS.md`.
 
 - Schisms, holy wars and holy cities (§4.14)
 - Red Orcs as a second orc race (disciplined empire-builders who rule Green Orcs easily)
 - Trade routes and economy
-- Deeper diplomacy: vassals, peace terms, betrayal (an ally refusing to help)
+- Deeper diplomacy: vassals, tribute deals, betrayal (an ally refusing to help), fear coalitions against a rising giant (the next lever on attacker wins, M18)
+- Playing a nation, further: directing armies, fog of war, a score (left out of M20)
 - Naval expansion across water (and fleets carrying armies, after M11)
 - Golden ages that end in decline (designed in `systems/rulers.md`)
 - Plagues (spreading by neighbor, carried by armies and through cities, burning out as survivors gain immunity) and famines (regional, 2–5 years, worst in war-torn land, eased by grain). Brainstormed in M13 and set aside by choice
 - Azgaar map import
-- Rust port of `sim/` (after M5)
 
 ---
 
 ## 9. Adding a new system
 
-1. Write the design here as a new subsection of §4 (or §3 or §5). Say where it runs in the tick order.
+1. Write the design in its own `docs/systems/<name>.md` (small changes: a subsection here). Say where it runs in the tick order, and link it from the matching section here.
 2. Add its parameters to `PARAMS.md` under the **same heading**: value, range, and what happens when it goes up or down.
 3. Add the values to the matching `params.ts`.
 4. Write tests on a tiny hand-built map.
 5. Log the decision in `CLAUDE.md`.
-6. If this doc passes ~700 lines, or one system gets large, move that system to `docs/systems/<name>.md` and link it from here.
 
 ---
 
 ## 10. Open questions
 
-- Map size and aspect ratio (default 1600×900)?
-- Single continent vs archipelago presets?
-- Slow down time automatically during major events?
-- Which reference frames define the target look? (Add them to `docs/ref/`.)
+- Map size and aspect ratio (default 1600×900)? Single continent vs archipelago presets?
 - Hex cells as a style option? Placing cell centers on an offset grid with no jitter makes the Voronoi cells exact hexagons; `sim/` would not change.
-- Should holding another nation's claimed land also lower its opinion of you (§4.12)? Not done in M9; claims only raise war chance.
-- Provinces have no names yet. Name them (and show them on the map) in a later milestone?
+- Should holding another nation's claimed land also lower its opinion of you (§4.12)? Claims only raise war chance today.
+- Provinces and seas have no names yet. Name them (and show them on the map)?

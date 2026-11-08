@@ -2,13 +2,15 @@
 
 A fantasy world simulator that runs in your browser. It generates a continent, then watches kingdoms rise, go to war, rebel and collapse over a thousand years, played back as a timelapse.
 
-> 🚧 Early development. Built as a hobby project and as a way to learn TypeScript.
+A hobby project, built as a way to learn TypeScript.
 
-## What it does (planned)
+## What it does
 
-- 🗺️ **Generates a world** from a seed: mountains, rivers, forests, deserts, coastlines
-- 👑 **Simulates history** year by year: nations expand, fight wars, make peace, split apart and fall
-- 🎬 **Plays it back** with play / pause / speed controls, a year counter and an event log
+- 🗺️ **Generates a world** from a seed: mountains, rivers, forests, deserts, coastlines, drawn as an old parchment chart
+- 👑 **Simulates history** year by year: five races, kingdoms, wars with marching armies, alliances, rebellions, cultures, faiths, rulers and dynasties
+- 🎬 **Plays it back** with speed controls, zoom, an event log and a War Room to follow any war
+- 🧙 **Sandbox:** start or end wars as a god and see the odds of possible futures
+- 🛡️ **Play as a nation:** pick a realm, give orders and set policies for 1,000 years
 - 🔁 **Repeatable:** the same seed always produces the same history
 
 ## Run it
@@ -24,7 +26,7 @@ npm install
 npm run dev
 ```
 
-Then open the link shown in the terminal (usually http://localhost:5173). Add `?seed=anything` to the address to get a different world, or `?style=painted` for the painted look. The map is parchment by default; the **Classic map** button (or `?style=cel`) gives the older look. Press **Space** to play/pause, **→** to step a year, **C** to see the cells, **N** to hide/show nations, and hover to inspect a cell. Open **Settings** to tune the simulation live, click an event to highlight its nations, and use **Save / Load / Record** to keep a history or export a video.
+Then open the link shown in the terminal (usually http://localhost:5173). Add `?seed=anything` to the address for a different world. Press **Space** to play/pause, **→** to step a year, scroll to zoom, and hover to inspect. The side panel has the War Room, the log, the Sandbox and the **Play** tab. **Save / Load / Record** keep a history or export a video.
 
 Run the tests with:
 
@@ -34,14 +36,7 @@ npm test
 
 ## Progress
 
-- [x] M0 · Project setup
-- [x] M1 · Terrain
-- [x] M2 · Cells and biomes
-- [x] M3 · Starting nations
-- [x] M4a · Growth
-- [x] M4b · Rebellion and collapse
-- [x] M5 · War
-- [x] M6 · Polish (speed controls, video export, save/load)
+Milestones M0–M20 are built: terrain, nations, war, races, diplomacy, armies, culture and faith, rulers, the parchment map, the War Room, the Sandbox, zoom and playing as a nation. Details are in [`CLAUDE.md`](CLAUDE.md) and [`docs/`](docs/).
 
 ## Built with
 
