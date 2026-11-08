@@ -17,7 +17,7 @@ import { giveCommand } from "../sim/sandbox";
 import { suePeaceRefusal } from "../sim/war";
 import { PLAY_LIST_MAX, PLAYER_MOBILIZE_CHOICES } from "./config";
 import { rivalOf } from "./debugInfo";
-import { DISPATCH_KINDS, DISPATCH_NAMES, type Dispatch, type DispatchKind } from "./dispatches";
+import { DISPATCH_DEFAULT_OFF, DISPATCH_KINDS, DISPATCH_NAMES, type Dispatch, type DispatchKind } from "./dispatches";
 import { fallbackPath, portraitPath } from "./portraits";
 import { summaryLines } from "./summary";
 import { fill } from "./sandbox";
@@ -52,12 +52,15 @@ export interface PlayTab {
 /** Where the dispatch kinds switched off are remembered, in this browser only. */
 const DISPATCH_OFF_KEY = "realm-forge-dispatches-off";
 
+/** The kinds switched off: as last chosen in this browser, or the defaults. */
 function loadDispatchesOff(): Set<string> {
   try {
-    return new Set(JSON.parse(localStorage.getItem(DISPATCH_OFF_KEY) ?? "[]") as string[]);
+    const saved = localStorage.getItem(DISPATCH_OFF_KEY);
+    if (saved !== null) return new Set(JSON.parse(saved) as string[]);
   } catch {
-    return new Set();
+    // Can't read it (private window): use the defaults.
   }
+  return new Set(DISPATCH_DEFAULT_OFF);
 }
 
 const GOAL_NAMES: Record<(typeof WAR_GOALS)[number], string> = { conquer: "Conquer", reclaim: "Reclaim", raid: "Raid" };

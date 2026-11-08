@@ -1,6 +1,6 @@
 # Play as a nation (M20)
 
-> **Planned** 2026-11-07, designed with the user. **Steps 1–5 built** 2026-11-07 (the player's controller, orders and log; choosing a nation and the Your realm panel; order buttons; dispatches; following your people and the end summary: see "As built" at the end); step 6, the playtest pass, still to do. Builds on controllers (`controllers.md`), the command log (`sandbox.md`), the War Room (`warroom.md`) and zoom (SPEC §5.4l).
+> **Planned** 2026-11-07, designed with the user. **Built** 2026-11-07 to 2026-11-08 in 6 steps (the player's controller, orders and log; choosing a nation and the Your realm panel; order buttons; dispatches; following your people and the end summary; a playtest pass: see "As built" at the end). Builds on controllers (`controllers.md`), the command log (`sandbox.md`), the War Room (`warroom.md`) and zoom (SPEC §5.4l).
 
 **Goal.** Pick a nation and play its 1,000 years. You make its strategic choices; the same rules as everyone else decide what happens. When your realm falls, you carry on with your people.
 
@@ -129,3 +129,19 @@ Directing armies yourself, fog of war, a score, custom realms at the start, dipl
 - Your people's realms include whoever conquered you, if they're your own culture (seen in testing: Ugruk fell to Gorgash, another realm of its people).
 - **At year 1000** playback stops and the tab shows **The end of history**: each realm you played with its years and what became of it (fell, still stands with how much land, or left by you), then how many realms your people rule and their share of the land, and your race's share. No score. It's worked out from the command log's "play" orders, so nothing new is saved.
 - Fixed while testing: a page-wide `[hidden]` rule, since a class's `display` was showing elements meant to be hidden (the fallen realm's ruler and stats).
+
+**Step 6, playtest pass** (2026-11-08). Measured 6 worlds × 1,000 years (settled start, second kingdom played on default policies, carrying on as the largest heir after a fall), counting the years playback pauses:
+
+| World | Pauses before | Pauses after | Played realm fell |
+|---|---|---|---|
+| pt1 | 50 | 29 | never |
+| pt2 | 32 | 19 | never |
+| pt3 | 16 | 11 | never |
+| pt4 | 333 | 169 | 579, 857, 924, 962 |
+| pt5 | 45 | 31 | never |
+| pt6 | 142 | 117 | 63 |
+
+- **Too many pauses** came from two things: a long war paused on a rout almost every year (10 pauses in one 25-year war), and every ordinary succession (a new ruler every ~20–35 years) paused. Now only **your first rout in each war** pauses (later ones are in the War Room), and ordinary successions are their own kind, **Every new ruler**, switched off by default (`DISPATCH_DEFAULT_OFF`). Great rulers rising and dying, crises and civil wars still pause.
+- What's left is mostly real news: in pt4 the realm is at war almost all the time, so a pause every ~6 years is the story. Any kind can be switched off.
+- The played realm on default policies never starts a war of its own, so it does no better than the AI: in pt4 it fell where the AI's realm survived, in pt1 the AI's fell (year 872) and the played one stood. Playing well means giving orders.
+- Played a run in the browser to year 1000 with Carry on, through a war in year 33 and the end summary. Save and load in the middle of a played run is covered by `tests/play.test.ts` (a played save loads and plays on to the same history).

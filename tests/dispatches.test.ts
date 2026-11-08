@@ -46,12 +46,27 @@ describe("dispatches", () => {
     state.battles.push({ cell: 1, winner: 2, loser: 1, lost: 1, routed: true });
     me.ruler = { ...me.ruler, name: "Novus", crowned: 1 };
     const news = dispatchesFor(state, [event("rebellion", [4, 1], "Year 1: Nation4 breaks away from Nation1.")], before);
-    expect(news.map((d) => d.kind)).toEqual(["revolt", "battle", "ruler"]);
+    // An ordinary succession is its own kind ("heir"), off by default.
+    expect(news.map((d) => d.kind)).toEqual(["revolt", "battle", "heir"]);
     expect(news[2]!.text).toContain("Novus");
 
     state.battles = [];
     me.alive = false;
     expect(dispatchesFor(state, [], before)).toEqual([{ kind: "fall", text: "Nation1 has fallen." }]);
+  });
+
+  it("report only the first rout of each war", () => {
+    const state = played();
+    const before = watchRealm(state);
+    state.year = 5;
+    state.battles.push({ cell: 1, winner: 2, loser: 1, lost: 1, routed: true });
+    const record = { id: 1, attacker: 2, defender: 1, allies: [], goal: "conquer" as const, start: 3, scores: [], fallen: { attack: 0, defend: 0 }, moments: [],
+      battles: [{ year: 5, cell: 1, winner: 2, loser: 1, lost: 1, routed: true }] };
+    state.warRecords.push(record);
+    expect(dispatchesFor(state, [], before).map((d) => d.kind)).toEqual(["battle"]);
+    // Routed once already in this war (year 4): no pause this time.
+    record.battles.unshift({ year: 4, cell: 0, winner: 2, loser: 1, lost: 1, routed: true });
+    expect(dispatchesFor(state, [], before)).toEqual([]);
   });
 
   it("report the capital besieged once, not every year", () => {

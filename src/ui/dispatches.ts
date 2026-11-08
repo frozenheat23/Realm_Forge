@@ -9,19 +9,23 @@ import { menText } from "../sim/events";
 import { offeredFaith } from "../sim/faith";
 
 /** The kinds of dispatch, each of which the player can switch off. */
-export const DISPATCH_KINDS = ["war", "battle", "peace", "ruler", "revolt", "alliance", "faith", "fall"] as const;
+export const DISPATCH_KINDS = ["war", "battle", "peace", "ruler", "heir", "revolt", "alliance", "faith", "fall"] as const;
 export type DispatchKind = (typeof DISPATCH_KINDS)[number];
 
 export const DISPATCH_NAMES: Record<DispatchKind, string> = {
   war: "Wars declared on you or your allies",
-  battle: "Armies routed, capital besieged or taken",
+  battle: "Your first rout in a war, capital besieged or taken",
   peace: "Your wars ending",
-  ruler: "Your rulers: deaths, crises, civil war",
+  ruler: "Great rulers rising and dying, crises, civil war",
+  heir: "Every new ruler",
   revolt: "Revolts breaking away",
   alliance: "Alliances made or broken",
   faith: "A faith on offer, the Old Gods",
   fall: "Your realm falling",
 };
+
+/** Kinds that don't pause until switched on: they come too often (a new ruler every ~25 years). */
+export const DISPATCH_DEFAULT_OFF: readonly DispatchKind[] = ["heir"];
 
 export interface Dispatch {
   kind: DispatchKind;
@@ -121,10 +125,18 @@ export function dispatchesFor(state: WorldState, events: SimEvent[], before: Rea
     }
   }
 
-  // Armies of yours routed this year.
+  // Your first rout in each war (later ones are in the War Room, or every long war would pause each year).
+  const routedBefore = (battle: { cell: number; winner: NationId }) =>
+    state.warRecords.some(
+      (r) =>
+        r.battles.some((b) => b.year === state.year && b.cell === battle.cell && b.loser === me.id) &&
+        r.battles.some((b) => b.year < state.year && b.loser === me.id && b.routed),
+    );
+  const told = new Set<NationId>();
   for (const battle of state.battles) {
-    if (battle.loser !== me.id || !battle.routed) continue;
-    add("battle", `${capitalize(battlePlace(state, battle.cell))}, ${name(battle.winner)} routs your host (${menText(battle.lost)} fell).`);
+    if (battle.loser !== me.id || !battle.routed || told.has(battle.winner) || routedBefore(battle)) continue;
+    told.add(battle.winner);
+    add("battle", `${capitalize(battlePlace(state, battle.cell))}, ${name(battle.winner)} routs your host (${menText(battle.lost)} fell). Later routs in this war won't pause the game.`);
   }
 
   if (now.alive) {
@@ -132,7 +144,7 @@ export function dispatchesFor(state: WorldState, events: SimEvent[], before: Rea
     if (now.capitalTaken && !before.capitalTaken) add("battle", `The enemy takes ${capital}, the seat of ${me.name}.`);
     else if (now.besieged && !before.besieged) add("battle", `${capitalize(capital)} is besieged.`);
     // A new ruler not named by any event this year (an ordinary reign ending, or a great one's death).
-    if (now.ruler !== before.ruler && !out.some((d) => d.kind === "ruler" && d.text.includes(me.ruler.name))) add("ruler", `A new ruler takes the throne of ${me.name}: ${me.ruler.name} of ${me.ruler.dynasty}.`);
+    if (now.ruler !== before.ruler && !out.some((d) => d.kind === "ruler" && d.text.includes(me.ruler.name))) add(out.some((d) => d.kind === "ruler") ? "ruler" : "heir", `A new ruler takes the throne of ${me.name}: ${me.ruler.name} of ${me.ruler.dynasty}.`);
     if (now.faithOffered !== null && now.faithOffered !== before.faithOffered) {
       add("faith", `Most of your people now hold ${faithInfo(now.faithOffered).name}. You can adopt it under Orders.`);
     }

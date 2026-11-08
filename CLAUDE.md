@@ -46,7 +46,7 @@ I'm new to coding and learning TypeScript through this project. Every session is
 - Show it as a good-looking map with play / pause / speed controls, a year counter and an event log.
 - Same seed + same settings = same history (in the same browser).
 
-**Not now:** player control (planned for M20; M15–M19 prepare for it), economy, trade, multiplayer, servers or accounts. (Ideas are parked in SPEC.md §8 and PARAMS.md "Candidate parameters".)
+**Not now:** directing armies yourself, fog of war, a score, economy, trade, multiplayer, servers or accounts. (Ideas are parked in SPEC.md §8 and PARAMS.md "Candidate parameters".)
 
 ---
 
@@ -106,7 +106,7 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | M17 ✅ | Sandbox | God commands start and end wars; command log in saves (replay gives the same history); odds from 20 futures for a war and a nation; Sandbox tab | `docs/systems/sandbox.md` |
 | M18 ✅ | Real war | Nations go to war on estimates (race confidence, ruler boldness, yearly error); defenders who hold out can win; generals lead armies; a losing side can sue for peace; tuned with sandbox odds | `docs/systems/realwar.md` |
 | M19 ✅ | Map zoom | Zoom (up to 4×) and pan the map, redrawn sharp when it settles; labels, markers and effects included; following a war zooms to it | §5.4l |
-| M20 | Play as a nation (planned) | Pick a race and nation, play 1,000 years with orders and standing policies, paused on what matters; when your realm falls you choose a realm of your people to carry on as | `docs/systems/play.md` |
+| M20 ✅ | Play as a nation | Pick a race and nation, play 1,000 years with orders and standing policies, paused on what matters; when your realm falls you choose a realm of your people to carry on as | `docs/systems/play.md` |
 | Later | Backlog | See SPEC.md §8 | §8 |
 
 ---
@@ -275,3 +275,4 @@ Work one at a time. At the end of each: run tests, take a screenshot, give me my
 | 2026-11-07 | M20 step 3 built: order buttons in the Play tab (war with goals, propose and break alliances, sue for peace, adopt faith), greyed with the rules' reasons; click a realm on the map to pick it as war target. `declareWarRefusal` (`sim/war.ts`) is now the one check for AI, god and player wars; golden history unchanged |
 | 2026-11-07 | M20 step 4 built: dispatches (`ui/dispatches.ts`) pause playback on what happens to your realm, in eight kinds each switchable under "Pause for…" (kept in localStorage, not saves); Carry on resumes. Worked out from the year's events plus a before/after look at the realm, so `sim/` is unchanged |
 | 2026-11-07 | M20 step 5 built: when your realm falls you carry on as a realm of your people (culture), else your race, else watch (`heirsOf` in `sim/play.ts`); at year 1000 an end-of-history summary (`ui/summary.ts`) from the command log's play orders, no score. Page-wide `[hidden]` rule added (class display rules were overriding it) |
+| 2026-11-08 | M20 step 6, playtest pass, M20 done. Measured pauses on 6 worlds × 1,000 years: a long war paused on a rout nearly every year, and every ordinary succession paused. Now only your first rout in each war pauses, and ordinary successions are a kind of their own ("Every new ruler"), off by default. Pauses per run 16–333 → 11–169 (the top one is a realm at war almost all the time). A realm left on default policies never starts wars, so it does no better than the AI: playing well means giving orders. History unchanged |
