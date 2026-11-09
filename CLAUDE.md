@@ -145,7 +145,7 @@ Short and current. Earlier detail (tuning runs, measurements) is in git history 
 - Culture stays inside a race, faith crosses races; nine faiths. Rebels are one culture; dead realms can return. Pretenders come only from the ruling people.
 - Rulers: five great types, each race leaning to one; succession crises and civil wars. Golden ages left out (backlog).
 - War is decided on estimates (race confidence × ruler boldness × yearly error); defenders who hold out score and can win; generals lead armies; losers can sue for peace.
-- Tuning target: great empires can reach 25–50% of the land and still break apart. On unseen seeds ~65% of worlds reach 25%; attackers win ~80% of decided wars.
+- Tuning target: great empires can reach 25–50% of the land and still break apart; attackers win 55–75% of decided wars. Measure with `npm run report` (24 worlds × 1,000 years per set, `docs/measurements/README.md`). Baseline 2026-11-09 (validation): 75% of worlds reach a 25% crown, 4% reach 40%, ~40% of giants break below 12.5%; attackers win 83%.
 
 **Look and screen**
 - Parchment is the default style (M14); Classic map keeps the cel-shaded look. `MapLook` carries a style's choices to the overlay, labels and markers.
@@ -173,3 +173,4 @@ Short and current. Earlier detail (tuning runs, measurements) is in git history 
 | 2026-11-08 | Docs shortened: decision log condensed to current decisions; full history stays in git |
 | 2026-11-09 | Reviewed the campaign pass and vassalage scope (sound code, honest numbers; attacker wins still 84%). User chose a simple vassalage first |
 | 2026-11-09 | Vassalage v1 built: holding a capital at peace makes the loser a vassal (keeps its capital); vassals start no wars or alliances; overlord and vassal join each other's wars by rule; no wars inside a crown; a vassal may declare independence only in the year its overlord's ruler is crowned (AI chance from opinion and strength, `INDEPENDENCE_CHANCE` 1), and goes free if its overlord falls. Save stays v13 (optional `overlord`). Validation seeds: realms alive at 500 13.6 → 22.1, attacker wins 84% unchanged, vassals serve ~50 years. Year now ~15–19 ms (more realms alive); test time limit 30 s. Golden histories re-recorded |
+| 2026-11-09 | Wider measuring: `npm run report` runs 24 worlds × 1,000 years per set (16 small settled, 4 full-size settled, 4 small open) in parallel shards, ~3 minutes; first baseline saved in `docs/measurements/`. Tuning and validation sets differ by ~15 wars a century, so only bigger shifts count |
