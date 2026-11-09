@@ -73,6 +73,8 @@ Personal names come from new short lists for each race and gender, and dynasty n
 
 ## Succession
 
+Planned extension: [imperial succession](vassalage.md) will add recognition of a new sovereign by vassal kingdoms and possible independence disputes. The rules below describe the existing local succession and pretender systems; the extension is not implemented yet.
+
 Runs as new tick step **7b**, after Rebellion and before Collapse, so a piece too small to live dissolves the same year. For each nation whose ruler's reign has ended:
 
 1. **Heir.** With chance `HEIR_CHANCE` the same dynasty continues. Otherwise a new dynasty takes over and the nation loses `DYNASTY_STAB_HIT` stability.

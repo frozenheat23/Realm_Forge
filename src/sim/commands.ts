@@ -16,7 +16,7 @@ export type Command =
   | { kind: "formAlliance"; a: NationId; b: NationId }
   | { kind: "breakAlliance"; nation: NationId; other: NationId }
   | { kind: "mobilize"; nation: NationId; war: number; size: number }
-  | { kind: "orderArmy"; army: number; target: CellId }
+  | { kind: "orderArmy"; army: number; target: CellId; siegeMode?: "wait" | "assault" }
   | { kind: "crushRevolt"; nation: NationId; rebels: NationId }
   | { kind: "adoptFaith"; nation: NationId; faith: FaithId }
   // The losing side's offer, already accepted by the winner (as an alliance is proposed and accepted).

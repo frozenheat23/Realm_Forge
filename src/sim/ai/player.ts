@@ -71,6 +71,7 @@ export const PLAYER: Controller = {
   },
 
   orderArmy: AI.orderArmy, // strategy only: armies march as the AI's do
+  orderSiege: AI.orderSiege,
 
   crushRevolt(view) {
     return policies(view).rebels === "fight";

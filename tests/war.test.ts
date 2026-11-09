@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
 import { SIM } from "../src/sim/params";
-import { declareWars, endWars, frontCells, neighborPairs } from "../src/sim/war";
+import { declareWars, endWars, frontCells, neighborPairs, startWar } from "../src/sim/war";
 import { releaseOccupations } from "../src/sim/siege";
 import { makeNation, makeState, row } from "./tinyWorld";
 import { everyoneAI } from "../src/sim/ai/default";
+import { controllersOf, defaultPolicies } from "../src/sim/ai/player";
 
 // Two nations side by side on a row of 10 cells: nation 1 owns 0–4, nation 2 owns 5–9.
 //   [1][1][1][1][1] | [2][2][2][2][2]
@@ -48,6 +49,46 @@ describe("declareWars", () => {
 });
 
 describe("endWars", () => {
+  it.each([
+    ["goal", "attacker exhausted"],
+    ["goal", "defender exhausted"],
+    ["goal", "time limit"],
+    ["attacker decisive", "attacker exhausted"],
+    ["attacker decisive", "time limit"],
+    ["defender decisive", "defender exhausted"],
+    ["defender decisive", "time limit"],
+  ] as const)("forces peace after %s despite fight-on policy when %s", (victory, limit) => {
+    const state = twoNations();
+    const attacker = state.nations.get(1)!;
+    const defender = state.nations.get(2)!;
+    const war = startWar(state, attacker, defender, "conquer", victory === "goal" ? [5] : []);
+    state.state.occupier[5] = 1;
+    if (victory !== "goal") war.battleScore = (victory === "defender decisive" ? -2 : 2) * SIM.PEACE_SCORE;
+    const winner = victory === "defender decisive" ? defender : attacker;
+    state.player = { nation: winner.id, culture: winner.culture, policies: { ...defaultPolicies(), wonWar: "fightOn", enemySues: "refuse" } };
+    if (limit === "time limit") state.year = SIM.MAX_WAR_YEARS;
+    else (limit === "attacker exhausted" ? attacker : defender).warWeariness = SIM.WEARINESS_PEACE;
+
+    endWars(state, controllersOf(state));
+
+    expect(state.wars).toHaveLength(0);
+    expect(state.truces).toHaveLength(1);
+    expect(state.warRecords[0]!.outcome?.winner).toBe(winner.id);
+  });
+
+  it("still lets a player fight on before exhaustion or the time limit", () => {
+    const state = twoNations();
+    const attacker = state.nations.get(1)!;
+    startWar(state, attacker, state.nations.get(2)!, "conquer", [5]);
+    state.state.occupier[5] = 1;
+    state.year = SIM.MAX_WAR_YEARS - 1;
+    attacker.warWeariness = SIM.WEARINESS_PEACE - 0.01;
+    state.player = { nation: 1, culture: attacker.culture, policies: { ...defaultPolicies(), wonWar: "fightOn", enemySues: "refuse" } };
+    endWars(state, controllersOf(state));
+    expect(state.wars).toHaveLength(1);
+    expect(state.truces).toHaveLength(0);
+  });
+
   it("ends a decisive war with peace and a truce", () => {
     const state = twoNations();
     state.year = 5;

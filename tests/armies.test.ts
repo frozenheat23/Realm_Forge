@@ -58,7 +58,7 @@ describe("raising armies", () => {
 
   it("only armies in supply get fresh soldiers", () => {
     const state = atWar();
-    state.armies.push(army({ cell: 2, size: 1 }), army({ id: 2, war: 1, owner: 2, cell: 2, size: 1 }));
+    state.armies.push(army({ cell: 2, size: 1 }), army({ id: 2, war: 1, owner: 2, cell: 5, size: 1 }));
     musterArmies(state, everyoneAI);
     expect(state.armies[0]!.size).toBeGreaterThan(1); // nation 1, at home
     expect(state.armies[1]!.size).toBe(1); // nation 2, deep in enemy land

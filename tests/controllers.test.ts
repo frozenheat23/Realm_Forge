@@ -9,7 +9,6 @@ import { AI } from "../src/sim/ai/default";
 import { musterArmies } from "../src/sim/armies";
 import { applyCommand, type Command } from "../src/sim/commands";
 import { SIM } from "../src/sim/params";
-import { neighborPairs } from "../src/sim/helpers";
 import { tick } from "../src/sim/tick";
 import { runYears } from "./longRun";
 import { makeNation, makeState, row } from "./tinyWorld";
@@ -104,34 +103,29 @@ describe("controllers", () => {
     expect(state.events.some((e) => e.type === "rebellion")).toBe(true);
   }, 60_000);
 
-  it("one nation's choices don't change the dice of nations it doesn't touch", () => {
-    // From 60 moments in history, the next year is run twice: once as usual, once with
-    // a middling nation attacking every neighbor it can. Wars declared that year between
-    // nations that are neither it nor its neighbors must come out the same.
+  it("extra random draws in one nation's decision cannot shift other decisions", () => {
+    // Changing a declaration can legitimately affect distant allies and their enemies.
+    // Keep decisions identical and vary only consumed dice to isolate the RNG contract.
     const { state } = generateWorld("isolation");
     const rng = createRng("isolation").fork("sim");
     for (let y = 0; y < 100; y++) tick(state, rng);
-    const elsewhere = (copy: typeof state, controllers: Controllers, near: Set<number>) =>
-      tick(copy, rng, controllers)
-        .filter((e) => e.text.includes("declares war") && !e.actors.some((id) => near.has(id)))
-        .map((e) => e.text);
-
-    let compared = 0;
-    for (let moment = 0; moment < 60; moment++) {
+    let draws = 0;
+    for (let moment = 0; moment < 30; moment++) {
       const living = [...state.nations.values()].filter((n) => n.alive).sort((a, b) => b.area - a.area || a.id - b.id);
       const chosen = living[Math.floor(living.length / 2)]!;
-      const near = new Set([chosen.id]);
-      for (const [a, b] of neighborPairs(state)) {
-        if (a === chosen.id) near.add(b);
-        if (b === chosen.id) near.add(a);
-      }
-      const warmonger: Controller = { ...AI, declareWar: () => "raid" };
-      const usual = elsewhere(structuredClone(state), () => AI, near);
-      expect(elsewhere(structuredClone(state), (id) => (id === chosen.id ? warmonger : AI), near)).toEqual(usual);
-      compared += usual.length;
+      const extraDice: Controller = { ...AI, declareWar: (...args) => {
+        const decision = AI.declareWar(...args);
+        for (let i = 0; i < 100; i++) { args[4].next(); draws++; }
+        return decision;
+      } };
+      const normal = structuredClone(state);
+      const extra = structuredClone(state);
+      expect(tick(extra, rng, (id) => id === chosen.id ? extraDice : AI)).toEqual(tick(normal, rng, () => AI));
+      expect(extra.state.owner).toEqual(normal.state.owner);
+      expect(extra.armies).toEqual(normal.armies);
       tick(state, rng);
     }
-    expect(compared).toBeGreaterThan(0);
+    expect(draws).toBeGreaterThan(0);
   }, 120_000);
 
   it("the rules never turn down one of the AI's own commands", async () => {

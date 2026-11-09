@@ -524,7 +524,7 @@ power    = soldiers × (0.5 + stability)                           // fightingPo
 #### Raising and reinforcing armies
 
 - **Raised** when a nation enters a war (declared, declared on, or joining as an ally) and doesn't yet have an army for that war: `size = reserve × MOBILIZE_SHARE / (number of its wars still without an army)`, placed at the settlement nearest to the front, searching outward through its own land from the cells that touch the enemy (the capital if it has no front, so an army never starts on a cut-off patch of land). Not raised if smaller than `MIN_ARMY_SIZE`. If an army is destroyed, a new one is raised the next year from whatever reserve is left.
-- **Reinforced** once a year: `REINFORCE_RATE` of the reserve is shared out equally among the nation's armies that are **in supply** (standing in own or allied land, or in land its side occupies; there's no check that this land connects back home).
+- **Reinforced** once a year: `REINFORCE_RATE` of the reserve is shared out equally among the nation's armies that are **in supply** (standing on friendly-controlled land with a route of at most `SUPPLY_RANGE` links to unoccupied home/allied territory; hostile occupation and armies cut routes).
 - **Disbanded** when its war ends, or when it shrinks below `MIN_ARMY_SIZE`: the soldiers go back into the reserve. A dead nation's armies just melt away.
 - Each army stores: `id`, `owner`, `war`, `cell`, `size`, `morale` (0..1, starts at 1), `target`, and `trail` (the cells it walked this year, so the renderer can animate the march).
 
@@ -534,7 +534,7 @@ Armies act in order of `id` (deterministic). Random rolls use the `campaign` str
 
 **1. Choose a target.** The first rule that works decides; a rule whose target can't be reached falls through to the next one, so one unreachable enemy doesn't leave an army idle. An army with no way to the enemy at all tries again next year, because a failed search covers the whole map.
 1. **Retreat**: morale below `RETREAT_MORALE` → head for the nearest own settlement and stay there until morale is back above it.
-2. **Attack or fall back**: a hostile army (any war this nation fights) within `ENGAGE_RANGE` steps. If `my power ≥ ENGAGE_RATIO × its power` → march at it; if not → head for the nearest own settlement.
+2. **Attack or fall back**: a hostile army (any war this nation fights) within `ENGAGE_RANGE` steps. Estimate the enemy's effective power at its current position, including the same terrain, settlement, home-defense, resource and faith bonuses as battle. Scouting multiplies that estimate by `e^uniform(-ENGAGE_INTEL_ERROR, ENGAGE_INTEL_ERROR)`. If `my power × general boldness / estimated enemy power ≥ ENGAGE_RATIO` → march at it; otherwise → head for the nearest own settlement. Reports have separate army/foe dice and stay consistent through the year's seasons, while actual troops, morale and positions can change. Cautious and bold generals can still misjudge a fight; they never see its outcome roll. Contact and morale-retreat rules below still apply. See `systems/realwar.md` → "Imperfect engagement judgment".
 3. **Liberate**: own land occupied by this enemy → the nearest such cell.
 4. **Support** (only an ally's army in a war it joined): the friend's land held by this enemy, or else the enemy's armies, however far.
 5. **Goal** (only the attacker): the nearest goal cell it hasn't taken. It keeps a goal cell it's already heading for.
@@ -554,7 +554,7 @@ loser loses  min(BATTLE_MAX_LOSS, BATTLE_LOSS × ratio) of its size
 winner loses min(BATTLE_MAX_LOSS, BATTLE_LOSS × WINNER_LOSS_SHARE / ratio) of its size
 ```
 
-- Morale: loser `− MORALE_LOSS`, winner `+ MORALE_GAIN` (max 1). Armies recover `MORALE_RECOVERY` per step in their own land.
+- Morale: loser `− MORALE_LOSS`, winner `+ MORALE_GAIN` (max 1). Armies recover `MORALE_RECOVERY` per step on supplied, unoccupied home/allied land. Connected occupations feed armies but do not restore morale.
 - The loser falls back one cell toward its own land.
 - **Rout**: an army below `MIN_ARMY_SIZE` or with morale under `ROUT_MORALE` is destroyed; `ROUT_RETURN` of its soldiers straggle back to the reserve.
 - The battle cell loses `BATTLE_POP_LOSS` of its people and gains `DEVASTATION_BATTLE`.
@@ -567,12 +567,15 @@ winner loses min(BATTLE_MAX_LOSS, BATTLE_LOSS × WINNER_LOSS_SHARE / ratio) of i
 steps to take it = SIEGE_STEPS × (1 + SIEGE_SETTLEMENT_K × settlement level) × defensibility × (capital ? CAPITAL_SIEGE_MULT : 1)
 ```
 
-- `siege` is the progress, 0..1; it pauses while a hostile army is near, and work already done stays if the army leaves. When done, the cell is **occupied** (`occupier` = the army's nation) and gains `DEVASTATION_CAPTURE`. Taking a town or city also occupies its unsettled neighbors (the countryside falls with its town).
+- `siege` is progress, 0..1, representing pressure and weakening defenses. Progress per season is `min(1, army size × morale / resistance) × (1 − shortage / 2) / steps`. Resistance is local population × `SIEGE_GARRISON_SHARE` × the settlement multiplier × terrain × capital multiplier × remaining siege progress, with a floor of `MIN_ARMY_SIZE`. It is an abstract local defense, not additional recruitable soldiers.
+- Only one fit, unopposed army works each cell per season. If besiegers leave, break, or are interrupted by a relief army, progress falls by `SIEGE_RECOVERY` each season. No work occurs below `RETREAT_MORALE`.
+- Generals choose waiting or assaulting through `orderSiege`, saved in the `orderArmy` command. The choice uses the same scouting-error range and general boldness as engagement judgment. For towns, cities and capitals, an assault rolls `power / (power + remaining resistance)` after that season's siege progress, always costs `SIEGE_ASSAULT_LOSS` of the army, and affects morale. A success occupies the cell immediately; failure leaves the siege ongoing. Assaults appear in the war report. Player armies use the same decisions.
+- Completed sieges **occupy** the cell (`occupier` = the army's nation), reset progress and add `DEVASTATION_CAPTURE`. A town or city also brings in its open neighbors, excluding capitals and defended cells.
 - An occupied cell gives its owner no soldiers and no resource access, and gains `UNREST_OCCUPIED` unrest each year.
 - Occupying the enemy's **capital** costs it `CAPITAL_LOSS_STAB_HIT` stability once and scores `CAPITAL_SCORE`.
 - An army of the owner (or of an ally in the same war) entering an occupied cell frees it at once.
 
-**5. Attrition.** Armies outside supply lose `ARMY_ATTRITION` of their size per step, × 2 in desert, tundra, ice and mountains.
+**5. Supply and attrition.** A short route through friendly-controlled cells reaches unoccupied home/allied territory. The army's current hostile cell may be the endpoint of a route, allowing a frontier siege to receive food, but reinforcements require controlled ground. Enemy armies block the cells they stand in; water and neutral land cannot carry supplies. Cut-off armies forage at most `FORAGE_SHARE`, scaled by local population relative to army size and by intact land (`1 − devastation`). The remaining food shortage multiplies `ARMY_ATTRITION` (× 2 in desert, tundra, ice and mountains) and `SUPPLY_MORALE_LOSS`. Hunger eventually triggers the ordinary morale retreat. This first version has no wagons, stored food, seasonal harvests or capital-connected depot network. See [simple campaigns](systems/campaigns.md).
 
 #### War goals (at declaration)
 
@@ -711,7 +714,7 @@ Every choice a nation makes (declare war and its goal, join an ally, form or bre
 
 ### 5.1b Parchment style (default)
 
-An old chart, chosen from mockups by the user: aged paper, a pale sea with engraved lines along the shore, and thin ink outlines. A "Classic map" button switches to the cel-shaded style (`?style=cel`), which reloads and restarts the world. It only changes drawing, so history is the same in every style.
+An old chart, chosen from mockups by the user: aged paper, a pale sea with engraved lines along the shore, and thin ink outlines. A "Classic map" button switches to the cel-shaded style (`?style=cel`); "Parchment map" switches back. The drawing layers are rebuilt in place and the address is updated without reloading, preserving history, player orders, settings, playback, and zoom. It only changes drawing, so history is the same in every style.
 
 - **Terrain layer:** paper and sea (`terrainAtlas.ts`), then sailing lines over water only, a faint grid and the compass rose (`atlasChart.ts`).
 - **Symbol layer:** rivers, mountains, hills, trees and desert dots (`atlasSymbols.ts`). They sit on their own layer above the nation colors, so tinting doesn't fade the ink.
@@ -846,12 +849,24 @@ A fifth side-panel tab (`src/ui/play.ts`). With no one playing it lists the livi
 
 ## 8. Backlog systems
 
+### Next planned scope: vassalage and imperial succession
+
+Approved for the next scope on 2026-11-08, following the simplified campaign improvements. Keep the first versions small; implementation is pending. See [vassalage and imperial succession](systems/vassalage.md).
+
+1. **Vassalage:** one sovereign with directly subordinate kingdoms. Subjects retain their territory, people, rulers and armies, while recognizing the sovereign and providing military support in return for protection.
+2. **Submission peace:** extend the existing peace system so a defeated realm can become a vassal instead of being annexed. This is the first route into vassalage.
+3. **Imperial succession:** extend existing ruler succession so subjects normally recognize the new sovereign, while a disputed succession can lead to an independence war. Stable inheritance must remain possible.
+
+Build in that order. Include clear sovereign/subject UI, AI/player parity, save/load and replay support, and checks that unification and fragmentation both remain possible. Exact rules and parameter values will be chosen during implementation.
+
+### Later ideas
+
 Not designed yet. When one is picked up, give it its own `docs/systems/` file (§9) and matching parameters in `PARAMS.md`.
 
 - Schisms, holy wars and holy cities (§4.14)
 - Red Orcs as a second orc race (disciplined empire-builders who rule Green Orcs easily)
 - Trade routes and economy
-- Deeper diplomacy: vassals, tribute deals, betrayal (an ally refusing to help), fear coalitions against a rising giant (the next lever on attacker wins, M18)
+- Deeper diplomacy: tribute deals, betrayal (an ally refusing to help), fear coalitions against a rising giant (the next lever on attacker wins, M18)
 - Playing a nation, further: directing armies, fog of war, a score (left out of M20)
 - Naval expansion across water (and fleets carrying armies, after M11)
 - Golden ages that end in decline (designed in `systems/rulers.md`)
@@ -867,6 +882,8 @@ Not designed yet. When one is picked up, give it its own `docs/systems/` file (�
 3. Add the values to the matching `params.ts`.
 4. Write tests on a tiny hand-built map.
 5. Log the decision in `CLAUDE.md`.
+
+Latest campaign extension: [simple sieges, supply and repeatable tuning](systems/campaigns.md).
 
 ---
 

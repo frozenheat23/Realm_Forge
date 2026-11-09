@@ -63,8 +63,8 @@ const rulerCardBox = element("#ruler-card");
 const query = new URLSearchParams(location.search);
 const seed = query.get("seed") ?? "realm-forge";
 const styleParam = query.get("style");
-const style = styleParam === "painted" || styleParam === "cel" ? styleParam : "atlas";
-const look = style === "atlas" ? LOOK_ATLAS : LOOK_STANDARD;
+let style = styleParam === "painted" || styleParam === "cel" ? styleParam : "atlas";
+let look = style === "atlas" ? LOOK_ATLAS : LOOK_STANDARD;
 // ?start=open for the old empty-land start, ?start=5 to 10 for that many old kingdoms (docs/systems/start.md).
 const start = startFromText(query.get("start"));
 
@@ -132,21 +132,25 @@ function offscreen(): [HTMLCanvasElement, CanvasRenderingContext2D] {
   return [c, c.getContext("2d")!];
 }
 
-// The terrain never changes, so draw it once and copy it every frame.
+// The terrain only needs repainting when its map style changes.
 const displayCells = buildDisplayCells(world);
 const [terrain, terrainCtx] = offscreen();
 // The parchment map also keeps its rivers and terrain symbols on a layer above the nation
 // colors, and works out where its title panel and compass go.
-const chart = style === "atlas" ? planChart(world) : null;
+let chart = style === "atlas" ? planChart(world) : null;
 const [symbols, symbolsCtx] = offscreen();
-if (chart) {
-  terrainCtx.putImageData(renderAtlasTerrain(world, chart), 0, 0);
-  drawSailingLines(terrainCtx, world, chart);
-  drawAtlasLand(symbolsCtx, world, chart);
-} else {
-  terrainCtx.putImageData(style === "painted" ? renderPaintedTerrain(world.heightmap) : renderCelTerrain(world, displayCells), 0, 0);
-  drawRivers(terrainCtx, world);
+function paintTerrain(): void {
+  symbolsCtx.clearRect(0, 0, world.width, world.height);
+  if (chart) {
+    terrainCtx.putImageData(renderAtlasTerrain(world, chart), 0, 0);
+    drawSailingLines(terrainCtx, world, chart);
+    drawAtlasLand(symbolsCtx, world, chart);
+  } else {
+    terrainCtx.putImageData(style === "painted" ? renderPaintedTerrain(world.heightmap) : renderCelTerrain(world, displayCells), 0, 0);
+    drawRivers(terrainCtx, world);
+  }
 }
+paintTerrain();
 
 // --- Drawing ---
 const layers: Layers = { nations: true, races: false, cultures: false, faiths: false, alliances: true, resources: false, settlements: true, labels: true, effects: true, armies: true, cells: query.get("debug") === "cells" };
@@ -176,10 +180,10 @@ const [nationLayer, nationCtx] = offscreen();
 const [heatLayer, heatCtx] = offscreen();
 // Animated war and unrest effects (SPEC §5.4g) remember last year themselves.
 const cellPixels = groupPixelsByCell(displayCells, world.cells.length);
-const effects = createEffects(world, cellPixels, look);
-const overlay = createNationOverlay(world, displayCells, cellPixels, look);
-// Shares the overlay's memory, so it never needs rebuilding.
-const nationImage = new ImageData(new Uint8ClampedArray(overlay.pixels.buffer), world.width, world.height);
+let effects = createEffects(world, cellPixels, look);
+let overlay = createNationOverlay(world, displayCells, cellPixels, look);
+// Shares the overlay's memory; rebuilt only when a new style replaces the overlay.
+let nationImage = new ImageData(new Uint8ClampedArray(overlay.pixels.buffer), world.width, world.height);
 function redrawNations(): void {
   overlay.update(state, highlight(), overlayTint(), state.player?.nation);
   nationCtx.putImageData(nationImage, 0, 0);
@@ -485,6 +489,28 @@ function frame(now: number): void {
 }
 
 // --- Toolbar: world, save/load, video ---
+/** Rebuilds only the drawing layers, keeping the world and all its controls in place. */
+function switchMapStyle(): void {
+  style = style === "atlas" ? "cel" : "atlas";
+  look = style === "atlas" ? LOOK_ATLAS : LOOK_STANDARD;
+  chart = style === "atlas" ? planChart(world) : null;
+  paintTerrain();
+  effects = createEffects(world, cellPixels, look);
+  overlay = createNationOverlay(world, displayCells, cellPixels, look);
+  nationImage = new ImageData(new Uint8ClampedArray(overlay.pixels.buffer), world.width, world.height);
+  clearTimeout(sharpTimer);
+  sharp = buildSharp();
+  redrawNations();
+  draw();
+  styleButton.textContent = style === "atlas" ? "Classic map" : "Parchment map";
+  const url = new URL(location.href);
+  if (style === "atlas") url.searchParams.delete("style");
+  else url.searchParams.set("style", style);
+  history.replaceState(null, "", url);
+  if (chart) void Promise.all(ATLAS_FONTS.map((font) => document.fonts.load(font))).then(draw);
+}
+const styleButton = makeButton(style === "atlas" ? "Classic map" : "Parchment map", "Switch map style while keeping your progress", switchMapStyle);
+
 function goTo(newSeed: string, newStyle: string = style, newStart: string = startToText(start)): void {
   const params = new URLSearchParams({ seed: newSeed });
   if (newStyle !== "atlas") params.set("style", newStyle);
@@ -540,7 +566,7 @@ bar.append(
   }),
   makeButton("Whole map", "Zoom out to show the whole map (key 0). Zoom in with the mouse wheel, double-click or +, and drag to move.", () => setCamera(WHOLE_MAP)),
   recordButton,
-  makeButton(style === "atlas" ? "Classic map" : "Parchment map", "Switch map style (restarts this world from year 0)", () => goTo(seed, style === "atlas" ? "cel" : "atlas")),
+  styleButton,
 );
 
 // --- Settings, keys, hover ---

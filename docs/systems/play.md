@@ -31,7 +31,7 @@ A year runs in one go (`tick`), asking each nation's controller its questions as
 | `proposeAlliance` | Never by itself: the **Propose alliance** order |
 | `acceptAlliance` | Policy **Accept alliances**: when opinion is good (the AI's rule) / always / never |
 | `keepAlliance` | Always: the player ends pacts with the **Break alliance** order |
-| `acceptPeace` (war won) | Policy **When a war is won**: make peace (the AI's rule) / fight on for more |
+| `acceptPeace` (war won) | Policy **When a war is won**: make peace (the AI's rule) / fight on for more, until either side reaches forced exhaustion or the war reaches its maximum duration |
 | `suePeace` (losing) | Policy **Sue for peace**: never by itself / when war-weary (≥ 0.6) |
 | `acceptTerms` (the enemy sues) | Policy **Enemy sues**: accept / accept when weary / refuse |
 | `mobilize` | Policy **Raise for a new war**: 25% / 50% / 80% (the AI's) / 100% of the reserve |
@@ -97,7 +97,7 @@ Built 2026-11-07 to 2026-11-08 in the six steps above, one commit each. Code: `s
 - **Orders** are `PlayerCommand`s (`play`, `setPolicy`, `declareWar`, `suePeace`, `proposeAlliance`, `breakAlliance`, `adoptFaith`) given through `giveCommand` and logged with `by: "player"`; their dice come from `player-<year>-<n>`. Refused orders change nothing and aren't logged. Orders given at year 0 replay once before the first tick.
 - **Policies** in the code: `joinWar` (always / defending / kin / never), `acceptAlliance` (opinion / always / never), `wonWar` (peace / fightOn), `suePeace` (never / weary), `enemySues` (accept / weary / refuse), `mobilize` (share of the reserve), `rebels` (fight / letGo). "Weary" = war weariness ≥ `PLAYER_WEARY`. The player's controller never starts a war, alliance, pact break or conversion by itself.
 - **One check for every war:** the AI, the gods and the player's buttons all use `declareWarRefusal`, so a button is never enabled for a war the order would refuse. Disallowed orders are greyed with the rules' reasons; clicking a realm on the map picks it as the war target.
-- **Your realm** counts land, people and unrest from the map, since a nation's totals are filled only after its first year. The played realm's border is drawn heavier.
+- **Your realm** counts land, people, population share of other races, and unrest from the map, since a nation's totals are filled only after its first year and can lag behind ownership changes. At year 0 the soldier display explains that recruitment starts in year 1, instead of showing an uncalculated capacity of zero. These display calculations do not change the simulation. The played realm's border is drawn heavier.
 - **Dispatches** compare the realm before and after each year (`watchRealm`) with the year's events. Kinds: wars on you or your allies (and why you stayed out), your first rout in each war and your capital besieged or taken, your wars ending, great rulers, crises and civil wars, every new ruler (off by default), revolts, alliances, a faith on offer or the Old Gods, your fall. "Pause for…" switches are kept in `localStorage`, not saves.
 - **When your realm falls** you carry on as a living realm of your people (culture), else of your race, else watch; your policies come with you. **At year 1000** the end summary lists each realm you played and what became of it, then your people's and race's share of the land. No score; worked out from the command log.
 

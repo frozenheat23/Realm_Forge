@@ -51,7 +51,8 @@ interface Controller {
   suePeace(view: View, me: Nation, war: War, rng: Rng): boolean;     // M18: losing side offers terms
   acceptTerms(view: View, me: Nation, war: War, rng: Rng): boolean;  // M18: winning side takes them
   mobilize(view: View, me: Nation, wars: War[]): number[];                     // soldiers for each war without an army
-  orderArmy(view: View, army: Army, orders: ArmyOrders): CellId;             // NO_TARGET = stand still; orders.reach(cell) checks a cell can be reached
+  orderArmy(view: View, army: Army, orders: ArmyOrders, rng: Rng): CellId;   // NO_TARGET = stand still; orders.reach(cell) checks a cell can be reached
+  orderSiege(view: View, army: Army, target: CellId, rng: Rng): "wait" | "assault";
   refused?(command: Command, reason: string): void;                          // told when the rules turn a command down
   crushRevolt(view: View, me: Nation, rebels: Nation, rng: Rng): boolean;
   adoptFaith(view: View, me: Nation, faith: FaithId, rng: Rng): boolean;
@@ -61,6 +62,7 @@ interface Controller {
 - **`View`** is the world as a controller may see it: `Readonly<WorldState>` for now, plus the yearly lookups the rules already compute (claims, border prizes, helpers' power), so controllers don't recompute them. A controller must never change it.
 - **Context objects** (`WarContext`, `ArmyOrders`) carry what the decision needs: the power ratio, whether there's a claim, the border prize, nearby hostile armies, open goal cells. Built by the rules, read by the controller.
 - **Synchronous and pure.** A controller answers immediately from the view and its own `rng`. A player's answers will come from orders and standing policies set beforehand, with the game pausing when a decision is due (M19). M15 doesn't design that, but it mustn't rule it out.
+- **Army scouting dice** come from the year's campaign stream, forked as `orders-<army id>`, then `foe-<enemy army id>`. They are reset to that same fork each season so an unchanged situation gets a consistent report throughout the year. Scouting draws do not consume battle-outcome dice. The player's automatic armies use this same controller logic.
 - **Who controls whom** is passed to `tick(state, rng, controllers)` as a function `NationId → Controller`, defaulting to the AI for every nation. It isn't stored in `WorldState` (functions can't be saved). Since M20 step 1 the default is `controllersOf(state)` (`sim/ai/player.ts`), which reads the saved `WorldState.player` and gives that nation the player's controller.
 
 ## Commands
@@ -74,7 +76,7 @@ type Command =
   | { kind: "formAlliance"; a: NationId; b: NationId }
   | { kind: "breakAlliance"; nation: NationId; other: NationId }
   | { kind: "mobilize"; nation: NationId; war: number; size: number }
-  | { kind: "orderArmy"; army: number; target: CellId }
+  | { kind: "orderArmy"; army: number; target: CellId; siegeMode?: "wait" | "assault" }
   | { kind: "crushRevolt"; nation: NationId; rebels: NationId }
   | { kind: "adoptFaith"; nation: NationId; faith: FaithId };
 ```
@@ -158,3 +160,7 @@ Any player UI or player controller; the command log and saves (M17); AI personal
 | M18 | Real war | Generals (from ruler types), stronger underdog defense, maybe a second army per side; tuned with the sandbox's odds |
 | M19 | Map zoom | Zoom and pan, labels and markers included (added 2026-11-02, from the War Room talk) |
 | M20 | Play as a nation | Start screen (race, nation or custom realm), auto-pause on decisions, orders and standing policies, "play a people" succession, legacy score at year 1000 |
+
+## Simple campaign extension (2026-11-08)
+
+`orderSiege` chooses the approach at the army's destination, and `orderArmy` carries that choice as `siegeMode`. Old commands/saves without it wait. Both AI and player controllers use the same uncertain estimate; the simulation validates movement and resolves assaults with separate season/army/cell dice. Low-morale retreat remains a rule. See [simple campaigns](campaigns.md).

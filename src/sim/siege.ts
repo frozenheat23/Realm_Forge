@@ -1,11 +1,14 @@
 // Sieges and occupation (SPEC §4.13): armies take enemy cells by force during a war.
 // The owner doesn't change until peace; `occupier` records who holds the cell for now.
 import { Settlement, type Army, type CellId, type NationId, type War, type WorldState } from "../core/types";
+import { createRng, type Rng } from "../core/rng";
 import { allied } from "./diplomacy";
 import { pairKey, warPairs } from "./helpers";
 import { SIM } from "./params";
 import { goalsHeld } from "./warGoals";
-import { recordCapital } from "./warRecords";
+import { recordCapital, recordOf } from "./warRecords";
+import { loseSoldiers } from "./manpower";
+import { supplyStatus } from "./supply";
 
 /** Seasons an army needs to take `cell`: empty land falls fast, cities and capitals hold out. */
 export function siegeSteps(state: WorldState, cell: CellId): number {
@@ -16,6 +19,14 @@ export function siegeSteps(state: WorldState, cell: CellId): number {
     state.cells[cell]!.defensibility *
     (owner?.capital === cell ? SIM.CAPITAL_SIEGE_MULT : 1)
   );
+}
+
+/** An abstract local garrison: walls and terrain help, accumulated siege pressure weakens it. */
+export function siegeResistance(state: WorldState, cell: CellId): number {
+  const population = state.state.pop[cell]! * SIM.SIEGE_GARRISON_SHARE;
+  const walls = 1 + SIM.SIEGE_SETTLEMENT_K * state.state.settlement[cell]!;
+  const capital = state.nations.get(state.state.owner[cell]!)?.capital === cell ? SIM.CAPITAL_SIEGE_MULT : 1;
+  return Math.max(SIM.MIN_ARMY_SIZE, population * walls * state.cells[cell]!.defensibility * capital * (1 - state.state.siege[cell]!));
 }
 
 /** `id` takes the cell. Taking a town or city also brings in the open country around it. */
@@ -34,7 +45,8 @@ function occupy(state: WorldState, cell: CellId, id: NationId): void {
 
   if (settlement[cell]! < Settlement.Town) return;
   for (const n of state.cells[cell]!.neighbors) {
-    if (owner[n] === holder.id && occupier[n] === 0 && settlement[n]! < Settlement.Town) {
+    if (owner[n] === holder.id && occupier[n] === 0 && settlement[n]! < Settlement.Town && n !== holder.capital &&
+        !state.armies.some((a) => a.size > 0 && a.cell === n && a.owner === holder.id)) {
       occupier[n] = id;
       siege[n] = 0;
     }
@@ -51,14 +63,35 @@ export function hostileNear(state: WorldState, army: Army, cell: CellId, hostile
 }
 
 /** Season step: each army standing unopposed in enemy land works at taking that cell. */
-export function besiege(state: WorldState, hostile: Set<number>): void {
+export function besiege(state: WorldState, hostile: Set<number>, rng: Rng = createRng(`${state.seed}/siege/${state.year}`)): void {
   const { owner, occupier, siege } = state.state;
+  const maintained = new Set<CellId>();
   for (const army of state.armies) {
     const cell = army.cell;
-    if (army.size <= 0 || occupier[cell] !== 0 || !hostile.has(pairKey(army.owner, owner[cell]!))) continue;
+    if (army.size < SIM.MIN_ARMY_SIZE || army.morale < SIM.RETREAT_MORALE || maintained.has(cell) || occupier[cell] !== 0 || !hostile.has(pairKey(army.owner, owner[cell]!))) continue;
     if (hostileNear(state, army, cell, hostile)) continue;
-    siege[cell] = siege[cell]! + 1 / siegeSteps(state, cell);
-    if (siege[cell]! >= 1) occupy(state, cell, army.owner);
+    maintained.add(cell);
+    const strength = Math.min(1, army.size * army.morale / siegeResistance(state, cell));
+    const provisions = 1 - supplyStatus(state, army).shortage / 2;
+    siege[cell] = Math.min(1, siege[cell]! + strength * provisions / Math.max(siegeSteps(state, cell), 1e-6));
+    if (siege[cell]! >= 1) {
+      occupy(state, cell, army.owner);
+      continue;
+    }
+    const fortified = state.state.settlement[cell]! >= Settlement.Town || state.nations.get(owner[cell]!)?.capital === cell;
+    if (!fortified || army.siegeMode !== "assault") continue;
+    // The decision uses an uncertain report; the actual assault gets its own weighted roll.
+    const power = army.size * army.morale;
+    const won = rng.fork(`assault-${army.id}-${cell}`).chance(power / (power + siegeResistance(state, cell)));
+    loseSoldiers(state, state.nations.get(army.owner)!, army.size * SIM.SIEGE_ASSAULT_LOSS, army.war);
+    army.morale = Math.max(0, Math.min(1, army.morale + (won ? SIM.MORALE_GAIN : -SIM.MORALE_LOSS)));
+    const place = state.cityNames.get(cell) ?? `the stronghold of ${state.nations.get(owner[cell]!)!.name}`;
+    recordOf(state, army.war)?.moments.push({ year: state.year, kind: "assault", text: `${state.nations.get(army.owner)!.name} ${won ? "storms" : "fails to storm"} ${place}.` });
+    if (won) occupy(state, cell, army.owner);
+  }
+  // Relief or withdrawal lets the garrison recover; an abandoned siege cannot be banked forever.
+  for (let cell = 0; cell < siege.length; cell++) {
+    if (siege[cell]! > 0 && !maintained.has(cell)) siege[cell] = Math.max(0, siege[cell]! - SIM.SIEGE_RECOVERY);
   }
 }
 

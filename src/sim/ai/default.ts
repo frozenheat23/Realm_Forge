@@ -1,15 +1,16 @@
-// The AI controller (M15): how every nation has made its choices so far, moved out
-// of the rule files unchanged. Another controller (a player, a different personality)
-// can take any nation's place; the rules stay the same for all of them.
+// The AI controller: national strategy and army decisions under imperfect information.
+// Another controller can take any nation's place; the rules stay the same for everyone.
 import type { Rng } from "../../core/rng";
-import { Faith, NO_TARGET, RulerType, type CellId, type Nation, type WarGoal, type WorldState } from "../../core/types";
+import { Faith, NO_TARGET, RulerType, type Army, type CellId, type Nation, type WarGoal, type WorldState } from "../../core/types";
 import { blessing } from "../../gen/faiths";
 import { traits } from "../../gen/races";
 import { opinion } from "../diplomacy";
+import { groundBonus } from "../battle";
 import { armyPower, fightingPower } from "../manpower";
 import { goalCell, helping, homeCell, nearestHostile, nearestOf, supportCell } from "../marching";
 import { SIM } from "../params";
 import { greatBonus } from "../rulers";
+import { siegeResistance } from "../siege";
 import { claimedCells, conquestCells, openGoals } from "../warGoals";
 import type { Controller, Controllers, View, WarContext } from "./controller";
 
@@ -35,6 +36,18 @@ export function warChance(state: View, attacker: Nation, defender: Nation, ratio
 export function estimate(me: Nation, them: Nation, trueRatio: number, rng: Rng): number {
   const error = SIM.INTEL_ERROR * (me.race === them.race ? 1 : SIM.INTEL_FOREIGN);
   return trueRatio * traits(me.race).confidence * me.ruler.boldness * Math.exp(rng.range(-error, error));
+}
+
+/**
+ * The general's estimate when considering an attack on `foe` at its current position.
+ * Scouting can misjudge effective enemy strength, including its ground advantage.
+ * The foe may move before battle; this is a plan, not knowledge of the battle's roll.
+ */
+export function engagementEstimate(view: View, army: Army, foe: Army, rng: Rng): number {
+  const report = rng.fork(`foe-${foe.id}`).range(-SIM.ENGAGE_INTEL_ERROR, SIM.ENGAGE_INTEL_ERROR);
+  const opposition = armyPower(view, foe) * groundBonus(view, foe) * Math.exp(report);
+  const confidence = army.general?.boldness ?? 1;
+  return armyPower(view, army) * confidence / Math.max(opposition, 1e-6);
 }
 
 /** The goal to fight for: lost land if there's a claim; otherwise a raid (likelier for aggressive races, and when there's nothing worth taking) or a conquest. */
@@ -126,12 +139,20 @@ export const AI: Controller = {
     return wars.map(() => size);
   },
 
+  orderSiege(view, army, target, rng) {
+    if (target < 0 || army.morale < SIM.RETREAT_MORALE) return "wait";
+    const resistance = siegeResistance(view, target);
+    const report = Math.exp(rng.fork(`siege-${target}`).range(-SIM.ENGAGE_INTEL_ERROR, SIM.ENGAGE_INTEL_ERROR));
+    const advantage = army.size * army.morale * (army.general?.boldness ?? 1) / (resistance * report);
+    return advantage >= SIM.SIEGE_ASSAULT_RATIO ? "assault" : "wait";
+  },
+
   /** The ladder in SPEC §4.13: the first rule that gives somewhere the army can reach wins. */
-  orderArmy(view, army, orders) {
+  orderArmy(view, army, orders, rng) {
     const foe = nearestHostile(view, army, orders.hostile);
     if (foe) {
-      // Attack an enemy army it can beat; fall back from one it can't.
-      const strong = armyPower(view, army) >= SIM.ENGAGE_RATIO * armyPower(view, foe);
+      // Commit on an imperfect report, including the enemy's defensive position.
+      const strong = engagementEstimate(view, army, foe, rng) >= SIM.ENGAGE_RATIO;
       const target = strong ? foe.cell : homeCell(view, army);
       if (orders.reach(target)) return target;
     }

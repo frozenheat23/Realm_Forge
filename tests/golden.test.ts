@@ -40,11 +40,13 @@ async function fingerprint(seed: string, years: number, width?: number, height?:
 // alliances began to fade and break under new rulers (history changed both times). Re-recorded
 // 2026-11-07: nations go to war on what they believe, not on exact strength (M18 misjudgment),
 // and again when defenders who hold out began to win (M18 underdog defense), and for
-// generals and peace offers (M18 part 3).
+// generals and peace offers (M18 part 3). Re-recorded 2026-11-08 for imperfect
+// army engagement estimates (defensive ground, yearly scouting reports and general personality),
+// then for strength-sensitive sieges, costly assaults, supply routes and hunger.
 const GOLDEN = {
-  full: "17f40311",
-  smallA: "31ff0a90",
-  smallB: "3ace8ec4",
+  full: "7833d41f",
+  smallA: "4e816901",
+  smallB: "17891614",
 };
 
 describe("golden history", () => {

@@ -89,7 +89,7 @@ describe("sieges", () => {
   it("an unopposed army takes the cell it stands in, without changing its owner", () => {
     const state = atWar();
     state.armies.push(army(1, 1, 15));
-    for (let i = 0; i < Math.ceil(siegeSteps(state, 15)); i++) besiege(state, hostile);
+    for (let i = 0; i < 20 && state.state.occupier[15] === 0; i++) besiege(state, hostile);
     expect(state.state.occupier[15]).toBe(1);
     expect(state.state.owner[15]).toBe(2);
     expect(state.state.devastation[15]).toBeCloseTo(SIM.DEVASTATION_CAPTURE);
@@ -114,7 +114,7 @@ describe("sieges", () => {
     const state = atWar();
     state.state.settlement[15] = Settlement.Town;
     state.armies.push(army(1, 1, 15));
-    for (let i = 0; i < Math.ceil(siegeSteps(state, 15)); i++) besiege(state, hostile);
+    for (let i = 0; i < 20 && state.state.occupier[15] === 0; i++) besiege(state, hostile);
     expect([state.state.occupier[14], state.state.occupier[15], state.state.occupier[16]]).toEqual([1, 1, 1]);
   });
 
@@ -122,7 +122,7 @@ describe("sieges", () => {
     const state = atWar();
     state.armies.push(army(1, 1, 19));
     const before = state.nations.get(2)!.stability;
-    for (let i = 0; i < Math.ceil(siegeSteps(state, 19)); i++) besiege(state, hostile);
+    for (let i = 0; i < 20 && state.state.occupier[19] === 0; i++) besiege(state, hostile);
     expect(state.nations.get(2)!.stability).toBeCloseTo(before - SIM.CAPITAL_LOSS_STAB_HIT);
   });
 

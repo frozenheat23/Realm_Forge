@@ -2,18 +2,18 @@
 // across the map one season at a time, fighting and besieging as they go, and sent
 // home when their war ends.
 import type { Rng } from "../core/rng";
-import { Biome, NO_TARGET, type Army, type CellId, type Nation, type NationId, type War, type WorldState } from "../core/types";
+import { NO_TARGET, type Army, type CellId, type Nation, type War, type WorldState } from "../core/types";
 import { carryOut, done, refuse, type ArmyOrders, type Controllers } from "./ai/controller";
 import { fightBattles } from "./battle";
 import type { CommandOf, CommandResult } from "./commands";
-import { allied } from "./diplomacy";
 import { frontCells, livingNations, moveCost, pairKey, warPairs } from "./helpers";
-import { armiesOf, loseSoldiers } from "./manpower";
+import { armiesOf } from "./manpower";
 import { findPath, homeCell, marchRights } from "./marching";
 import { SIM } from "./params";
 import { grainBonuses } from "./resources";
 import { appointGeneral, retireGeneral } from "./generals";
 import { besiege, hostileNear, liberate, occupiedLand } from "./siege";
+import { supplyStatus, wearDown } from "./supply";
 
 // Moved to marching.ts; tests still import it from here.
 export { findPath };
@@ -57,14 +57,6 @@ export function raiseArmy(state: WorldState, nation: Nation, war: War, enemy: Na
   nation.reserve -= size;
 }
 
-/** An army in its own or an ally's land, or land its side occupies, can be supplied. */
-function inSupply(state: WorldState, army: Army): boolean {
-  const holder = state.state.owner[army.cell]!;
-  const occupier = state.state.occupier[army.cell]!;
-  const friendly = (id: NationId) => id === army.owner || allied(state, id, army.owner);
-  return friendly(holder) || (occupier !== 0 && friendly(occupier));
-}
-
 /** The "mobilize" command: raise `size` soldiers from the reserve as the nation's army in one of its wars. */
 export function applyMobilize(state: WorldState, cmd: CommandOf<"mobilize">): CommandResult {
   const nation = state.nations.get(cmd.nation);
@@ -101,7 +93,7 @@ export function musterArmies(state: WorldState, controllers: Controllers): void 
       });
     }
 
-    const supplied = armies.filter((a) => inSupply(state, a));
+    const supplied = armies.filter((a) => supplyStatus(state, a).reinforce);
     if (supplied.length === 0) continue;
     const sent = nation.reserve * SIM.REINFORCE_RATE;
     for (const army of supplied) army.size += sent / supplied.length;
@@ -134,13 +126,18 @@ export function applyOrderArmy(state: WorldState, cmd: CommandOf<"orderArmy">, k
   if (cmd.target === NO_TARGET) {
     army.target = NO_TARGET;
     army.path = [];
+    army.siegeMode = cmd.siegeMode ?? "wait";
     return done();
   }
-  if (onTheWay(army, cmd.target)) return done();
+  if (onTheWay(army, cmd.target)) {
+    army.siegeMode = cmd.siegeMode ?? "wait";
+    return done();
+  }
   const path = known?.get(cmd.target) ?? wayTo(state, army, cmd.target);
   if (path === null) return refuse("the army can't get there");
   army.target = cmd.target;
   army.path = path;
+  army.siegeMode = cmd.siegeMode ?? "wait";
   return done();
 }
 
@@ -159,8 +156,11 @@ function aim(state: WorldState, army: Army, target: CellId): boolean {
  * Each season, an army gets its orders. Retreat is a rule: below SIM.RETREAT_MORALE
  * the soldiers make for home whatever their ruler says. Otherwise the controller decides.
  */
-function direct(state: WorldState, army: Army, orders: Omit<ArmyOrders, "reach">, controllers: Controllers): void {
-  if (army.morale < SIM.RETREAT_MORALE && aim(state, army, homeCell(state, army))) return;
+function direct(state: WorldState, army: Army, orders: Omit<ArmyOrders, "reach">, controllers: Controllers, rng: Rng): void {
+  if (army.morale < SIM.RETREAT_MORALE && aim(state, army, homeCell(state, army))) {
+    army.siegeMode = "wait";
+    return;
+  }
   const known = new Map<CellId, CellId[]>();
   const reach = (cell: CellId): boolean => {
     if (cell === NO_TARGET) return false;
@@ -171,8 +171,9 @@ function direct(state: WorldState, army: Army, orders: Omit<ArmyOrders, "reach">
     return true;
   };
   const controller = controllers(army.owner);
-  const target = controller.orderArmy(state, army, { ...orders, reach });
-  const cmd: CommandOf<"orderArmy"> = { kind: "orderArmy", army: army.id, target };
+  const target = controller.orderArmy(state, army, { ...orders, reach }, rng);
+  const siegeMode = controller.orderSiege(state, army, target, rng);
+  const cmd: CommandOf<"orderArmy"> = { kind: "orderArmy", army: army.id, target, siegeMode };
   carryOut(controller, cmd, applyOrderArmy(state, cmd, known));
 }
 
@@ -206,21 +207,17 @@ function walk(state: WorldState, army: Army, hostile: Set<number>, moved: Set<nu
   }
 }
 
-/** Season step: hunger and desertion outside supply; rest at home. */
-function wearDown(state: WorldState, army: Army): void {
-  const cell = state.cells[army.cell]!;
-  if (!inSupply(state, army)) {
-    const harsh = cell.mountain || cell.biome === Biome.Desert || cell.biome === Biome.Tundra || cell.biome === Biome.Ice;
-    const lost = army.size * SIM.ARMY_ATTRITION * (harsh ? 2 : 1);
-    loseSoldiers(state, state.nations.get(army.owner)!, lost, army.war);
-  }
-  if (state.state.owner[cell.id] === army.owner) army.morale = Math.min(1, army.morale + SIM.MORALE_RECOVERY);
-}
-
 /** Step 6: SIM.CAMPAIGN_STEPS seasons of choosing targets, marching, fighting and besieging. */
 export function campaign(state: WorldState, rng: Rng, controllers: Controllers): void {
   state.battles = [];
-  if (state.armies.length === 0) return;
+  if (state.armies.length === 0) {
+    // The last besieger may have disbanded: walls still recover while the war continues.
+    if (state.state.siege.some((progress) => progress > 0)) {
+      const hostile = warPairs(state);
+      for (let season = 0; season < SIM.CAMPAIGN_STEPS; season++) besiege(state, hostile);
+    }
+    return;
+  }
   const grain = grainBonuses(state);
   const wars = new Map(state.wars.map((w) => [w.id, w]));
   const hostile = warPairs(state);
@@ -235,12 +232,13 @@ export function campaign(state: WorldState, rng: Rng, controllers: Controllers):
       const enemy = state.nations.get(war.attacker === army.owner ? war.defender : war.attacker)!;
       if (!enemy.alive) continue;
       const main = war.joined === undefined ? undefined : wars.get(war.joined);
-      direct(state, army, { war, enemy, main, hostile, held, grain, season }, controllers);
+      // The same army/foe report lasts the year; other armies cannot consume its dice.
+      direct(state, army, { war, enemy, main, hostile, held, grain, season }, controllers, rng.fork(`orders-${army.id}`));
       walk(state, army, hostile, moved);
     }
     fightBattles(state, hostile, moved, rng.fork(`season-${season}`));
     state.armies = state.armies.filter((a) => a.size > 0);
-    besiege(state, hostile);
+    besiege(state, hostile, rng.fork(`sieges-${season}`));
     for (const army of state.armies) wearDown(state, army);
   }
 }

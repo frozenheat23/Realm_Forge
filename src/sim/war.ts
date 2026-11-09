@@ -261,6 +261,8 @@ function clearWinner(war: War, attacker: Nation, defender: Nation): Nation | nul
 
 /** Does the war end now? Forced endings always do; a won war ends if the winner agrees. */
 function endsNow(state: WorldState, war: War, attacker: Nation, defender: Nation, reason: string | null, controllers: Controllers): boolean {
+  // Victory can be refused only while the rules still allow the war to continue.
+  if (attacker.warWeariness >= SIM.WEARINESS_PEACE || defender.warWeariness >= SIM.WEARINESS_PEACE || state.year - war.startYear >= SIM.MAX_WAR_YEARS) return true;
   if (reason !== "goal" && reason !== "decisive") return reason !== null;
   const winner = reason === "goal" || war.score > 0 ? attacker : defender;
   return controllers(winner.id).acceptPeace(state, winner, war, reason);

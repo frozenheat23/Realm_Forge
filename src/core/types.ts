@@ -156,7 +156,7 @@ export interface RaceTraits {
   fickleness: number;
   /** × its estimate of its strength against a rival (M18): above 1 overrates itself. */
   confidence: number;
-  /** How much its rulers' boldness varies: each is between e^-temper and e^+temper. */
+  /** How much its rulers' and generals' boldness varies: each is between e^-temper and e^+temper. */
   temper: number;
   /** Chance a ruler of this race is a woman. Changes the title and name only. */
   femaleChance: number;
@@ -234,6 +234,8 @@ export const NO_TARGET = -1;
 export interface General {
   name: string;
   female: boolean;
+  /** Confidence in an engagement estimate; below 1 is cautious, above 1 bold. Older saves use 1. */
+  boldness?: number;
   /** × the army's power, rolled when appointed (between e^-GENERAL_SPREAD and e^+GENERAL_SPREAD). */
   skill: number;
   /** Battles won. Each sharpens them a little; GENERAL_FAMOUS of them make them famous. */
@@ -256,6 +258,8 @@ export interface Army {
   morale: number;
   /** Where it's heading, or NO_TARGET. */
   target: CellId;
+  /** This season's siege approach. Old saves/orders default to waiting. */
+  siegeMode?: "wait" | "assault";
   /** Cells still to walk to reach the target, next first. */
   path: CellId[];
   /** Cells walked this year, starting where it stood, so the map can animate the march. */
@@ -427,7 +431,7 @@ export interface WarRecord {
   /** Soldiers lost by each side, allies included. */
   fallen: { attack: number; defend: number };
   /** Turning points worth stopping for. */
-  moments: { year: number; kind: "joined" | "rout" | "capital"; text: string }[];
+  moments: { year: number; kind: "joined" | "rout" | "capital" | "assault"; text: string }[];
   outcome?: WarOutcome;
 }
 

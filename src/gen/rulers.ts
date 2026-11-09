@@ -42,7 +42,9 @@ export function makeGeneral(rng: Rng, race: RaceId, year: number, spread: number
   const female = rng.chance(t.femaleChance);
   const names = RULER_NAMES[t.family];
   const name = personalName(rng, female ? names.female : names.male);
-  return { name, female, skill: Math.exp(rng.range(-spread, spread)), wins: 0, since: year };
+  // Personality has its own dice, preserving the general's name and fighting skill.
+  const boldness = Math.exp(rng.fork(`temper-${name}-${year}`).range(-t.temper, t.temper));
+  return { name, female, boldness, skill: Math.exp(rng.range(-spread, spread)), wins: 0, since: year };
 }
 
 /** Starts a ruler partway through their reign, so a world's first rulers don't all die together. */

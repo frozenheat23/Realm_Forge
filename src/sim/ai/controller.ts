@@ -61,8 +61,10 @@ export interface Controller {
   acceptTerms(view: View, me: Nation, war: War, rng: Rng): boolean;
   /** Soldiers to raise for each of `wars` (wars this nation has no army in yet). */
   mobilize(view: View, me: Nation, wars: War[]): number[];
-  /** Where `army` should go this season: a cell it can reach, or NO_TARGET to stand still. */
-  orderArmy(view: View, army: Army, orders: ArmyOrders): CellId;
+  /** Where `army` should go this season. Its scouting dice are stable across this year's seasons. */
+  orderArmy(view: View, army: Army, orders: ArmyOrders, rng: Rng): CellId;
+  /** How to approach a siege at the chosen destination this season. */
+  orderSiege(view: View, army: Army, target: CellId, rng: Rng): "wait" | "assault";
   /** Go to war to crush `rebels`, who just broke away? */
   crushRevolt(view: View, me: Nation, rebels: Nation, rng: Rng): boolean;
   /** Adopt `faith`, now that most of the realm holds it? */

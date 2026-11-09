@@ -423,10 +423,14 @@ Measured after step 5, the finished milestone (same 5 seeds, vs step 4): ~113 wa
 | `CAMPAIGN_STEPS` | 4 | 1–12 | War steps (seasons) per year | Faster wars, smoother marches, slower tick | Clunky, slow wars |
 | `ARMY_MOVE` | 4 | 1–10 | Move points per step (grassland costs 1) | Armies cross realms in a season | Slow slogs |
 | `ENGAGE_RANGE` | 6 | 2–15 | Steps within which an army goes after an enemy army | Wars are battle-hunts | Armies ignore each other; more sieges |
-| `ENGAGE_RATIO` | 0.8 | 0.5–1.5 | How strong (vs the enemy) an army must be to attack it | Cautious; defenders sit in cities | Reckless attacks |
+| `ENGAGE_RATIO` | 0.8 | 0.5–1.5 | Estimated own/enemy effective power needed to seek battle, including the enemy's ground advantage and the general's boldness | Cautious; defenders sit in cities | Reckless attacks |
+| `ENGAGE_INTEL_ERROR` | 0.4 | 0–1 | Error in scouting enemy effective power, including defensive advantages: × e^±this (about ×0.67–1.49 at 0.4). Each army's report about a foe lasts the year; separate from war-declaration intelligence | More mistaken attacks and missed opportunities | More accurate scouting; general personality and random battle outcomes still apply at 0 |
 | `RETREAT_MORALE` | 0.4 | 0.2–0.6 | Below this an army falls back to its own settlement | Armies retreat early | Fight to the end |
 | `RAID_RANGE` | 5 | 2–10 | How far past the border armies look for rich targets | Deep raids | Border skirmishes |
-| `ARMY_ATTRITION` | 0.03 | 0–0.1 | Size lost per step outside supply (× 2 in desert, tundra, ice, mountains) | Long invasions bleed out | Armies roam freely |
+| `ARMY_ATTRITION` | 0.03 | 0–0.1 | Size lost per step × food shortage (× 2 in desert, tundra, ice, mountains) | Long invasions bleed out | Armies roam freely |
+| `SUPPLY_RANGE` | 6 | 1–12 | Maximum links through controlled land back to unoccupied home/allied land | Longer invasions can be fed | Occupied pockets are harder to supply |
+| `FORAGE_SHARE` | 0.5 | 0–0.9 | Maximum food share found locally; scales down with devastation and army size relative to local population | Cut-off hosts last longer | Supply routes matter more |
+| `SUPPLY_MORALE_LOSS` | 0.06 | 0–0.2 | Morale lost per season × food shortage | Hungry armies withdraw sooner | They keep campaigning longer |
 
 **Battle**
 
@@ -437,7 +441,7 @@ Measured after step 5, the finished milestone (same 5 seeds, vs step 4): ~113 wa
 | `WINNER_LOSS_SHARE` | 0.4 | 0.1–1 | Winner's losses relative to the loser's (÷ ratio) | Pyrrhic victories | Cheap victories |
 | `FORT_BONUS` | 0.15 | 0–0.5 | Defender power per settlement level (city = +45%) | Cities are fortresses | Cities don't help |
 | `MORALE_LOSS` / `MORALE_GAIN` | 0.25 / 0.1 | 0.1–0.6 / 0–0.3 | Morale lost by the loser / gained by the winner | Swingy wars | Steady wars |
-| `MORALE_RECOVERY` | 0.15 | 0.05–0.4 | Morale regained per step in own land | Beaten armies return fast | Defeats linger |
+| `MORALE_RECOVERY` | 0.15 | 0.05–0.4 | Morale regained per step on supplied, unoccupied home/allied land | Beaten armies return fast | Defeats linger |
 | `ROUT_MORALE` | 0.15 | 0–0.3 | Below this an army is destroyed | Armies shatter | Armies always limp home |
 | `ROUT_RETURN` | 0.75 | 0–1 | Share of a routed army's soldiers who return to the reserve | Defeats are survivable | Routs are catastrophes |
 | `BATTLE_POP_LOSS` / `DEVASTATION_BATTLE` | 0.1 / 0.3 | 0–0.3 / 0–0.6 | People lost and devastation at a battle site | Battlefields scar the land | Clean battles |
@@ -449,9 +453,13 @@ Measured after step 5, the finished milestone (same 5 seeds, vs step 4): ~113 wa
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `SIEGE_STEPS` | 0.3 | 0.25–4 | Steps to occupy an empty cell (× defensibility) | Slow conquest | Armies sweep through |
+| `SIEGE_STEPS` | 0.5 | 0.25–4 | Steps to occupy an empty cell (× defensibility) | Slow conquest | Armies sweep through |
 | `SIEGE_SETTLEMENT_K` | 1.5 | 0–4 | Extra siege time per settlement level (city = 5.5 × base) | Cities hold out for years | Cities fall like villages |
 | `CAPITAL_SIEGE_MULT` | 2 | 1–4 | Capitals take this much longer | Capitals almost never fall | Capitals fall quickly |
+| `SIEGE_GARRISON_SHARE` | 0.1 | 0.02–0.3 | Population share representing local resistance, multiplied by walls, terrain and capital status | Small hosts struggle, assaults are riskier | Strongholds fall more easily |
+| `SIEGE_RECOVERY` | 0.2 | 0–1 | Siege progress repaired each season without an unopposed, fit besieger | Relief and withdrawal erase progress quickly | Earlier siege work persists |
+| `SIEGE_ASSAULT_RATIO` | 3 | 1–10 | Estimated advantage needed to choose an assault | Generals wait more often | More costly gambles |
+| `SIEGE_ASSAULT_LOSS` | 0.12 | 0–0.5 | Attacking soldiers lost in every assault, including victories | Storming walls is expensive | Quick conquest is cheaper |
 | `UNREST_OCCUPIED` | 0.05 | 0–0.2 | Unrest gained per year while occupied | Occupied land turns on its owner | Occupation stays calm |
 
 **War goals, score and peace**
@@ -571,7 +579,7 @@ The race's number for each type, × `GREAT_RULER_CHANCE`.
 
 ### Race traits
 
-| Race | `reign` (average years) | `succession` (× crisis chance) | `femaleChance` | `fickleness` (× `PACT_FADE`, `NEW_RULER_BREAK`) | `confidence` (× war estimate) | `temper` (rulers' boldness e^±this) |
+| Race | `reign` (average years) | `succession` (× crisis chance) | `femaleChance` | `fickleness` (× `PACT_FADE`, `NEW_RULER_BREAK`) | `confidence` (× war estimate) | `temper` (rulers' and generals' boldness e^±this) |
 |---|---|---|---|---|---|---|
 | Humans | 25 | 1.0 | 0.5 | 1.0 | 1.0 | 0.6 (×0.55 – ×1.8: some warmongers, some timid) |
 | Light Elves | 120 | 0.5 | 0.5 | 0.6 (long memories) | 0.9 | 0.25 (steady) |
@@ -789,3 +797,7 @@ Ideas for future rules. When one is adopted, design it in SPEC.md, move it into 
 | Plague | `PLAGUE_PROB`, `PLAGUE_DEATH_RATE`, `PLAGUE_SPREAD` | Population crashes that spread through neighbors |
 | Trade | `TRADE_ROUTE_BONUS` | Connected coastal/river cells gain capacity |
 | Time slowdown | `SLOWDOWN_ON_EVENTS`, `SLOWDOWN_FACTOR` | Playback slows for major wars and collapses |
+
+### Repeatable campaign checks
+
+Run `npm run balance -- tuning`, then `npm run balance -- validation` after choosing values. Each reports ten different fixed settled worlds, 320×180, over 500 years: war duration, attacker victories, wars, casualties, battles, territory changes, peak empires and surviving realms. These are small-map smoke measurements; use more seeds and full-size worlds before claiming small balance improvements. Compare the same seeds before and after code changes. Details and initial measurements: [simple campaigns](systems/campaigns.md).

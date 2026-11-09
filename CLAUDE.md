@@ -105,7 +105,7 @@ All built. Each one's design is in the SPEC section or system doc listed.
 | M18 ✅ | Real war: misjudgment, underdog defense, generals, suing for peace | `docs/systems/realwar.md` |
 | M19 ✅ | Map zoom | SPEC §5.4l |
 | M20 ✅ | Play as a nation | `docs/systems/play.md` |
-| Next | Backlog | SPEC §8 |
+| Next | Simplified vassalage, submission peace and imperial succession (planned) | SPEC §8; `docs/systems/vassalage.md` |
 
 At the end of each milestone: run tests, take a screenshot, give me my exercise, update the Decision log.
 
@@ -163,6 +163,11 @@ Short and current. Earlier detail (tuning runs, measurements) is in git history 
 
 | Date | Recent decisions |
 |---|---|
+| 2026-11-08 | Promoted vassalage and imperial succession into the next planned scope, with submission peace as the first route to becoming a subject. Start with one level of subjects, local rulers retained, military obligations/protection, and recognition or independence disputes on sovereign succession. Detailed contracts, family trees and inheritance of independent crowns remain later work. Scope only; implementation and parameter choices pending. See `docs/systems/vassalage.md` |
+| 2026-11-08 | Built simplified campaign improvements: strength/morale/supply affect sieges; generals choose costly, uncertain assaults; relief and abandonment repair progress. Short controlled supply routes replace automatic supply on occupations; foraging, hunger and morale drive attrition/retreat. War Room shows conditions. `SIEGE_STEPS` 0.3 → 0.5; seven small parameters added. Repeatable tuning/validation reports cover separate ten-seed sets. Validation remains attacker-favored (84% of decided wars), so this is an initial pass. Golden histories deliberately updated; 380 tests and build pass, 2 optional reports skipped in normal suite; browser checked. Details: `docs/systems/campaigns.md` |
+| 2026-11-08 | Army engagement judgment now estimates defensive ground with yearly, army/foe-specific scouting error (`ENGAGE_INTEL_ERROR` 0.4), plus saved cautious/bold general personalities using race temperament. Player armies use the same rules; combat's weighted outcome roll is unchanged. Old generals default to measured confidence. Golden histories deliberately re-recorded; 365 tests and build pass (1 optional balance test skipped), War Room checked in browser. Initial scouting range awaits balance tuning |
+| 2026-11-08 | Bug fixes: fight-on policies cannot bypass exhaustion or maximum war duration; map styles switch in place without losing progress; Play demographics count current inhabitants from year 0 and explain when recruitment begins. 357 tests pass (1 optional balance test skipped), build passes, golden history unchanged; style round-trip and continued play checked in browser. No parameter changes |
+| 2026-11-08 | Backlogged vassalage, submission peace terms, and imperial succession (extending existing succession) as a possible route to unification under one sovereign with local rulers; design and implementation deferred, parameters unchanged |
 | 2026-11-07 | M20 built in 6 steps: player controller and policies (save v13), Play tab, orders, dispatches, carrying on after a fall and the end summary |
 | 2026-11-08 | M20 playtest: only your first rout per war pauses; ordinary successions ("Every new ruler") off by default. Pauses per run 16–333 → 11–169 on 6 worlds. A realm on default policies never starts wars, so playing well means giving orders |
 | 2026-11-08 | Docs shortened: decision log condensed to current decisions; full history stays in git |

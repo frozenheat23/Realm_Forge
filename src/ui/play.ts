@@ -22,6 +22,7 @@ import { fallbackPath, portraitPath } from "./portraits";
 import { summaryLines } from "./summary";
 import { fill } from "./sandbox";
 import { scoreBar, sides } from "./warRoom";
+import { realmSizes } from "./realmStats";
 
 export interface PlayHooks {
   /** The world as it is now. */
@@ -95,33 +96,17 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = "", text 
 const percent = (share: number) => `${Math.round(share * 100)}%`;
 
 /** "all Humans", "none of them Humans" or "40% of them not Humans". */
-function peopleShare(nation: Nation): string {
+function peopleShare(nation: Nation, foreignShare: number): string {
   const plural = traits(nation.race).plural;
-  if (Math.round(nation.foreignShare * 100) === 0) return `all ${plural}`;
-  if (Math.round(nation.foreignShare * 100) === 100) return `none of them ${plural}`;
-  return `${percent(nation.foreignShare)} of them not ${plural}`;
+  if (Math.round(foreignShare * 100) === 0) return `all ${plural}`;
+  if (Math.round(foreignShare * 100) === 100) return `none of them ${plural}`;
+  return `${percent(foreignShare)} of them not ${plural}`;
 }
 
 /** "Conqueror" for a great ruler's type. */
 function greatName(nation: Nation): string | null {
   const type = nation.ruler.great;
   return type === undefined ? null : (Object.entries(RulerType).find(([, id]) => id === type)?.[0] ?? null);
-}
-
-/** Each realm's land, people and average unrest, counted from the map (a nation's own totals are only filled in after its first year). */
-function realmSizes(state: WorldState): Map<number, { cells: number; pop: number; unrest: number }> {
-  const { owner, pop, unrest } = state.state;
-  const sizes = new Map<number, { cells: number; pop: number; unrest: number }>();
-  for (let c = 0; c < owner.length; c++) {
-    if (owner[c] === 0) continue;
-    const size = sizes.get(owner[c]!) ?? { cells: 0, pop: 0, unrest: 0 };
-    size.cells++;
-    size.pop += pop[c]!;
-    size.unrest += unrest[c]!;
-    sizes.set(owner[c]!, size);
-  }
-  for (const size of sizes.values()) size.unrest /= size.cells;
-  return sizes;
 }
 
 /** Builds the tab inside `box`. */
@@ -351,16 +336,16 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
       el("div", "war-meta", `${me.ruler.dynasty} · reigning since year ${me.ruler.crowned}${great ? ` · a great ${great}` : ""}`),
     );
 
-    const size = realmSizes(state).get(me.id) ?? { cells: 0, pop: 0, unrest: 0 };
+    const size = realmSizes(state).get(me.id) ?? { cells: 0, pop: 0, unrest: 0, foreignShare: 0 };
     const name = (id: number) => state.nations.get(id)?.name ?? "?";
     const allies = alliesOf(state, me.id);
     const rival = rivalOf(state, me.id);
     const field = soldiers(state, me) - me.reserve;
     const rows: [string, string][] = [
       ["Land", `${size.cells} provinces`],
-      ["People", `${menText(size.pop)}, ${peopleShare(me)}`],
+      ["People", `${menText(size.pop)}, ${peopleShare(me, size.foreignShare)}`],
       ["Faith", faithInfo(me.faith).name],
-      ["Soldiers", `${menText(field)} in the field · ${menText(me.reserve)} in reserve (of ${menText(me.manpowerCap)})`],
+      ["Soldiers", `${menText(field)} in the field · ${menText(me.reserve)} in reserve${state.year === 0 ? " · recruitment starts in year 1" : ` (of ${menText(me.manpowerCap)})`}`],
       ["Stability", percent(me.stability)],
       ["War weariness", percent(me.warWeariness)],
       ["Unrest", percent(size.unrest)],

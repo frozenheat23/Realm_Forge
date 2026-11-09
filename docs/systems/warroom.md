@@ -73,3 +73,7 @@ From `MAP_BESIDE_WIDTH` (900 px) up the page is one screen with two columns: the
 ## Not in M16
 
 Zoom and pan (M19); changing how wars are fought (M18); clicking the map to pick a war; a timeline of all history.
+
+## Campaign conditions (2026-11-08)
+
+Ongoing war rows now show each main army's supply connection, morale and current siege progress/approach. Assault attempts appear in the existing report turning points, and their losses count in the existing fallen totals. See [simple campaigns](campaigns.md).

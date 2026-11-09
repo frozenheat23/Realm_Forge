@@ -164,17 +164,25 @@ export const SIM = {
   RAID_RANGE: 5,
   /** Steps within which an army goes after an enemy army. */
   ENGAGE_RANGE: 6,
-  /** How strong (vs the enemy army) an army must be to attack it. */
+  /** Estimated power ratio, including enemy ground and the general's confidence, required to seek battle. */
   ENGAGE_RATIO: 0.8,
+  /** Error in scouting enemy effective power: a multiplier between e^-this and e^+this, stable within a year. */
+  ENGAGE_INTEL_ERROR: 0.4,
   /** Below this morale an army falls back to its own settlement. */
   RETREAT_MORALE: 0.4,
   /** Size lost per season outside supply (× 2 in desert, tundra, ice and mountains). */
   ARMY_ATTRITION: 0.03,
+  /** Maximum controlled-cell links from a campaign position to unoccupied friendly land. */
+  SUPPLY_RANGE: 6,
+  /** Maximum share of food needs met by local population on undamaged land. */
+  FORAGE_SHARE: 0.5,
+  /** Morale lost per season at complete shortage (scaled by foraging). */
+  SUPPLY_MORALE_LOSS: 0.06,
   /** Defender's power per settlement level. */
   FORT_BONUS: 0.15,
   MORALE_LOSS: 0.25,
   MORALE_GAIN: 0.1,
-  /** Morale regained per season in own land. */
+  /** Morale regained per season on supplied, unoccupied home/allied land. */
   MORALE_RECOVERY: 0.15,
   /** Below this morale an army is destroyed. */
   ROUT_MORALE: 0.15,
@@ -186,10 +194,18 @@ export const SIM = {
   /** Devastation per enemy cell an army marches through. */
   DEVASTATION_MARCH: 0.05,
   /** Seasons to occupy an empty cell (× defensibility). */
-  SIEGE_STEPS: 0.3,
+  SIEGE_STEPS: 0.5,
   /** Extra siege time per settlement level. */
   SIEGE_SETTLEMENT_K: 1.5,
   CAPITAL_SIEGE_MULT: 2,
+  /** Local population standing for a settlement's resistance; not a second field army. */
+  SIEGE_GARRISON_SHARE: 0.1,
+  /** Progress repaired per season when no unopposed besieger maintains pressure. */
+  SIEGE_RECOVERY: 0.2,
+  /** Estimated advantage needed before a general chooses a costly assault. */
+  SIEGE_ASSAULT_RATIO: 3,
+  /** Share of the attacking army lost in an assault, successful or not. */
+  SIEGE_ASSAULT_LOSS: 0.12,
   /** Generals (M18 part 3): a new general's skill is between e^-this and e^+this. */
   GENERAL_SPREAD: 0.3,
   /** Each battle a general wins adds this share to their skill, up to GENERAL_MAX_WINS wins. */

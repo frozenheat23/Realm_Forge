@@ -4,6 +4,7 @@ import type { NationId, WarRecord, WorldState } from "../core/types";
 import { menText } from "../sim/events";
 import { SIM } from "../sim/params";
 import { sideOf } from "../sim/warRecords";
+import { supplyStatus } from "../sim/supply";
 
 export type Tab = "wars" | "past" | "log" | "sandbox" | "play";
 
@@ -97,7 +98,22 @@ function leaderText(state: WorldState, warId: number, nation: NationId): string 
   const general = state.armies.find((a) => a.war === warId && a.owner === nation)?.general;
   if (!general) return "no army in the field";
   const wins = general.wins === 0 ? "" : ` (${general.wins} victor${general.wins === 1 ? "y" : "ies"})`;
-  return `led by ${general.name}${wins}`;
+  const confidence = general.boldness ?? 1;
+  const temperament = confidence < 1 ? "cautious" : confidence > 1 ? "bold" : "measured";
+  return `led by ${general.name}${wins} · ${temperament}`;
+}
+
+/** Campaign conditions visible to the observer, rather than a prediction of victory. */
+function campaignText(state: WorldState, warId: number, nation: NationId): string {
+  const army = state.armies.find((a) => a.war === warId && a.owner === nation);
+  if (!army) return "";
+  const supply = supplyStatus(state, army);
+  const food = supply.connected ? "Supplied" : "Cut off · foraging";
+  const morale = `morale ${Math.round(army.morale * 100)}%`;
+  const progress = state.state.siege[army.cell]!;
+  const siege = progress > 0 && state.state.owner[army.cell] !== nation
+    ? ` · siege ${Math.round(progress * 100)}% (${army.siegeMode === "assault" ? "assaulting" : "waiting"})` : "";
+  return `${food} · ${morale}${siege}`;
 }
 
 /** The score line of a war, drawn small. */
@@ -259,7 +275,9 @@ export function createWarRoom(panel: HTMLElement, followed: () => number | null,
       );
       const leaders = el("div", "war-numbers");
       leaders.append(el("span", "", leaderText(state, war.id, record.attacker)), el("span", "", leaderText(state, war.id, record.defender)));
-      row.append(numbers, leaders);
+      const conditions = el("div", "war-numbers");
+      conditions.append(el("span", "", campaignText(state, war.id, record.attacker)), el("span", "", campaignText(state, war.id, record.defender)));
+      row.append(numbers, leaders, conditions);
       box.append(row);
     }
   }

@@ -171,3 +171,19 @@ Tuned on 4 seeds. At first, peace offers (sue 0.2, accept 0.3) ended 48% of wars
 18% of wars end on terms (79% of them in the attacker's favor, 2.5 provinces each), and ~17 generals a century become famous (3 of them fall in battle). The Sandbox's odds split more: of 4 real wars, 3 now end differently across 20 futures (8–1–11, 13–7, 5–15), and one still ends the same way in all 20.
 
 **Not changed:** attackers still win 80% of decided wars, above the 55–75% target. Both new systems are mostly choices and color: neither changes who picks fights. Ideas left for that: fear coalitions (neighbors joining the victim of a fast-growing aggressor) and army stances.
+
+## Imperfect engagement judgment (2026-11-08)
+
+Armies now consider the enemy's defensive position before seeking a battle. The estimate includes the same ground bonuses as combat: terrain, fortifications and, on home ground, the inhabitants' defense, mithril and faith. It assumes an attack on the enemy's current position; the enemy may move before the armies meet.
+
+`estimated advantage = own army power × general boldness / (enemy army power × ground bonus × scouting error)`
+
+- **Scouting error** is between `e^-ENGAGE_INTEL_ERROR` and `e^+ENGAGE_INTEL_ERROR` (default 0.4, about ×0.67–1.49). It estimates the combined enemy strength and defensive advantage; it does not expose the eventual battle roll. The report is consistent for a given army and foe within a year, with a fresh report next year. Changed numbers, morale or positions can still change the decision within the year.
+- **Personality** is `General.boldness`, rolled once between `e^-race.temper` and `e^+race.temper` on its own named stream. Below 1 is cautious, above 1 bold. It changes willingness to engage, not fighting skill or victory probability. The War Room shows the temperament beside the general's name.
+- **Orders** seek the enemy when the estimated advantage reaches `ENGAGE_RATIO`; otherwise they seek home. Existing forced contact and morale-retreat rules remain. Player-controlled realms use the same automatic army judgment.
+- **Battle outcomes** retain their existing weighted random roll. Stronger armies can lose. No additional weather, ambush or reinforcement events are modeled by this change.
+- **Saves and replay:** the optional personality field is saved with armies and marshals; an older general without it uses 1 (measured), so save format v13 remains loadable. The new rules intentionally change future campaigns, including when continuing older saves; identical runs under this version remain reproducible. Army scouting uses separate named forks of the simulation's yearly campaign stream, so alternate futures also vary the reports.
+
+Tests cover defensive ground, mistaken attacks and refusals, cautious/bold generals, old generals, consistent reports and separate army streams, player parity, and upsets in actual battles. The initial scouting range is a starting value, not a completed balance tuning pass.
+
+Validation: 365 tests passed (one optional race-balance test skipped), production build passed, and War Room temperament labels were checked in the browser. Golden histories were deliberately re-recorded because campaign choices changed. Four paired settled-start smoke runs (`scouting-check-a` through `scouting-check-d`, 320×180, 500 years each) completed with active warfare in both versions. Their average war durations increased in each run; this small sample checks continued activity, not balance or historical realism.
