@@ -141,12 +141,28 @@ describe("taking the capital", () => {
     SIM.RAID_CHANCE = raid;
   });
 
-  it("holding the capital at peace wins the whole nation, and the loser is gone", () => {
+  it("holding the capital at peace makes the loser a vassal, keeping its capital (docs/systems/vassalage.md)", () => {
     const state = neighbors();
+    state.wars.push(war("conquer", [18, 19]));
+    state.state.occupier[18] = 1;
+    state.state.occupier[19] = 1;
+    const events = endWars(state, everyoneAI);
+    const loser = state.nations.get(2)!;
+    expect(loser.alive).toBe(true);
+    expect(loser.overlord).toBe(1);
+    expect(state.state.owner[19]).toBe(2); // the capital stays its own
+    expect(state.state.owner[18]).toBe(1); // other goal land is taken as usual
+    expect(events[0]!.type).toBe("vassal");
+    expect(events[0]!.text).toContain("becomes its vassal");
+  });
+
+  it("a winner that is itself a vassal still takes the whole nation (one level only)", () => {
+    const state = neighbors();
+    state.nations.set(3, makeNation(3, 0, { alive: true }));
+    state.nations.get(1)!.overlord = 3;
     state.wars.push(war("conquer", [19]));
     state.state.occupier[19] = 1;
     const events = endWars(state, everyoneAI);
-    expect(state.state.owner.slice(10, 20).every((o) => o === 1)).toBe(true);
     expect(state.nations.get(2)!.alive).toBe(false);
     expect(events[0]!.text).toContain("whole realm");
   });

@@ -32,6 +32,7 @@ export const PLAYER: Controller = {
   proposeAlliance: () => false, // only by the "proposeAlliance" order
   keepAlliance: () => true, // only the "breakAlliance" order ends a pact
   adoptFaith: () => false, // only by the "adoptFaith" order
+  declareIndependence: () => false, // only by the "declareIndependence" order
 
   joinWar(view, me, friend, _enemy, side) {
     switch (policies(view).joinWar) {

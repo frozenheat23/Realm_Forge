@@ -7,9 +7,10 @@ import { battlePlace } from "../sim/battle";
 import { alliesOf } from "../sim/diplomacy";
 import { menText } from "../sim/events";
 import { offeredFaith } from "../sim/faith";
+import { overlordOf } from "../sim/vassals";
 
 /** The kinds of dispatch, each of which the player can switch off. */
-export const DISPATCH_KINDS = ["war", "battle", "peace", "ruler", "heir", "revolt", "alliance", "faith", "fall"] as const;
+export const DISPATCH_KINDS = ["war", "battle", "peace", "ruler", "heir", "revolt", "alliance", "vassal", "faith", "fall"] as const;
 export type DispatchKind = (typeof DISPATCH_KINDS)[number];
 
 export const DISPATCH_NAMES: Record<DispatchKind, string> = {
@@ -20,6 +21,7 @@ export const DISPATCH_NAMES: Record<DispatchKind, string> = {
   heir: "Every new ruler",
   revolt: "Revolts breaking away",
   alliance: "Alliances made or broken",
+  vassal: "Submitting, vassals, a chance to break free",
   faith: "A faith on offer, the Old Gods",
   fall: "Your realm falling",
 };
@@ -114,6 +116,9 @@ export function dispatchesFor(state: WorldState, events: SimEvent[], before: Rea
       case "alliance_ended":
         if (mine) add("alliance", sentence(event.text));
         break;
+      case "vassal":
+        if (mine) add("vassal", sentence(event.text));
+        break;
       case "faith":
         // Your own conversions come from your orders; the Old Gods stirring doesn't.
         if (mine && event.text.includes("Old Gods")) add("faith", sentence(event.text));
@@ -145,6 +150,10 @@ export function dispatchesFor(state: WorldState, events: SimEvent[], before: Rea
     else if (now.besieged && !before.besieged) add("battle", `${capitalize(capital)} is besieged.`);
     // A new ruler not named by any event this year (an ordinary reign ending, or a great one's death).
     if (now.ruler !== before.ruler && !out.some((d) => d.kind === "ruler" && d.text.includes(me.ruler.name))) add(out.some((d) => d.kind === "ruler") ? "ruler" : "heir", `A new ruler takes the throne of ${me.name}: ${me.ruler.name} of ${me.ruler.dynasty}.`);
+    const overlord = overlordOf(state, me.id);
+    if (overlord && overlord.ruler.crowned === state.year && !state.wars.some((w) => w.goal === "independence" && w.attacker === me.id)) {
+      add("vassal", `A new ruler takes the throne of ${overlord.name}, your overlord. You may declare independence under Orders, this year only.`);
+    }
     if (now.faithOffered !== null && now.faithOffered !== before.faithOffered) {
       add("faith", `Most of your people now hold ${faithInfo(now.faithOffered).name}. You can adopt it under Orders.`);
     }

@@ -42,11 +42,12 @@ async function fingerprint(seed: string, years: number, width?: number, height?:
 // and again when defenders who hold out began to win (M18 underdog defense), and for
 // generals and peace offers (M18 part 3). Re-recorded 2026-11-08 for imperfect
 // army engagement estimates (defensive ground, yearly scouting reports and general personality),
-// then for strength-sensitive sieges, costly assaults, supply routes and hunger.
+// then for strength-sensitive sieges, costly assaults, supply routes and hunger. Re-recorded
+// 2026-11-09: holding a capital at peace makes the loser a vassal (vassalage v1).
 const GOLDEN = {
-  full: "7833d41f",
-  smallA: "4e816901",
-  smallB: "17891614",
+  full: "deb6d95f",
+  smallA: "fa8f62c8",
+  smallB: "4713c759",
 };
 
 describe("golden history", () => {

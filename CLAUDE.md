@@ -105,7 +105,7 @@ All built. Each one's design is in the SPEC section or system doc listed.
 | M18 ✅ | Real war: misjudgment, underdog defense, generals, suing for peace | `docs/systems/realwar.md` |
 | M19 ✅ | Map zoom | SPEC §5.4l |
 | M20 ✅ | Play as a nation | `docs/systems/play.md` |
-| Next | Simplified vassalage, submission peace and imperial succession (planned) | SPEC §8; `docs/systems/vassalage.md` |
+| M21 ✅ | Vassalage v1: submission at peace, duties, independence at a new overlord ruler | `docs/systems/vassalage.md` |
 
 At the end of each milestone: run tests, take a screenshot, give me my exercise, update the Decision log.
 
@@ -141,7 +141,7 @@ Short and current. Earlier detail (tuning runs, measurements) is in git history 
 - Race traits are multipliers with Humans = 1.0. Cell people supply growth and fighting; the ruling race supplies aggression, cohesion and tolerance (M7).
 - Diplomacy: one shared opinion per pair; alliances are defensive and offensive; only bordering allies join. Pacts fade without shared wars and new rulers may break them (`fickleness` race trait).
 - Land: cells store causes (unrest, devastation, development, settlements, ownership); chances are worked out each year. `control` replaces distance from the capital. Every owner change goes through `setOwner`.
-- Armies: one per side per war, four seasons a year; land is occupied in war and changes owner only at peace, by war goal (conquer, reclaim, raid). Holding the enemy capital at peace can win the whole nation.
+- Armies: one per side per war, four seasons a year; land is occupied in war and changes owner only at peace, by war goal (conquer, reclaim, raid). Holding the enemy capital at peace makes the loser a vassal (M21).
 - Culture stays inside a race, faith crosses races; nine faiths. Rebels are one culture; dead realms can return. Pretenders come only from the ruling people.
 - Rulers: five great types, each race leaning to one; succession crises and civil wars. Golden ages left out (backlog).
 - War is decided on estimates (race confidence × ruler boldness × yearly error); defenders who hold out score and can win; generals lead armies; losers can sue for peace.
@@ -171,3 +171,5 @@ Short and current. Earlier detail (tuning runs, measurements) is in git history 
 | 2026-11-07 | M20 built in 6 steps: player controller and policies (save v13), Play tab, orders, dispatches, carrying on after a fall and the end summary |
 | 2026-11-08 | M20 playtest: only your first rout per war pauses; ordinary successions ("Every new ruler") off by default. Pauses per run 16–333 → 11–169 on 6 worlds. A realm on default policies never starts wars, so playing well means giving orders |
 | 2026-11-08 | Docs shortened: decision log condensed to current decisions; full history stays in git |
+| 2026-11-09 | Reviewed the campaign pass and vassalage scope (sound code, honest numbers; attacker wins still 84%). User chose a simple vassalage first |
+| 2026-11-09 | Vassalage v1 built: holding a capital at peace makes the loser a vassal (keeps its capital); vassals start no wars or alliances; overlord and vassal join each other's wars by rule; no wars inside a crown; a vassal may declare independence only in the year its overlord's ruler is crowned (AI chance from opinion and strength, `INDEPENDENCE_CHANCE` 1), and goes free if its overlord falls. Save stays v13 (optional `overlord`). Validation seeds: realms alive at 500 13.6 → 22.1, attacker wins 84% unchanged, vassals serve ~50 years. Year now ~15–19 ms (more realms alive); test time limit 30 s. Golden histories re-recorded |

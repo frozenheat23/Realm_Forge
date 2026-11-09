@@ -182,6 +182,13 @@ export const AI: Controller = {
     return rng.chance(SIM.REBEL_WAR_PROB);
   },
 
+  declareIndependence(view, me, overlord, rng) {
+    // Likelier the more it dislikes its overlord, and the stronger it is next to it.
+    const dislike = (1 - opinion(view, me.id, overlord.id)) / 2;
+    const strength = Math.min(1, fightingPower(view, me) / Math.max(fightingPower(view, overlord), 1e-6));
+    return rng.chance(SIM.INDEPENDENCE_CHANCE * dislike * strength);
+  },
+
   adoptFaith(_view, _me, _faith, rng) {
     return rng.chance(SIM.FAITH_ADOPT);
   },

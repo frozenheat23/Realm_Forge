@@ -104,6 +104,10 @@ export const BORDER_DARKEN = 0.4;
 export const WAR_FRONT_COLOR = "#c8312b";
 /** When nations are highlighted (click an event), others keep this share of their opacity. */
 export const HIGHLIGHT_DIM = 0.2;
+/** A vassal's land has a band this many pixels wide inside its borders, in its overlord's color (docs/systems/vassalage.md). */
+export const VASSAL_BAND_WIDTH = 3;
+/** How solid that band is, 0..1. */
+export const VASSAL_BAND_ALPHA = 0.8;
 /** Tint per race in the Races map layer (SPEC §5.4b), indexed by RaceId (0 = nobody, unused). */
 export const RACE_COLORS: string[] = ["#000000", "#d9a441", "#9fd8e8", "#6a4c93", "#a0522d", "#6b8e23"];
 /** Tint per faith in the Faiths map layer (SPEC §5.4i), indexed by FaithId (0 = nobody, unused). */

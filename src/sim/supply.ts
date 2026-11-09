@@ -1,6 +1,6 @@
 // Small campaign logistics model: a short controlled route, or limited local foraging.
 import { Biome, type Army, type CellId, type WorldState } from "../core/types";
-import { allied } from "./diplomacy";
+import { friendly } from "./diplomacy";
 import { pairKey, warPairs } from "./helpers";
 import { loseSoldiers } from "./manpower";
 import { SIM } from "./params";
@@ -16,7 +16,7 @@ export interface SupplyStatus {
 /** Occupation overrides legal ownership: enemy-held home ground is not friendly. */
 export function friendlyGround(state: WorldState, army: Army, cell: CellId): boolean {
   const holder = state.state.occupier[cell] || state.state.owner[cell]!;
-  return holder === army.owner || (holder !== 0 && allied(state, holder, army.owner));
+  return holder === army.owner || (holder !== 0 && friendly(state, holder, army.owner));
 }
 
 /** Search at most SUPPLY_RANGE links back to unoccupied home/allied land. */

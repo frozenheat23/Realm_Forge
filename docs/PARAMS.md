@@ -472,7 +472,7 @@ Measured after step 5, the finished milestone (same 5 seeds, vs step 4): ~113 wa
 | `GOAL_SCORE_MULT` | 2 | 1–4 | Goal cells count this much more | Wars focus on their goal | Any occupation will do |
 | `CAPITAL_SCORE` | 20 | 0–60 | Score for holding the enemy capital | Taking the capital wins the war | Capitals don't matter |
 | `CONQUEST_MAX_PROVINCES` | 8 | 1–12 | Most provinces one conquest aims for. A war aims for one per whole time the attacker outmatches the defender | Strong nations swallow neighbors whole | Every war is over one province (1) |
-| `SUBJUGATE_RATIO` | 1 | 1–3 | How many times stronger an attacker must be to also march on the enemy capital. Holding it at peace wins the whole nation | Only crushing wars end nations | Every war goes for the throne (1) |
+| `SUBJUGATE_RATIO` | 1 | 1–3 | How many times stronger an attacker must be to also march on the enemy capital. Holding it at peace makes the loser a vassal (docs/systems/vassalage.md) | Only crushing wars make vassals | Every war goes for the throne (1) |
 | `PEACE_EXTRA_CELLS` | 40 | 0–80 | Occupied non-goal cells a winner may also keep, if they touch its land | Wars grab more land | Wars only take the goal (0) |
 | `RAID_TRIBUTE` | 0.1 | 0–0.3 | Stability moved from loser to winner after a raid | Raids break nations | Raids only burn land |
 
@@ -564,6 +564,14 @@ SPEC §4.15 and `docs/systems/rulers.md`. Race tables are in `gen/params.ts`; th
 | `CIVIL_WAR_SHARE` | 0.25 | 0.05–0.5 | Largest share of the land one pretender can take (only land of the ruling people, as far from the capital as `REBEL_MIN_CAPITAL_DIST`) | Big successors | Small breakaways |
 
 `REIGN_SPREAD` (0.5, `gen/params.ts`): a reign lasts the race's `reign`, give or take this share.
+
+### Vassals
+
+`docs/systems/vassalage.md`. In the Settings panel under "Rulers and dynasties".
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `INDEPENDENCE_CHANCE` | 1 | 0–3 | × the AI vassal's chance to declare independence when its overlord's ruler is crowned. The chance is also × (1 − opinion) / 2 × min(1, its power / the overlord's) | Crowns break up at every succession | Vassals serve until their overlord falls (0) |
 
 ### Great ruler table
 
@@ -662,6 +670,8 @@ Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shadi
 | `LABEL_SIZE_PER_SQRT_AREA` | 2.2 | 1–4 | How fast labels grow with nation size | Big nations shout | All labels similar size |
 | `LABEL_LETTER_SPACING` | 0.18 | 0–0.5 | Gap between letters (share of font size) | Airy, map-style lettering | Tight text |
 | `HIGHLIGHT_DIM` | 0.2 | 0–0.6 | How faded other nations get when you click an event | Others stay visible | Only the highlighted nations show |
+| `VASSAL_BAND_WIDTH` | 3 | 0–6 | Width in pixels of the band inside a vassal's borders, in its overlord's color | Crowns read as blocks | Vassals look independent (0) |
+| `VASSAL_BAND_ALPHA` | 0.8 | 0.3–1 | How solid that band is | Bold | Faint |
 | `CAPITAL_RADIUS` | 3 | 2–6 | Capital dot size (pixels) | Bigger dots | Smaller dots |
 | `RACE_COLORS` | Humans #d9a441, Light Elves #9fd8e8, Dark Elves #6a4c93, Dwarves #a0522d, Orcs #6b8e23 | — | Tint per race in the **Races** map layer | — | — |
 | `ALLIANCE_COLOR` / `ALLIANCE_OUTLINE` | light cream / dark brown, see code | — | Dashed line between allied capitals and its outline | — | — |

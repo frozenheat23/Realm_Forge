@@ -67,6 +67,8 @@ export interface Controller {
   orderSiege(view: View, army: Army, target: CellId, rng: Rng): "wait" | "assault";
   /** Go to war to crush `rebels`, who just broke away? */
   crushRevolt(view: View, me: Nation, rebels: Nation, rng: Rng): boolean;
+  /** Declare independence from `overlord`, whose new ruler was crowned this year (docs/systems/vassalage.md)? */
+  declareIndependence(view: View, me: Nation, overlord: Nation, rng: Rng): boolean;
   /** Adopt `faith`, now that most of the realm holds it? */
   adoptFaith(view: View, me: Nation, faith: FaithId, rng: Rng): boolean;
   /** Told when the rules turn down one of its commands, and why. */

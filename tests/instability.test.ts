@@ -210,7 +210,7 @@ describe("1,000 years of history", () => {
     const state = await run("determinism");
     expect(state.events.some((e) => e.type === "rebellion")).toBe(true);
   });
-}, 60000);
+}, 120_000); // two 1,000-year runs; more realms survive since vassalage, so a year takes longer
 
 describe("rebel armies", () => {
   // A long row: nation 1's far end rises up.

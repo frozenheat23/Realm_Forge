@@ -3,10 +3,13 @@
 // Each rule file applies its own commands (`applyDeclareWar` in war.ts, and so on);
 // `applyCommand` is the one door for callers outside the yearly steps, such as a
 // future sandbox or player.
+import { createRng } from "../core/rng";
 import type { CellId, FaithId, NationId, SimEvent, War, WarGoal, WorldState } from "../core/types";
+import { controllersOf } from "./ai/player";
 import { applyMobilize, applyOrderArmy } from "./armies";
 import { applyBreakAlliance, applyFormAlliance } from "./diplomacy";
 import { applyAdoptFaith } from "./faith";
+import { applyDeclareIndependence } from "./independence";
 import { applyCrushRevolt } from "./rebellion";
 import { applyDeclareWar, applyJoinWar, applySuePeace } from "./war";
 
@@ -20,7 +23,9 @@ export type Command =
   | { kind: "crushRevolt"; nation: NationId; rebels: NationId }
   | { kind: "adoptFaith"; nation: NationId; faith: FaithId }
   // The losing side's offer, already accepted by the winner (as an alliance is proposed and accepted).
-  | { kind: "suePeace"; nation: NationId; war: number };
+  | { kind: "suePeace"; nation: NationId; war: number }
+  // A vassal declares independence (docs/systems/vassalage.md).
+  | { kind: "declareIndependence"; nation: NationId };
 
 /** The command of one kind, e.g. `CommandOf<"mobilize">`. */
 export type CommandOf<K extends Command["kind"]> = Extract<Command, { kind: K }>;
@@ -49,5 +54,8 @@ export function applyCommand(state: WorldState, command: Command): CommandResult
       return applyAdoptFaith(state, command);
     case "suePeace":
       return applySuePeace(state, command);
+    case "declareIndependence":
+      // The overlord's allies answer as they would in the year's own step.
+      return applyDeclareIndependence(state, command, createRng(`${state.seed}/independence/${state.year}`), controllersOf(state));
   }
 }

@@ -2,7 +2,7 @@
 // The owner doesn't change until peace; `occupier` records who holds the cell for now.
 import { Settlement, type Army, type CellId, type NationId, type War, type WorldState } from "../core/types";
 import { createRng, type Rng } from "../core/rng";
-import { allied } from "./diplomacy";
+import { friendly } from "./diplomacy";
 import { pairKey, warPairs } from "./helpers";
 import { SIM } from "./params";
 import { goalsHeld } from "./warGoals";
@@ -100,7 +100,7 @@ export function liberate(state: WorldState, army: Army, cell: CellId, hostile: S
   const { owner, occupier, siege } = state.state;
   const holder = occupier[cell]!;
   if (holder === 0 || !hostile.has(pairKey(army.owner, holder))) return;
-  if (owner[cell] === army.owner || allied(state, owner[cell]!, army.owner)) {
+  if (owner[cell] === army.owner || friendly(state, owner[cell]!, army.owner)) {
     occupier[cell] = 0;
     siege[cell] = 0;
   }

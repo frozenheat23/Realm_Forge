@@ -2,14 +2,14 @@
 // the map, used by the marching rules in armies.ts and by controllers giving orders.
 import { NO_TARGET, type Army, type CellId, type Nation, type NationId, type War, type WorldState } from "../core/types";
 import { MinHeap } from "../gen/rivers";
-import { alliesOf } from "./diplomacy";
+import { friendsOf } from "./diplomacy";
 import { frontCells, moveCost, pairKey } from "./helpers";
 import { SIM } from "./params";
 import { cellValue, effectiveCapacity } from "./resources";
 
-/** Nations whose land an army of `id` may cross: its own, its allies' and its enemies'. Empty land (0) is open too. */
+/** Nations whose land an army of `id` may cross: its own, its allies' and crown's, and its enemies'. Empty land (0) is open too. */
 export function marchRights(state: WorldState, id: NationId): Set<NationId> {
-  const rights = new Set<NationId>([0, id, ...alliesOf(state, id)]);
+  const rights = new Set<NationId>([0, id, ...friendsOf(state, id)]);
   for (const w of state.wars) {
     if (w.attacker === id) rights.add(w.defender);
     if (w.defender === id) rights.add(w.attacker);

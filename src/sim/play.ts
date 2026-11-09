@@ -8,6 +8,7 @@ import { defaultPolicies, POLICY_CHOICES } from "./ai/player";
 import type { CommandOf, CommandResult } from "./commands";
 import { allianceRefusal, applyBreakAlliance, applyFormAlliance } from "./diplomacy";
 import { applyAdoptFaith, offeredFaith } from "./faith";
+import { applyDeclareIndependence } from "./independence";
 import { livingNations } from "./helpers";
 import { applyDeclareWar, applySuePeace, callAllies, declareWarRefusal, helpers, suePeaceRefusal, warLookups, winningSide } from "./war";
 
@@ -141,5 +142,7 @@ export function applyPlayerCommand(state: WorldState, cmd: PlayerCommand, rng: R
       return applyBreakAlliance(state, { kind: "breakAlliance", nation: me.id, other: cmd.other });
     case "adoptFaith":
       return applyPlayerFaith(state, me, cmd);
+    case "declareIndependence":
+      return applyDeclareIndependence(state, { kind: "declareIndependence", nation: me.id }, rng, controllers);
   }
 }

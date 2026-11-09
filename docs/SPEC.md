@@ -263,6 +263,7 @@ One tick = one year. The steps always run in this order:
 | 6b | Peace | 4.5 |
 | 7 | Rebellion | 4.6 |
 | 7b | Succession: schemes, reigns end, crises and civil wars | 4.15 |
+| 7c | Vassals: those of fallen overlords go free; those whose overlord has a new ruler may declare independence | `systems/vassalage.md` |
 | 8 | Collapse, then armies with no war go home and leftover occupations end | 4.7, 4.13 |
 | 9 | Emergence | 4.8 |
 | 10 | Events | 4.9 |
@@ -600,7 +601,7 @@ Occupations can't outlive their war: at the end of each tick any occupier that's
 - the war has lasted `MAX_WAR_YEARS`
 
 **Terms.** A winner (goal achieved, or `|score|` ≥ `WIN_SCORE`) takes:
-- **the whole nation, if it holds the loser's capital** (the loser is gone; *"…takes the capital of Kethar and conquers the whole realm, 120 provinces in all."*). This is how giants form: nations swallow rivals in one stroke. Otherwise:
+- **the loser as its vassal, if it holds the loser's capital** (since 2026-11-09, [`systems/vassalage.md`](systems/vassalage.md)): the winner takes the land below as usual, never the capital, and the loser serves it (*"…takes the capital of Kethar, which, giving up 12 provinces, submits and becomes its vassal."*). A winner that is itself a vassal still takes the whole nation. With or without the capital, it also takes:
 - the goal cells it occupies (only the attacker has goals);
 - up to `PEACE_EXTRA_CELLS` other occupied cells that touch its own land, most valuable first; each cell taken can make the next one touch;
 - for a raid the **attacker** won, no land. Instead the loser loses `RAID_TRIBUTE` stability, the winner gains it, and the event reads *"…plunders Kethar and goes home laden with spoils."* A defender who beats a raid still takes what it occupies.
@@ -849,15 +850,9 @@ A fifth side-panel tab (`src/ui/play.ts`). With no one playing it lists the livi
 
 ## 8. Backlog systems
 
-### Next planned scope: vassalage and imperial succession
+### Vassalage (v1 built 2026-11-09)
 
-Approved for the next scope on 2026-11-08, following the simplified campaign improvements. Keep the first versions small; implementation is pending. See [vassalage and imperial succession](systems/vassalage.md).
-
-1. **Vassalage:** one sovereign with directly subordinate kingdoms. Subjects retain their territory, people, rulers and armies, while recognizing the sovereign and providing military support in return for protection.
-2. **Submission peace:** extend the existing peace system so a defeated realm can become a vassal instead of being annexed. This is the first route into vassalage.
-3. **Imperial succession:** extend existing ruler succession so subjects normally recognize the new sovereign, while a disputed succession can lead to an independence war. Stable inheritance must remain possible.
-
-Build in that order. Include clear sovereign/subject UI, AI/player parity, save/load and replay support, and checks that unification and fragmentation both remain possible. Exact rules and parameter values will be chosen during implementation.
+Holding the loser's capital at peace makes it a vassal instead of swallowing it; vassals serve and fight beside their overlord, and may declare independence when the overlord's crown passes. See [`systems/vassalage.md`](systems/vassalage.md), including what's left for later (levy share, annex-or-vassalize choice, breaking away after defeats, absorbing vassals).
 
 ### Later ideas
 

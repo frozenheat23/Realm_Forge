@@ -276,6 +276,8 @@ export interface Nation {
   founded: number;
   /** Set if born from a rebellion. */
   parent?: NationId;
+  /** The realm it serves as a vassal (docs/systems/vassalage.md); missing if independent. */
+  overlord?: NationId;
   /** Its best living general between wars, who leads its next army (M18). */
   marshal?: General;
   /** The ruling race. Fixed for the nation's whole life. */
@@ -312,7 +314,8 @@ export interface Nation {
 }
 
 /** What a war is for. "support" = an ally who joined someone else's war. */
-export type WarGoal = "conquer" | "reclaim" | "raid" | "support";
+/** "independence": a vassal fighting to be free of its overlord (docs/systems/vassalage.md). */
+export type WarGoal = "conquer" | "reclaim" | "raid" | "support" | "independence";
 
 /** A change the gods make to history in the sandbox (docs/systems/sandbox.md). */
 export type GodCommand =
@@ -353,11 +356,13 @@ export type PlayerCommand =
   /** Take over a nation, or (null) stop playing and watch. */
   | { kind: "play"; nation: NationId | null }
   | { kind: "setPolicy"; policies: Partial<Policies> }
-  | { kind: "declareWar"; target: NationId; goal: Exclude<WarGoal, "support"> }
+  | { kind: "declareWar"; target: NationId; goal: Exclude<WarGoal, "support" | "independence"> }
   | { kind: "suePeace"; war: number }
   | { kind: "proposeAlliance"; other: NationId }
   | { kind: "breakAlliance"; other: NationId }
-  | { kind: "adoptFaith"; faith: FaithId };
+  | { kind: "adoptFaith"; faith: FaithId }
+  /** A vassal declares independence, in the year its overlord's ruler is crowned. */
+  | { kind: "declareIndependence" };
 
 /** A god command or player order and the year it was given (after that year's tick). */
 export interface LoggedCommand {
@@ -398,7 +403,7 @@ export interface BattleRecord {
 
 /** How a war ended. */
 export interface WarOutcome {
-  how: "goal" | "decisive" | "exhausted" | "too long" | "side fell" | "imposed" | "terms";
+  how: "goal" | "decisive" | "exhausted" | "too long" | "side fell" | "imposed" | "terms" | "one crown";
   /** Missing for a white peace, or when a side fell. */
   winner?: NationId;
   /** The attacker won a raid: spoils, no land. */
@@ -446,7 +451,7 @@ export interface Alliance {
 
 export interface SimEvent {
   year: number;
-  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved" | "alliance" | "alliance_ended" | "city_founded" | "battle" | "faith" | "ruler" | "general";
+  type: "founded" | "war" | "peace" | "rebellion" | "collapse" | "annexed" | "capital_moved" | "alliance" | "alliance_ended" | "city_founded" | "battle" | "faith" | "ruler" | "general" | "vassal";
   actors: NationId[];
   text: string;
 }

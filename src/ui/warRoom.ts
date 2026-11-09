@@ -26,7 +26,7 @@ export function warTitle(record: WarRecord, state: WorldState): string {
   return `The War of ${nameOf(state, record.attacker)} and ${nameOf(state, record.defender)}`;
 }
 
-const GOALS: Record<WarRecord["goal"], string> = { conquer: "Conquest", reclaim: "Reclaiming lost lands", raid: "Raid", support: "Support" };
+const GOALS: Record<WarRecord["goal"], string> = { conquer: "Conquest", reclaim: "Reclaiming lost lands", raid: "Raid", support: "Support", independence: "Independence" };
 const ENDINGS: Record<NonNullable<WarRecord["outcome"]>["how"], string> = {
   goal: "the attacker took what it went to war for",
   decisive: "won on the field",
@@ -35,6 +35,7 @@ const ENDINGS: Record<NonNullable<WarRecord["outcome"]>["how"], string> = {
   "side fell": "one side fell",
   imposed: "the gods imposed peace",
   terms: "the losing side sued for peace",
+  "one crown": "both sides came to serve one crown",
 };
 
 const nameOf = (state: WorldState, id: NationId) => state.nations.get(id)?.name ?? "?";

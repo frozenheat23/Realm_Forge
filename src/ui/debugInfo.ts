@@ -10,6 +10,7 @@ import { armiesIn } from "../sim/armies";
 import { soldiers } from "../sim/manpower";
 import { toWorld, WHOLE_MAP, type Camera } from "../render/camera";
 import { alliesOf, opinion } from "../sim/diplomacy";
+import { overlordOf, vassalsOf } from "../sim/vassals";
 
 /** Rounds soldier units to men, e.g. 12,000. */
 
@@ -18,7 +19,7 @@ function soldierText(state: WorldState, nation: Nation): string {
   return `soldiers ${menText(soldiers(state, nation))} of ${menText(nation.manpowerCap)}`;
 }
 
-const GOAL_WORDS: Record<WarGoal, string> = { conquer: "conquest", reclaim: "reclaiming", raid: "raid", support: "helping an ally" };
+const GOAL_WORDS: Record<WarGoal, string> = { conquer: "conquest", reclaim: "reclaiming", raid: "raid", support: "helping an ally", independence: "independence" };
 
 /** " · army of Velmora (conquest): 12,000 men, morale 100%, heading for cell 412" for each army at `cells`. */
 function armyText(state: WorldState, cells: CellId[]): string {
@@ -66,12 +67,16 @@ export function rivalOf(state: WorldState, id: NationId): { id: NationId; opinio
   return rival === null ? null : { id: rival, opinion: worst };
 }
 
-/** " · allies X, Y · rival Z (−0.62)" for a nation, or "" if it has neither. */
+/** " · vassal of W · vassals V · allies X, Y · rival Z (−0.62)" for a nation, or "" if it has none of them. */
 function diplomacyText(state: WorldState, id: NationId): string {
   const name = (other: NationId) => state.nations.get(other)?.name ?? "?";
   const allies = alliesOf(state, id);
   const rival = rivalOf(state, id);
+  const overlord = overlordOf(state, id);
+  const vassals = vassalsOf(state, id);
   return (
+    (overlord ? ` · vassal of ${overlord.name}` : "") +
+    (vassals.length ? ` · vassals ${vassals.map((v) => v.name).join(", ")}` : "") +
     (allies.length ? ` · allies ${allies.map(name).join(", ")}` : "") +
     (rival !== null ? ` · rival ${name(rival.id)} (${rival.opinion.toFixed(2)})` : "")
   );

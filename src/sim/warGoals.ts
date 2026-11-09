@@ -3,6 +3,7 @@ import { Faith, type CellId, type Nation, type War, type WorldState } from "../c
 import { blessing } from "../gen/faiths";
 import { clamp } from "../core/math";
 import { setOwner } from "./helpers";
+import { becomeVassal, overlordOf } from "./vassals";
 import { fightingPower } from "./manpower";
 import { SIM } from "./params";
 import { cellValue, effectiveCapacity, grainBonuses } from "./resources";
@@ -49,7 +50,7 @@ export function conquestCells(state: WorldState, attacker: Nation, defender: Nat
     ring = next;
   }
   const goal = cells.filter((c) => provinces.has(c.province) && owner[c.id] === defender.id).map((c) => c.id);
-  // Far stronger? Then it goes for the throne: holding the capital at peace wins the whole nation.
+  // Far stronger? Then it goes for the throne: holding the capital at peace makes the nation its vassal.
   if (ratio >= SIM.SUBJUGATE_RATIO && !goal.includes(defender.capital)) goal.push(defender.capital);
   return goal;
 }
@@ -91,22 +92,25 @@ function takeWholeNation(state: WorldState, winner: Nation, loser: Nation): Cell
 }
 
 /**
- * Peace terms. Whoever holds the loser's capital takes the whole nation. Otherwise: the
- * goal cells the winner holds, then up to SIM.PEACE_EXTRA_CELLS more that touch its land.
- * `negotiated` terms, which the loser sued for (M18), give only the goal cells held.
+ * Peace terms: the goal cells the winner holds, then up to SIM.PEACE_EXTRA_CELLS more that
+ * touch its land. `negotiated` terms, which the loser sued for (M18), give only the goal cells held.
+ * Whoever holds the loser's capital also makes it a vassal (docs/systems/vassalage.md), keeping
+ * the capital itself; a winner that is itself a vassal takes the whole nation instead (one level only).
  * Returns all it took.
  */
 export function takeLand(state: WorldState, war: War, winner: Nation, loser: Nation, negotiated = false): CellId[] {
   const { owner, occupier } = state.state;
-  if (occupier[loser.capital] === winner.id && !negotiated) return takeWholeNation(state, winner, loser);
-  const taken = war.attacker === winner.id ? goalsStanding(state, war).filter((c) => occupier[c] === winner.id) : [];
+  const capitalHeld = occupier[loser.capital] === winner.id && !negotiated;
+  if (capitalHeld && overlordOf(state, winner.id)) return takeWholeNation(state, winner, loser);
+  const keep = (c: CellId) => !capitalHeld || c !== loser.capital;
+  const taken = war.attacker === winner.id ? goalsStanding(state, war).filter((c) => occupier[c] === winner.id && keep(c)) : [];
   for (const c of taken) takeCell(state, c, winner);
   if (negotiated) return taken;
 
   const grain = grainBonuses(state);
   const value = (c: CellId) => cellValue(state, c, winner.race, effectiveCapacity(state, c, grain));
   const others: CellId[] = [];
-  for (let c = 0; c < owner.length; c++) if (owner[c] === loser.id && occupier[c] === winner.id) others.push(c);
+  for (let c = 0; c < owner.length; c++) if (owner[c] === loser.id && occupier[c] === winner.id && keep(c)) others.push(c);
   others.sort((a, b) => value(b) - value(a) || a - b);
 
   // Each new cell can make the next one touch, so look again from the most valuable after every taking.
@@ -117,6 +121,7 @@ export function takeLand(state: WorldState, war: War, winner: Nation, loser: Nat
     takeCell(state, next, winner);
     taken.push(next);
   }
+  if (capitalHeld) becomeVassal(state, loser, winner);
   return taken;
 }
 

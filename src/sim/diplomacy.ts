@@ -8,6 +8,7 @@ import type { CommandOf, CommandResult } from "./commands";
 import { allianceEndedEvent, allianceEvent, allianceLapsesEvent, newRulerBreaksEvent } from "./events";
 import { neighborPairs, pairKey } from "./helpers";
 import { SIM } from "./params";
+import { crownPartners, overlordOf, sameCrown } from "./vassals";
 
 const clamp = (x: number) => Math.max(-1, Math.min(1, x));
 
@@ -38,6 +39,29 @@ export function alliesOf(state: WorldState, id: NationId): NationId[] {
     .map((al) => (al.a === id ? al.b : al.a))
     .filter((other) => state.nations.get(other)?.alive)
     .sort((x, y) => x - y);
+}
+
+/**
+ * Who stands with `id` in war (docs/systems/vassalage.md): its allies, plus its overlord
+ * and vassals, unless they're at war with it. In id order.
+ */
+export function friendsOf(state: WorldState, id: NationId): NationId[] {
+  const allies = alliesOf(state, id);
+  const crown = crownPartners(state, id).filter((other) => !fighting(state, id, other));
+  if (crown.length === 0) return allies;
+  return [...new Set([...allies, ...crown])].sort((x, y) => x - y);
+}
+
+/** Are `a` and `b` at war with each other? (Asked often, so no lookup tables are built.) */
+function fighting(state: WorldState, a: NationId, b: NationId): boolean {
+  const key = pairKey(a, b);
+  return state.wars.some((w) => pairKey(w.attacker, w.defender) === key);
+}
+
+/** Do `a` and `b` count each other's land as friendly: allies, or under one crown and not at war? */
+export function friendly(state: WorldState, a: NationId, b: NationId): boolean {
+  if (allied(state, a, b)) return true;
+  return sameCrown(state, a, b) && !fighting(state, a, b);
 }
 
 /** Who each nation is at war with right now. */
@@ -100,6 +124,7 @@ export function allianceRefusal(state: WorldState, a: NationId, b: NationId): st
   const nb = state.nations.get(b);
   if (!na?.alive || !nb?.alive || na === nb) return "there's no such pair of nations";
   if (allied(state, a, b)) return "they're already allies";
+  if (overlordOf(state, a) || overlordOf(state, b)) return "a vassal makes no alliances of its own";
   if (enemiesOf(state).get(a)?.has(b)) return "they're at war with each other";
   if (alliesOf(state, a).length >= SIM.MAX_ALLIES || alliesOf(state, b).length >= SIM.MAX_ALLIES) return "one of them has as many allies as it can keep";
   return null;
@@ -162,7 +187,7 @@ export function updateAlliances(state: WorldState, pairs: [NationId, NationId][]
 
   const allyCount = (id: NationId) => alliesOf(state, id).length;
   for (const [a, b] of pairs) {
-    if (allied(state, a, b) || enemies.get(a)?.has(b)) continue;
+    if (allied(state, a, b) || enemies.get(a)?.has(b) || overlordOf(state, a) || overlordOf(state, b)) continue;
     if (allyCount(a) >= SIM.MAX_ALLIES || allyCount(b) >= SIM.MAX_ALLIES) continue;
     const na = state.nations.get(a)!;
     const nb = state.nations.get(b)!;

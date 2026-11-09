@@ -205,3 +205,26 @@ export function peaceEvent(year: number, a: Nation, b: Nation, winner: Nation | 
   const text = winner ? `Year ${year}: ${won}.` : `Year ${year}: ${a.name} and ${b.name} sign a white peace.`;
   return { year, type: "peace", actors: [winner?.id ?? a.id, loser.id], text };
 }
+
+// --- Vassals (docs/systems/vassalage.md) ---
+
+export function submitEvent(year: number, vassal: Nation, overlord: Nation, cells: number): SimEvent {
+  const lost = cells === 0 ? "" : `, giving up ${cells} province${cells === 1 ? "" : "s"},`;
+  return { year, type: "vassal", actors: [vassal.id, overlord.id], text: `Year ${year}: ${overlord.name} takes the capital of ${vassal.name}, which${lost} submits and becomes its vassal.` };
+}
+
+export function independenceEvent(year: number, vassal: Nation, overlord: Nation): SimEvent {
+  return { year, type: "vassal", actors: [vassal.id, overlord.id], text: `Year ${year}: ${vassal.name} refuses to bow to the new ruler of ${overlord.name} and declares independence.` };
+}
+
+export function goesFreeEvent(year: number, vassal: Nation, overlord: Nation, why: "won" | "too far" | "fell"): SimEvent {
+  const text =
+    why === "won" ? `Year ${year}: ${vassal.name} wins its independence from ${overlord.name}.`
+    : why === "too far" ? `Year ${year}: ${vassal.name}, too far for ${overlord.name} to hold, goes free.`
+    : `Year ${year}: with ${overlord.name} fallen, ${vassal.name} serves no one.`;
+  return { year, type: "vassal", actors: [vassal.id, overlord.id], text };
+}
+
+export function keptEvent(year: number, vassal: Nation, overlord: Nation): SimEvent {
+  return { year, type: "vassal", actors: [vassal.id, overlord.id], text: `Year ${year}: ${vassal.name} fails to break free, and stays a vassal of ${overlord.name}.` };
+}

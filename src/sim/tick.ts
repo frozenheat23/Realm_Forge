@@ -14,6 +14,7 @@ import { growPopulation } from "./population";
 import { rebellions } from "./rebellion";
 import { updateStability } from "./stability";
 import { succession } from "./succession";
+import { independence } from "./independence";
 import { updateTotals } from "./totals";
 import { releaseOccupations } from "./siege";
 import type { Controllers } from "./ai/controller";
@@ -51,6 +52,7 @@ export function tick(state: WorldState, rng: Rng, controllers: Controllers = con
   events.push(...endWars(state, controllers, year.fork("peace"))); //  6b. Peace
   events.push(...rebellions(state, year.fork("rebellion"), controllers)); // 7. Rebellion
   events.push(...succession(state, year.fork("succession"), controllers)); // 7b. Succession
+  events.push(...independence(state, year.fork("vassals"), controllers)); //  7c. Vassals go free or rise
   events.push(...collapses(state)); //                    8. Collapse
   disbandArmies(state); //                                … armies whose war is over go home
   releaseOccupations(state); //                           … and occupations with no war behind them end

@@ -18,10 +18,26 @@ describe.runIf(set)("campaign balance report", () => {
       const { state } = createWorld(seed, { kind: "settled", kingdoms: 10 }, 320, 180);
       const rng = createRng(seed).fork("sim");
       let peakEmpire = 0;
+      let peakCrown = 0;
       const land = state.cells.filter((c) => c.isLand).length;
+      // Vassals (docs/systems/vassalage.md): when each began serving its current overlord, and how long finished services lasted.
+      const serving = new Map<number, { overlord: number; since: number }>();
+      const served: number[] = [];
       await runYears(YEARS, () => {
         tick(state, rng);
-        for (const n of state.nations.values()) if (n.alive) peakEmpire = Math.max(peakEmpire, n.area / land);
+        const crowns = new Map<number, number>();
+        for (const n of state.nations.values()) {
+          if (n.alive) peakEmpire = Math.max(peakEmpire, n.area / land);
+          const now = n.alive ? n.overlord : undefined;
+          const was = serving.get(n.id);
+          if (was && was.overlord !== now) {
+            served.push(state.year - was.since);
+            serving.delete(n.id);
+          }
+          if (now !== undefined && !serving.has(n.id)) serving.set(n.id, { overlord: now, since: state.year });
+          if (n.alive) crowns.set(now ?? n.id, (crowns.get(now ?? n.id) ?? 0) + n.area);
+        }
+        for (const area of crowns.values()) peakCrown = Math.max(peakCrown, area / land);
       });
       const ended = state.warRecords.filter((w) => w.end !== undefined);
       const decided = ended.filter((w) => w.outcome?.winner !== undefined);
@@ -38,6 +54,13 @@ describe.runIf(set)("campaign balance report", () => {
         battlesPerWar: mean(ended.map((w) => w.battles.length)),
         peakEmpireShare: peakEmpire,
         livingRealms: [...state.nations.values()].filter((n) => n.alive).length,
+        peakCrownShare: peakCrown,
+        submissionsPerCentury: state.events.filter((e) => e.type === "vassal" && e.text.includes("submits")).length / (YEARS / 100),
+        independenceWarsPerCentury: state.events.filter((e) => e.type === "vassal" && e.text.includes("declares independence")).length / (YEARS / 100),
+        vassalsAtEnd: [...state.nations.values()].filter((n) => n.alive && n.overlord !== undefined).length,
+        vassalLandShareAtEnd: [...state.nations.values()].filter((n) => n.alive && n.overlord !== undefined).reduce((a, n) => a + n.area, 0) / land,
+        finishedServices: served.length,
+        averageServiceYears: mean(served),
       };
       for (const value of Object.values(row)) if (typeof value === "number") expect(Number.isFinite(value)).toBe(true);
       rows.push(row);

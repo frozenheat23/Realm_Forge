@@ -5,7 +5,7 @@ import type { CellId, NationId, WorldState } from "../core/types";
 import { hexToRgb, lookTint, scaleRgb, type Rgb } from "./color";
 import type { CellPixels } from "./displayCells";
 import { pairKey } from "../sim/war";
-import { BORDER_DARKEN, FAITH_COLORS, HIGHLIGHT_DIM, LOOK_STANDARD, RACE_COLORS, type MapLook } from "./palette";
+import { BORDER_DARKEN, FAITH_COLORS, HIGHLIGHT_DIM, LOOK_STANDARD, RACE_COLORS, VASSAL_BAND_ALPHA, VASSAL_BAND_WIDTH, type MapLook } from "./palette";
 
 /** Packs a color and alpha into one 32-bit number, the way ImageData stores a pixel. */
 function packPixel(rgb: Rgb, alpha: number): number {
@@ -47,6 +47,8 @@ export function createNationOverlay(world: Pick<GeneratedWorld, "width" | "heigh
   let shownHighlight = new Set<NationId>();
   let shownWars = new Set<number>();
   let shownPlayed: NationId | undefined;
+  // Each nation's overlord at the last update (0 = none), so a nation whose allegiance changes is repainted.
+  let shownOverlord = new Map<NationId, NationId>();
   const playedWidth = look.playedBorderWidth;
   const playedBorder = packPixel(hexToRgb(look.playedBorder), 255);
 
@@ -72,6 +74,9 @@ export function createNationOverlay(world: Pick<GeneratedWorld, "width" | "heigh
     const fill = new Uint32Array(maxId + 1);
     const edgeFill = new Uint32Array(maxId + 1);
     const border = new Uint32Array(maxId + 1);
+    // A vassal's band, in its overlord's color (0 = not a vassal).
+    const band = new Uint32Array(maxId + 1);
+    const overlords = new Map<NationId, NationId>();
     const fillAlpha = Math.round(look.overlayAlpha * 255);
     const edgeAlpha = Math.round(look.overlayEdgeAlpha * 255);
     const borderAlpha = Math.round(look.borderAlpha * 255);
@@ -82,6 +87,11 @@ export function createNationOverlay(world: Pick<GeneratedWorld, "width" | "heigh
       fill[nation.id] = packPixel(rgb, Math.round(fillAlpha * fade));
       edgeFill[nation.id] = packPixel(rgb, Math.round(edgeAlpha * fade));
       border[nation.id] = packPixel(borderInk ?? scaleRgb(hexToRgb(nation.color), 1 - BORDER_DARKEN), Math.round(borderAlpha * fade));
+      const overlord = nation.alive && nation.overlord !== undefined ? state.nations.get(nation.overlord) : undefined;
+      if (overlord?.alive) {
+        band[nation.id] = packPixel(tinted(overlord.color), Math.round(VASSAL_BAND_ALPHA * 255 * fade));
+        overlords.set(nation.id, overlord.id);
+      }
     }
 
     /** Is another realm's land `edge` pixels away, in any of the four directions? */
@@ -95,10 +105,10 @@ export function createNationOverlay(world: Pick<GeneratedWorld, "width" | "heigh
       );
     };
 
-    /** Is land not owned by `me` within `playedWidth` pixels, in any of the four directions? (Water doesn't count.) */
-    const nearOtherLand = (me: number, i: number, x: number, y: number): boolean => {
+    /** Is land not owned by `me` within `reach` pixels, in any of the four directions? (Water doesn't count.) */
+    const nearOtherLand = (me: number, i: number, x: number, y: number, reach = playedWidth): boolean => {
       const other = (o: number) => o !== -1 && o !== me;
-      for (let d = 1; d <= playedWidth; d++) {
+      for (let d = 1; d <= reach; d++) {
         if ((x >= d && other(pixelOwner[i - d]!)) || (x < width - d && other(pixelOwner[i + d]!))) return true;
         if ((y >= d && other(pixelOwner[i - d * width]!)) || (y < height - d && other(pixelOwner[i + d * width]!))) return true;
       }
@@ -148,6 +158,7 @@ export function createNationOverlay(world: Pick<GeneratedWorld, "width" | "heigh
           tint === "race" ? raceFill[race[cell]!]!
           : tint === "culture" ? fill[culture[cell]!]!
           : tint === "faith" ? faithFill[faith[cell]!]!
+          : band[me] !== 0 && nearOtherLand(me, i, x, y, VASSAL_BAND_WIDTH) ? band[me]!
           : edge > 0 && nearAnotherRealm(me, i, x, y) ? edgeFill[me]!
           : fill[me]!;
         pixels[i] = nearEnemy2 ? warFront : inside;
@@ -170,6 +181,12 @@ export function createNationOverlay(world: Pick<GeneratedWorld, "width" | "heigh
       shownTint[c] = tintOf[c]!;
     }
 
+    // A nation that became a vassal, changed overlord or went free is repainted whole.
+    const changedAllegiance = new Set<NationId>();
+    for (const [id, overlord] of overlords) if (shownOverlord.get(id) !== overlord) changedAllegiance.add(id);
+    for (const id of shownOverlord.keys()) if (!overlords.has(id)) changedAllegiance.add(id);
+    if (changedAllegiance.size > 0) for (let c = 0; c < cells.length; c++) if (changedAllegiance.has(owner[c]!)) repaint[c] = 1;
+
     // Changing the tint or the faded nations changes everything.
     const sameHighlight = highlight.size === shownHighlight.size && [...highlight].every((id) => shownHighlight.has(id));
     if (tint !== shownMode || !sameHighlight || played !== shownPlayed) {
@@ -191,6 +208,7 @@ export function createNationOverlay(world: Pick<GeneratedWorld, "width" | "heigh
     shownHighlight = new Set(highlight);
     shownWars = atWar;
     shownPlayed = played;
+    shownOverlord = overlords;
   }
 
   /** Marks the border cells of every nation in a war that began or ended. */

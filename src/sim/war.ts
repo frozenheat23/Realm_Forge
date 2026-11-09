@@ -5,13 +5,14 @@ import { RESOURCES } from "../gen/params";
 import { traits } from "../gen/races";
 import { carryOut, done, refuse, type Controllers, type WarContext } from "./ai/controller";
 import type { CommandOf, CommandResult } from "./commands";
-import { allied, alliesOf, opinion } from "./diplomacy";
-import { conquestEvent, joinAttackEvent, joinDefenseEvent, peaceEvent, raidEvent, suedEvent, warEvent } from "./events";
+import { allied, friendsOf, opinion } from "./diplomacy";
+import { conquestEvent, goesFreeEvent, joinAttackEvent, joinDefenseEvent, keptEvent, peaceEvent, raidEvent, submitEvent, suedEvent, warEvent } from "./events";
 import { frontCells, neighborPairs, pairKey } from "./helpers";
 import { fightingPower } from "./manpower";
 import { SIM } from "./params";
 import { cellValue, effectiveCapacity, grainBonuses } from "./resources";
 import { occupationCounts, occupationScore, occupiedBy } from "./siege";
+import { crownPartners, overlordOf, sameCrown, setFree } from "./vassals";
 import { closeRecord, openRecord, recordScore } from "./warRecords";
 import { claimedCells, claimYears, conquestCells, goalAchieved, goalsHeld, payTribute, takeLand } from "./warGoals";
 
@@ -117,10 +118,13 @@ function free(state: WorldState, id: NationId, enemy: NationId): boolean {
   return !atWar(state, id, enemy) && !inTruce(state, id, enemy) && warsOf(state, id) < SIM.MAX_WARS_PER_NATION;
 }
 
-/** Allies of `friend` that could fight `enemy`: they border it or `friend`, aren't also its allies, and are free. */
+/**
+ * Allies (and overlord or vassals) of `friend` that could fight `enemy`: they border it or `friend`,
+ * aren't also its allies or under its crown, and are free.
+ */
 export function helpers(state: WorldState, lookups: WarLookups, friend: NationId, enemy: NationId): Nation[] {
-  return alliesOf(state, friend)
-    .filter((id) => id !== enemy && (lookups.touching.has(pairKey(id, enemy)) || lookups.touching.has(pairKey(id, friend))) && !allied(state, id, enemy) && free(state, id, enemy))
+  return friendsOf(state, friend)
+    .filter((id) => id !== enemy && (lookups.touching.has(pairKey(id, enemy)) || lookups.touching.has(pairKey(id, friend))) && !allied(state, id, enemy) && !sameCrown(state, id, enemy) && free(state, id, enemy))
     .map((id) => state.nations.get(id)!);
 }
 
@@ -136,6 +140,8 @@ export function declareWarRefusal(state: WorldState, cmd: CommandOf<"declareWar"
   if (!lookups.touching.has(pairKey(me.id, them.id))) return "they don't share a border";
   if (atWar(state, me.id, them.id)) return "they're already at war";
   if (allied(state, me.id, them.id)) return "they're allies";
+  if (sameCrown(state, me.id, them.id)) return "they serve one crown";
+  if (overlordOf(state, me.id)) return "a vassal can't start wars of its own";
   if (inTruce(state, me.id, them.id)) return "there's a truce between them";
   const tooMany = warsOf(state, me.id) >= SIM.MAX_WARS_PER_NATION || warsOf(state, them.id) >= SIM.MAX_WARS_PER_NATION;
   if (tooMany && !ignoreLimit) return "one of them has too many wars";
@@ -203,7 +209,9 @@ export function callAllies(state: WorldState, lookups: WarLookups, war: War, myH
   for (const { ally, side, friend, enemy } of calls) {
     if (!free(state, ally.id, enemy.id)) continue;
     const allyController = controllers(ally.id);
-    if (!allyController.joinWar(state, ally, friend, enemy, side, rng.fork(`join-${ally.id}-${friend.id}-${enemy.id}`))) continue;
+    // Overlord and vassal fight beside each other by duty, without being asked (docs/systems/vassalage.md).
+    const duty = crownPartners(state, friend.id).includes(ally.id);
+    if (!duty && !allyController.joinWar(state, ally, friend, enemy, side, rng.fork(`join-${ally.id}-${friend.id}-${enemy.id}`))) continue;
     const join: CommandOf<"joinWar"> = { kind: "joinWar", nation: ally.id, war: war.id, side };
     const joined = applyJoinWar(state, join, lookups);
     if (carryOut(allyController, join, joined)) events.push(...joined.events);
@@ -217,12 +225,13 @@ export function declareWars(state: WorldState, rng: Rng, controllers: Controller
   const busy = (id: NationId) => warsOf(state, id) >= SIM.MAX_WARS_PER_NATION;
 
   for (const [a, b] of neighborPairs(state)) {
-    if (atWar(state, a, b) || allied(state, a, b) || inTruce(state, a, b) || busy(a) || busy(b)) continue;
+    if (atWar(state, a, b) || allied(state, a, b) || sameCrown(state, a, b) || inTruce(state, a, b) || busy(a) || busy(b)) continue;
     const na = state.nations.get(a)!;
     const nb = state.nations.get(b)!;
     // Either side may go to war. The one with more fighting power is asked first.
     const [strong, weak] = fightingPower(state, na) >= fightingPower(state, nb) ? [na, nb] : [nb, na];
     for (const [me, them] of [[strong, weak], [weak, strong]] as const) {
+      if (overlordOf(state, me.id)) continue; // a vassal starts no wars of its own
       const why: WarContext = {
         claim: lookups.claims.has(directedKey(me.id, them.id)),
         prize: lookups.prizes.get(directedKey(me.id, them.id)),
@@ -276,6 +285,7 @@ function endsNow(state: WorldState, war: War, attacker: Nation, defender: Nation
 export function concludeWar(state: WorldState, war: War, winner: Nation | null, how: WarOutcome["how"], quietly: boolean): SimEvent | null {
   const attacker = state.nations.get(war.attacker)!;
   const defender = state.nations.get(war.defender)!;
+  if (war.goal === "independence") return concludeIndependence(state, war, winner, how);
   const loser = winner === attacker ? defender : attacker;
   const sued = how === "terms";
   const raided = winner === attacker && war.goal === "raid";
@@ -297,9 +307,29 @@ export function concludeWar(state: WorldState, war: War, winner: Nation | null, 
     // Name a deposit the winner took, if any.
     const prize = taken.find((c) => state.cells[c]!.resource !== 0);
     const prizeName = prize !== undefined ? RESOURCES[state.cells[prize]!.resource as ResourceKind].name : undefined;
-    event = !loser.alive ? conquestEvent(state.year, winner!, loser, taken.length) : peaceEvent(state.year, attacker, defender, winner, taken.length, prizeName);
+    const submitted = winner !== null && loser.alive && loser.overlord === winner.id;
+    event =
+      !loser.alive ? conquestEvent(state.year, winner!, loser, taken.length)
+      : submitted ? submitEvent(state.year, loser, winner, taken.length)
+      : peaceEvent(state.year, attacker, defender, winner, taken.length, prizeName);
   }
   closeRecord(state, war, { how, ...(winner ? { winner: winner.id } : {}), raid: raided, cells: taken.length, wholeRealm: !loser.alive, text: event.text });
+  return event;
+}
+
+/**
+ * A war of independence ends (docs/systems/vassalage.md): a vassal that wins is free; otherwise
+ * (lost, or no clear winner) it stays a vassal. No land changes hands either way.
+ */
+function concludeIndependence(state: WorldState, war: War, winner: Nation | null, how: WarOutcome["how"]): SimEvent {
+  const vassal = state.nations.get(war.attacker)!;
+  const overlord = state.nations.get(war.defender)!;
+  const free = winner === vassal;
+  if (free) setFree(vassal);
+  else if (winner === overlord) payTribute(overlord, vassal);
+  state.truces.push({ a: vassal.id, b: overlord.id, until: state.year + SIM.TRUCE_YEARS });
+  const event = free ? goesFreeEvent(state.year, vassal, overlord, "won") : keptEvent(state.year, vassal, overlord);
+  closeRecord(state, war, { how, ...(winner ? { winner: winner.id } : {}), raid: false, cells: 0, wholeRealm: false, text: event.text });
   return event;
 }
 
@@ -394,6 +424,11 @@ export function endWars(state: WorldState, controllers: Controllers, rng: Rng = 
     if (!attacker.alive || !defender.alive) {
       const fallen = !attacker.alive ? attacker : defender;
       closeRecord(state, war, { how: "side fell", raid: false, cells: 0, wholeRealm: false, text: `${fallen.name} fell, and the war with it.` });
+      continue;
+    }
+    // Realms that have come to serve one crown stop fighting each other, quietly (but not a war of independence).
+    if (war.goal !== "independence" && sameCrown(state, war.attacker, war.defender)) {
+      closeRecord(state, war, { how: "one crown", raid: false, cells: 0, wholeRealm: false, text: `${attacker.name} and ${defender.name} now serve one crown, and lay down their arms.` });
       continue;
     }
     // An invasion that takes nothing is failing: each year of it counts for the defender.

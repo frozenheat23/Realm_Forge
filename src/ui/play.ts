@@ -15,6 +15,8 @@ import { offeredFaith } from "../sim/faith";
 import { heirsOf, playerWarRefusals, WAR_GOALS } from "../sim/play";
 import { giveCommand } from "../sim/sandbox";
 import { suePeaceRefusal } from "../sim/war";
+import { independenceRefusal } from "../sim/independence";
+import { overlordOf, vassalsOf } from "../sim/vassals";
 import { PLAY_LIST_MAX, PLAYER_MOBILIZE_CHOICES } from "./config";
 import { rivalOf } from "./debugInfo";
 import { DISPATCH_DEFAULT_OFF, DISPATCH_KINDS, DISPATCH_NAMES, type Dispatch, type DispatchKind } from "./dispatches";
@@ -176,7 +178,10 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
   const proposeWhy = el("div", "sandbox-note");
   const allyRows = el("div");
   const faithRow = el("div", "sandbox-row");
+  // A vassal's one way out: only in the year its overlord's new ruler is crowned.
+  const freeRow = el("div", "sandbox-row");
   ordersPart.append(
+    freeRow,
     labelled("War on", targetPick),
     goalRow,
     goalWhy,
@@ -350,6 +355,8 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
       ["War weariness", percent(me.warWeariness)],
       ["Unrest", percent(size.unrest)],
       ["Allies", allies.length ? allies.map(name).join(", ") : "none"],
+      ...(overlordOf(state, me.id) ? [["Overlord", `${overlordOf(state, me.id)!.name}: you serve it, fight in its wars and start none of your own`] as [string, string]] : []),
+      ...(vassalsOf(state, me.id).length ? [["Vassals", vassalsOf(state, me.id).map((v) => v.name).join(", ")] as [string, string]] : []),
       ["Worst rival", rival ? `${name(rival.id)} (opinion ${rival.opinion.toFixed(2)})` : "none"],
     ];
     stats.replaceChildren();
@@ -431,6 +438,17 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
       leave.addEventListener("click", () => give({ kind: "breakAlliance", other: id }, ordersNote));
       row.append(leave, el("span", "", `the alliance with ${ally.name}`));
       allyRows.append(row);
+    }
+
+    freeRow.replaceChildren();
+    const overlord = overlordOf(state, me.id);
+    if (overlord) {
+      const why = independenceRefusal(state, me);
+      const rise = el("button", "", "Declare independence");
+      rise.disabled = why !== null;
+      rise.title = why ?? `Go to war with ${overlord.name} to be free; if you don't win, you stay its vassal`;
+      rise.addEventListener("click", () => give({ kind: "declareIndependence" }, ordersNote));
+      freeRow.append(rise, el("span", "war-meta", why === null ? `${overlord.name} has a new ruler: now or not until the next` : `Not now: ${why}.`));
     }
 
     // A faith is offered while most of the realm holds it.

@@ -99,4 +99,33 @@ describe("the parchment chart", () => {
     expect(wrong).toBe(0);
     expect(heavier).toBeGreaterThan(0);
   }, 60_000);
+
+  it("draws a band in the overlord's color inside a vassal's borders, and repaints it when the vassal goes free", () => {
+    const { world, state } = generateWorld("overlay");
+    const display = buildDisplayCells(world);
+    const groups = groupPixelsByCell(display, world.cells.length);
+    const kept = createNationOverlay(world, display, groups, LOOK_ATLAS);
+    kept.update(state);
+    const before = kept.pixels.slice();
+
+    const [overlord, vassal] = [...state.nations.values()];
+    vassal!.overlord = overlord!.id;
+    kept.update(state);
+    const fresh = createNationOverlay(world, display, groups, LOOK_ATLAS);
+    fresh.update(state);
+    let changed = 0;
+    let different = 0;
+    for (let i = 0; i < kept.pixels.length; i++) {
+      if (kept.pixels[i] !== before[i]) changed++;
+      if (kept.pixels[i] !== fresh.pixels[i]) different++;
+    }
+    expect(changed).toBeGreaterThan(0);
+    expect(different).toBe(0);
+
+    delete vassal!.overlord;
+    kept.update(state);
+    let left = 0;
+    for (let i = 0; i < kept.pixels.length; i++) if (kept.pixels[i] !== before[i]) left++;
+    expect(left).toBe(0);
+  });
 });

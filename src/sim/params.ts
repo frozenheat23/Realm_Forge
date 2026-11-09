@@ -231,8 +231,10 @@ export const SIM = {
   RAID_CHANCE: 0.15,
   /** Most provinces one conquest aims for. A war aims for one per whole time the attacker outmatches the defender. */
   CONQUEST_MAX_PROVINCES: 8,
-  /** How many times stronger an attacker must be to march on the enemy capital and try to take the whole nation. */
+  /** How many times stronger an attacker must be to march on the enemy capital and make the nation its vassal. */
   SUBJUGATE_RATIO: 1,
+  /** Vassals (docs/systems/vassalage.md): × the AI's chance to declare independence when its overlord's ruler is crowned. */
+  INDEPENDENCE_CHANCE: 1,
   /** Occupied non-goal cells a winner may also keep. */
   PEACE_EXTRA_CELLS: 40,
   /** Stability the loser of a raid loses and the winner gains. */

@@ -20,6 +20,7 @@ const ICONS: Record<SimEvent["type"], string> = {
   faith: "☽",
   ruler: "♛",
   general: "✪",
+  vassal: "♔",
 };
 
 // Filter checkboxes: label → the event types it shows or hides.
@@ -27,6 +28,7 @@ const FILTERS: [string, SimEvent["type"][]][] = [
   ["Wars", ["war"]],
   ["Peace", ["peace"]],
   ["Alliances", ["alliance", "alliance_ended"]],
+  ["Vassals", ["vassal"]],
   ["Rebellions", ["rebellion"]],
   ["Foundings", ["founded"]],
   ["Collapses", ["collapse", "annexed"]],

@@ -89,7 +89,7 @@ describe("over a long run", () => {
   for (let y = 0; y < 400; y++) battleEvents += tick(state, rng).filter((e) => e.type === "battle").length;
 
   it("every declared war has a record, and every battle is in one", () => {
-    const declared = state.events.filter((e) => e.type === "war" && e.text.includes("declares war")).length;
+    const declared = state.events.filter((e) => (e.type === "war" && e.text.includes("declares war")) || (e.type === "vassal" && e.text.includes("declares independence"))).length;
     expect(state.warRecords).toHaveLength(declared);
     expect(state.warRecords.reduce((sum, r) => sum + r.battles.length, 0)).toBe(battleEvents);
   });
