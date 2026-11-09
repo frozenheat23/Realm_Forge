@@ -1,9 +1,10 @@
 // Vassalage v1 (docs/systems/vassalage.md): who serves whom, their duties, and the ways out.
 import { describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
-import type { War } from "../src/core/types";
+import { Race, type RaceId, type War } from "../src/core/types";
 import { AI, everyoneAI } from "../src/sim/ai/default";
 import type { Controller } from "../src/sim/ai/controller";
+import { defaultPolicies, PLAYER } from "../src/sim/ai/player";
 import { allianceRefusal } from "../src/sim/diplomacy";
 import { independence, independenceRefusal } from "../src/sim/independence";
 import { applyPlayerCommand } from "../src/sim/play";
@@ -133,7 +134,7 @@ describe("ways out", () => {
 
   it("the player declares by an order, under the same rules", () => {
     const state = crown();
-    state.player = { nation: 2, culture: 2, policies: { joinWar: "never", acceptAlliance: "never", wonWar: "peace", suePeace: "never", enemySues: "refuse", mobilize: 0.5, rebels: "fight" } };
+    state.player = { nation: 2, culture: 2, policies: defaultPolicies() };
     state.year = 5; // the overlord's ruler was crowned in year 0
     const order = { kind: "declareIndependence" } as const;
     expect(applyPlayerCommand(state, order, createRng("p"), everyoneAI).ok).toBe(false);
@@ -141,5 +142,62 @@ describe("ways out", () => {
     const result = applyPlayerCommand(state, order, createRng("p"), everyoneAI);
     expect(result.ok).toBe(true);
     expect(state.wars[0]).toMatchObject({ attacker: 2, defender: 1, goal: "independence" });
+  });
+});
+
+describe("annex or vassal (what a winner makes of the loser)", () => {
+  // Nation 1 owns 0–9 and holds 2's land 10–14 at peace; 2's capital is cell 15.
+  function beaten() {
+    const owners = Array.from({ length: 20 }, (_, i) => (i < 10 ? 1 : 2));
+    const state = makeState(row(20), owners, [makeNation(1, 0), makeNation(2, 15)]);
+    for (let c = 10; c < 15; c++) state.state.occupier[c] = 1;
+    return state;
+  }
+  const peace = (state: ReturnType<typeof beaten>, choice: "annex" | "vassal" | "land") => {
+    const w = war(1, 2, { goalCells: [10, 11] });
+    state.wars.push(w);
+    return concludeWar(state, w, state.nations.get(1)!, "decisive", false, () => choice)!;
+  };
+
+  it("holding the capital, 'annex' takes the whole realm", () => {
+    const state = beaten();
+    state.state.occupier[15] = 1;
+    peace(state, "annex");
+    expect(state.nations.get(2)!.alive).toBe(false);
+  });
+
+  it("without the capital, 'vassal' makes the loser submit and keep its capital; 'land' only takes land", () => {
+    const vassal = beaten();
+    expect(peace(vassal, "vassal").type).toBe("vassal");
+    expect(vassal.nations.get(2)!.overlord).toBe(1);
+    expect(vassal.state.owner[15]).toBe(2);
+    const land = beaten();
+    peace(land, "land");
+    expect(land.nations.get(2)!.overlord).toBeUndefined();
+    expect(land.state.owner[10]).toBe(1);
+  });
+
+  it("aggressive races annex held capitals more often; only a far stronger winner demands submission", () => {
+    const state = beaten();
+    const annexes = (race: RaceId) => {
+      const me = makeNation(1, 0, { race });
+      return Array.from({ length: 400 }, (_, i) => AI.subjugate(state, me, state.nations.get(2)!, true, createRng(`a${i}`))).filter((c) => c === "annex").length;
+    };
+    expect(annexes(Race.Orc)).toBeGreaterThan(annexes(Race.LightElf) * 3); // aggression 1.6 vs 0.5
+    // Equal strength: never a demand.
+    expect(AI.subjugate(state, state.nations.get(1)!, state.nations.get(2)!, false, createRng("d"))).toBe("land");
+    state.nations.get(1)!.reserve = 100;
+    const demands = Array.from({ length: 400 }, (_, i) => AI.subjugate(state, state.nations.get(1)!, state.nations.get(2)!, false, createRng(`d${i}`)));
+    expect(demands).toContain("vassal");
+    expect(demands).toContain("land");
+  });
+
+  it("the player's policies decide for the played realm", () => {
+    const state = beaten();
+    state.player = { nation: 1, culture: 1, policies: { ...defaultPolicies(), takenCapital: "annex", demandSubmission: "never" } };
+    const me = state.nations.get(1)!;
+    expect(PLAYER.subjugate(state, me, state.nations.get(2)!, true, createRng("p"))).toBe("annex");
+    me.reserve = 100;
+    expect(PLAYER.subjugate(state, me, state.nations.get(2)!, false, createRng("p"))).toBe("land");
   });
 });

@@ -1,6 +1,6 @@
 // Steps 5 and 6b (SPEC §4.5): neighbors go to war (allies may join), and wars end in peace and a truce.
 import { createRng, type Rng } from "../core/rng";
-import type { CellId, Nation, NationId, ResourceKind, SimEvent, War, WarGoal, WarOutcome, WorldState } from "../core/types";
+import type { CellId, Nation, NationId, ResourceKind, SimEvent, Subjugation, War, WarGoal, WarOutcome, WorldState } from "../core/types";
 import { RESOURCES } from "../gen/params";
 import { traits } from "../gen/races";
 import { carryOut, done, refuse, type Controllers, type WarContext } from "./ai/controller";
@@ -14,7 +14,7 @@ import { cellValue, effectiveCapacity, grainBonuses } from "./resources";
 import { occupationCounts, occupationScore, occupiedBy } from "./siege";
 import { crownPartners, overlordOf, sameCrown, setFree } from "./vassals";
 import { closeRecord, openRecord, recordScore } from "./warRecords";
-import { claimedCells, claimYears, conquestCells, goalAchieved, goalsHeld, payTribute, takeLand } from "./warGoals";
+import { claimedCells, claimYears, conquestCells, goalAchieved, goalsHeld, holdsCapital, payTribute, takeLand } from "./warGoals";
 
 // They used to live here; other files still import them from war.ts.
 export { frontCells, neighborPairs, pairKey };
@@ -278,11 +278,25 @@ function endsNow(state: WorldState, war: War, attacker: Nation, defender: Nation
 }
 
 /**
+ * What the winner of `war` makes of the loser (docs/systems/vassalage.md), asked of its controller.
+ * Not asked after a raid, nor (unless it holds the capital) in an ally's war; the rules then take land.
+ */
+export type Subjugator = (winner: Nation, loser: Nation, capitalHeld: boolean) => Subjugation;
+
+/** A subjugator that asks each winner's controller, with dice of its own for each war. */
+export function askSubjugation(state: WorldState, war: War, controllers: Controllers, rng: Rng): Subjugator {
+  return (winner, loser, capitalHeld) => controllers(winner.id).subjugate(state, winner, loser, capitalHeld, rng.fork(`subjugate-${war.id}`));
+}
+
+/** Without a controller to ask (the gods' peace): a held capital makes a vassal, otherwise land. */
+const byRule: Subjugator = (_winner, _loser, capitalHeld) => (capitalHeld ? "vassal" : "land");
+
+/**
  * Makes peace in `war`: the winner (null = white peace) takes land, or tribute after a raid,
  * and a truce follows. Returns the peace event, or null for an ally's war that ends
  * `quietly` because the war it joined is over (its record is part of that war's).
  */
-export function concludeWar(state: WorldState, war: War, winner: Nation | null, how: WarOutcome["how"], quietly: boolean): SimEvent | null {
+export function concludeWar(state: WorldState, war: War, winner: Nation | null, how: WarOutcome["how"], quietly: boolean, subjugate: Subjugator = byRule): SimEvent | null {
   const attacker = state.nations.get(war.attacker)!;
   const defender = state.nations.get(war.defender)!;
   if (war.goal === "independence") return concludeIndependence(state, war, winner, how);
@@ -292,7 +306,12 @@ export function concludeWar(state: WorldState, war: War, winner: Nation | null, 
   if (raided) payTribute(attacker, defender);
   // An attacker beaten off pays for it, as a raider's victim would.
   if (winner === defender) payTribute(defender, attacker);
-  const taken = winner && !raided ? takeLand(state, war, winner, loser, sued) : [];
+  let choice: Subjugation = "land";
+  if (winner && !raided) {
+    const capitalHeld = holdsCapital(state, winner, loser, sued);
+    if (capitalHeld || war.joined === undefined) choice = subjugate(winner, loser, capitalHeld);
+  }
+  const taken = winner && !raided ? takeLand(state, war, winner, loser, sued, choice) : [];
   // A loser who sued and gave up no land pays in other ways.
   if (sued && winner === attacker && !raided && taken.length === 0) payTribute(attacker, defender);
   state.truces.push({ a: attacker.id, b: defender.id, until: state.year + SIM.TRUCE_YEARS });
@@ -377,11 +396,11 @@ export function winningSide(state: WorldState, warId: number): Nation | null {
 }
 
 /** The "suePeace" command: the losing side's offer, which the winner has accepted. The war ends on its terms. */
-export function applySuePeace(state: WorldState, cmd: CommandOf<"suePeace">): CommandResult {
+export function applySuePeace(state: WorldState, cmd: CommandOf<"suePeace">, subjugate: Subjugator = byRule): CommandResult {
   const war = state.wars.find((w) => w.id === cmd.war);
   const why = sueRefusal(state, war, cmd.nation);
   if (why !== null || !war) return refuse(why ?? "there's no such war to end");
-  const event = concludeWar(state, war, losingSide(state, war)!.winner, "terms", false)!;
+  const event = concludeWar(state, war, losingSide(state, war)!.winner, "terms", false, subjugate)!;
   // Allies' wars end with it, as when any war ends.
   for (const joined of state.wars.filter((w) => w.joined === war.id)) concludeWar(state, joined, clearWinner(joined, state.nations.get(joined.attacker)!, state.nations.get(joined.defender)!), "terms", true);
   const over = new Set([war.id, ...state.wars.filter((w) => w.joined === war.id).map((w) => w.id)]);
@@ -442,7 +461,7 @@ export function endWars(state: WorldState, controllers: Controllers, rng: Rng = 
       // Going on, unless the losing side sues for peace and is heard (its allies' wars end with it).
       const onTerms = sueForPeace(state, war, controllers, rng);
       if (onTerms) {
-        events.push(concludeWar(state, war, onTerms, "terms", false)!);
+        events.push(concludeWar(state, war, onTerms, "terms", false, askSubjugation(state, war, controllers, rng))!);
         continue;
       }
       ongoing.push(war);
@@ -450,7 +469,7 @@ export function endWars(state: WorldState, controllers: Controllers, rng: Rng = 
       continue;
     }
     const winner = reason === "goal" ? attacker : clearWinner(war, attacker, defender);
-    const event = concludeWar(state, war, winner, (reason ?? "too long") as WarOutcome["how"], mainOver);
+    const event = concludeWar(state, war, winner, (reason ?? "too long") as WarOutcome["how"], mainOver, askSubjugation(state, war, controllers, rng));
     if (event) events.push(event);
   }
 

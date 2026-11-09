@@ -314,6 +314,9 @@ export interface Nation {
 }
 
 /** What a war is for. "support" = an ally who joined someone else's war. */
+/** What a winner does with a beaten realm (docs/systems/vassalage.md): swallow it whole, make it a vassal, or just take the land the terms give. */
+export type Subjugation = "annex" | "vassal" | "land";
+
 /** "independence": a vassal fighting to be free of its overlord (docs/systems/vassalage.md). */
 export type WarGoal = "conquer" | "reclaim" | "raid" | "support" | "independence";
 
@@ -342,6 +345,10 @@ export interface Policies {
   mobilize: number;
   /** When rebels break away: go to war on them, or let them go. */
   rebels: "fight" | "letGo";
+  /** Holding a beaten realm's capital at peace: make it a vassal, or take the whole realm. */
+  takenCapital: "vassal" | "annex";
+  /** Winning a war without its capital: demand it submit as a vassal when far stronger, or never. */
+  demandSubmission: "stronger" | "never";
 }
 
 /** The nation a player plays, and the people (culture) they follow when it falls. */

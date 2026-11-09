@@ -130,6 +130,7 @@ export async function measureWorld(spec: WorldSpec): Promise<Record<string, numb
     peakCrownShare: peakCrown,
     reached25: peakCrown >= 0.25 ? 1 : 0,
     reached40: peakCrown >= 0.4 ? 1 : 0,
+    reached50: peakCrown >= 0.5 ? 1 : 0,
     giants: giantList.length,
     giantYears: mean(giantList.map((g) => g.years)),
     giantsBroken: giantList.filter((g) => g.broken).length,

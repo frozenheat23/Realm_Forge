@@ -571,7 +571,10 @@ SPEC §4.15 and `docs/systems/rulers.md`. Race tables are in `gen/params.ts`; th
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `INDEPENDENCE_CHANCE` | 1 | 0–3 | × the AI vassal's chance to declare independence when its overlord's ruler is crowned. The chance is also × (1 − opinion) / 2 × min(1, its power / the overlord's) | Crowns break up at every succession | Vassals serve until their overlord falls (0) |
+| `INDEPENDENCE_CHANCE` | 4 | 0–8 | × the AI vassal's chance to declare independence when its overlord's ruler is crowned. The chance is also × (1 − opinion) / 2 × min(1, its power / the overlord's) | Crowns break up at every succession | Vassals serve until their overlord falls (0) |
+| `ANNEX_CHANCE` | 0.25 | 0–1 | Chance the AI takes a whole realm whose capital it holds instead of making it a vassal, × the race's aggression² (Light Elves ~6%, Humans 25%, Orcs ~64%) | More conquest, fewer vassals | Every held capital makes a vassal |
+| `VASSAL_DEMAND_RATIO` | 3 | 1.5–5 | How many times stronger (with vassals) a winner must be to demand submission when it doesn't hold the capital | Only crushing wins make vassals | Many more vassals; crowns grow fast |
+| `VASSAL_DEMAND_CHANCE` | 0.15 | 0–0.5 | Chance the AI then demands it, ÷ the race's aggression | Huge crowns (0.5: 40% crowns in ~80% of worlds) | Crowns stay ~30% (0) |
 
 ### Great ruler table
 

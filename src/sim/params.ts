@@ -234,7 +234,13 @@ export const SIM = {
   /** How many times stronger an attacker must be to march on the enemy capital and make the nation its vassal. */
   SUBJUGATE_RATIO: 1,
   /** Vassals (docs/systems/vassalage.md): × the AI's chance to declare independence when its overlord's ruler is crowned. */
-  INDEPENDENCE_CHANCE: 1,
+  INDEPENDENCE_CHANCE: 4,
+  /** Chance the AI takes a whole realm whose capital it holds, rather than making it a vassal (× the race's aggression²). */
+  ANNEX_CHANCE: 0.25,
+  /** How many times stronger (its crown against the loser's) a winner must be to demand submission without the capital. */
+  VASSAL_DEMAND_RATIO: 3,
+  /** Chance the AI then demands it (÷ the race's aggression: gentle races prefer vassals to land). */
+  VASSAL_DEMAND_CHANCE: 0.15,
   /** Occupied non-goal cells a winner may also keep. */
   PEACE_EXTRA_CELLS: 40,
   /** Stability the loser of a raid loses and the winner gains. */

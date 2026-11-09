@@ -6,6 +6,7 @@
 import type { Alliance, Army, CellState, LoggedCommand, Nation, Player, RaceHome, SimEvent, War, WarRecord, WorldState } from "../core/types";
 import type { GeneratedWorld } from "../gen";
 import type { SimParams } from "./params";
+import { defaultPolicies } from "./ai/player";
 
 /** Version 2 added races (M7), 3 diplomacy (M8), 4 land and cell detail (M9), 5 armies (M11), 8 culture and faith (M12), 9 rulers (M13), 10 war records (M16), 11 the sandbox's command log (M17), 12 rulers' boldness (M18), 13 the played nation and its policies (M20). */
 export const SNAPSHOT_VERSION = 13;
@@ -141,6 +142,7 @@ export function fromSnapshot(snapshot: Snapshot, world: GeneratedWorld): WorldSt
     alliances: snapshot.alliances.map((al) => ({ ...al, renewed: al.renewed ?? al.since })),
     cityNames: new Map(snapshot.cityNames),
     commands: structuredClone(snapshot.commands ?? []),
-    ...(snapshot.player ? { player: structuredClone(snapshot.player) } : {}),
+    // Policies added later (vassalage) start at their defaults in older saves.
+    ...(snapshot.player ? { player: { ...structuredClone(snapshot.player), policies: { ...defaultPolicies(), ...snapshot.player.policies } } } : {}),
   };
 }

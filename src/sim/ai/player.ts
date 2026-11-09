@@ -5,7 +5,7 @@
 import type { Controller, Controllers, View } from "./controller";
 import type { Policies, WorldState } from "../../core/types";
 import { SIM } from "../params";
-import { AI } from "./default";
+import { AI, crownPower } from "./default";
 
 /** Every allowed answer for each policy, for checking a "setPolicy" order (and, later, the screen's choices). */
 export const POLICY_CHOICES = {
@@ -15,16 +15,18 @@ export const POLICY_CHOICES = {
   suePeace: ["never", "weary"],
   enemySues: ["accept", "weary", "refuse"],
   rebels: ["fight", "letGo"],
+  takenCapital: ["vassal", "annex"],
+  demandSubmission: ["stronger", "never"],
 } as const satisfies { [K in Exclude<keyof Policies, "mobilize">]: readonly Policies[K][] };
 
 /** The policies a player starts with: as close to the AI's own behavior as fixed answers get. */
 export function defaultPolicies(): Policies {
-  return { joinWar: "defending", acceptAlliance: "opinion", wonWar: "peace", suePeace: "weary", enemySues: "weary", mobilize: SIM.MOBILIZE_SHARE, rebels: "fight" };
+  return { joinWar: "defending", acceptAlliance: "opinion", wonWar: "peace", suePeace: "weary", enemySues: "weary", mobilize: SIM.MOBILIZE_SHARE, rebels: "fight", takenCapital: "vassal", demandSubmission: "stronger" };
 }
 
-/** The played nation's policies (the defaults if no one is playing, which never happens when asked). */
+/** The played nation's policies, with defaults for any a save from before them lacks. */
 function policies(view: View): Policies {
-  return view.player?.policies ?? defaultPolicies();
+  return { ...defaultPolicies(), ...view.player?.policies };
 }
 
 export const PLAYER: Controller = {
@@ -69,6 +71,13 @@ export const PLAYER: Controller = {
   mobilize(view, me, wars) {
     const size = (me.reserve * policies(view).mobilize) / Math.max(1, wars.length);
     return wars.map(() => size);
+  },
+
+  subjugate(view, me, loser, capitalHeld) {
+    const policy = policies(view);
+    if (capitalHeld) return policy.takenCapital;
+    // "stronger": as far stronger as the AI must be before it demands submission.
+    return policy.demandSubmission === "stronger" && crownPower(view, me) >= SIM.VASSAL_DEMAND_RATIO * crownPower(view, loser) ? "vassal" : "land";
   },
 
   orderArmy: AI.orderArmy, // strategy only: armies march as the AI's do

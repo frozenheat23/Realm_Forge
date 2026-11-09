@@ -1,5 +1,5 @@
 // War goals (SPEC §4.13): what a war is fought for, and what the winner gets at peace.
-import { Faith, type CellId, type Nation, type War, type WorldState } from "../core/types";
+import { Faith, type CellId, type Nation, type Subjugation, type War, type WorldState } from "../core/types";
 import { blessing } from "../gen/faiths";
 import { clamp } from "../core/math";
 import { setOwner } from "./helpers";
@@ -91,21 +91,31 @@ function takeWholeNation(state: WorldState, winner: Nation, loser: Nation): Cell
   return taken;
 }
 
+/** Does the winner hold the loser's capital, so the peace can take the whole realm or make it a vassal? */
+export function holdsCapital(state: WorldState, winner: Nation, loser: Nation, negotiated: boolean): boolean {
+  return state.state.occupier[loser.capital] === winner.id && !negotiated;
+}
+
 /**
  * Peace terms: the goal cells the winner holds, then up to SIM.PEACE_EXTRA_CELLS more that
  * touch its land. `negotiated` terms, which the loser sued for (M18), give only the goal cells held.
- * Whoever holds the loser's capital also makes it a vassal (docs/systems/vassalage.md), keeping
- * the capital itself; a winner that is itself a vassal takes the whole nation instead (one level only).
- * Returns all it took.
+ * `choice` (docs/systems/vassalage.md): holding the loser's capital, "annex" takes the whole nation
+ * and anything else makes it a vassal; without it, "vassal" makes it submit too. A vassal keeps its
+ * capital. One level only: a winner that is itself a vassal always annexes, and only an independent
+ * realm can be made to submit without losing its capital. Returns all it took.
  */
-export function takeLand(state: WorldState, war: War, winner: Nation, loser: Nation, negotiated = false): CellId[] {
+export function takeLand(state: WorldState, war: War, winner: Nation, loser: Nation, negotiated = false, choice: Subjugation = "land"): CellId[] {
   const { owner, occupier } = state.state;
-  const capitalHeld = occupier[loser.capital] === winner.id && !negotiated;
-  if (capitalHeld && overlordOf(state, winner.id)) return takeWholeNation(state, winner, loser);
-  const keep = (c: CellId) => !capitalHeld || c !== loser.capital;
+  const capitalHeld = holdsCapital(state, winner, loser, negotiated);
+  if (capitalHeld && (overlordOf(state, winner.id) || choice === "annex")) return takeWholeNation(state, winner, loser);
+  const submits = capitalHeld || (choice === "vassal" && !overlordOf(state, winner.id) && !overlordOf(state, loser.id));
+  const keep = (c: CellId) => !submits || c !== loser.capital;
   const taken = war.attacker === winner.id ? goalsStanding(state, war).filter((c) => occupier[c] === winner.id && keep(c)) : [];
   for (const c of taken) takeCell(state, c, winner);
-  if (negotiated) return taken;
+  if (negotiated) {
+    if (submits) becomeVassal(state, loser, winner);
+    return taken;
+  }
 
   const grain = grainBonuses(state);
   const value = (c: CellId) => cellValue(state, c, winner.race, effectiveCapacity(state, c, grain));
@@ -121,7 +131,7 @@ export function takeLand(state: WorldState, war: War, winner: Nation, loser: Nat
     takeCell(state, next, winner);
     taken.push(next);
   }
-  if (capitalHeld) becomeVassal(state, loser, winner);
+  if (submits) becomeVassal(state, loser, winner);
   return taken;
 }
 

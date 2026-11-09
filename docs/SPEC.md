@@ -601,7 +601,7 @@ Occupations can't outlive their war: at the end of each tick any occupier that's
 - the war has lasted `MAX_WAR_YEARS`
 
 **Terms.** A winner (goal achieved, or `|score|` ≥ `WIN_SCORE`) takes:
-- **the loser as its vassal, if it holds the loser's capital** (since 2026-11-09, [`systems/vassalage.md`](systems/vassalage.md)): the winner takes the land below as usual, never the capital, and the loser serves it (*"…takes the capital of Kethar, which, giving up 12 provinces, submits and becomes its vassal."*). A winner that is itself a vassal still takes the whole nation. With or without the capital, it also takes:
+- **if it holds the loser's capital** ([`systems/vassalage.md`](systems/vassalage.md)), the winner's controller chooses: the whole nation (likelier for aggressive races, `ANNEX_CHANCE`), or the loser as its vassal: it takes the land below as usual, never the capital, and the loser serves it (*"…takes the capital of Kethar, which, giving up 12 provinces, submits and becomes its vassal."*). A winner that is itself a vassal always takes the whole nation. Without the capital, a winner `VASSAL_DEMAND_RATIO` times stronger may also demand submission. With or without the capital, it also takes:
 - the goal cells it occupies (only the attacker has goals);
 - up to `PEACE_EXTRA_CELLS` other occupied cells that touch its own land, most valuable first; each cell taken can make the next one touch;
 - for a raid the **attacker** won, no land. Instead the loser loses `RAID_TRIBUTE` stability, the winner gains it, and the event reads *"…plunders Kethar and goes home laden with spoils."* A defender who beats a raid still takes what it occupies.

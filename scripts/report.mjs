@@ -4,6 +4,7 @@
 //   npm run report -- validation             the same for the validation set (never tuned on)
 //   npm run report -- tuning --shards 4      fewer shards on a smaller computer
 //   npm run report -- show <file> [<before>]  print a saved report, or compare it with an earlier one
+//   npm run report -- tuning --params '{"SIEGE_STEPS":0.6}' --tag siege06   try changed parameters; saved as world-tuning-siege06.json
 import { spawn } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -20,23 +21,27 @@ if (args[0] === "show") {
   if (!["tuning", "validation"].includes(set)) throw new Error("Use tuning, validation or show.");
   const shardsAt = args.indexOf("--shards");
   const shards = shardsAt >= 0 ? Number(args[shardsAt + 1]) : 6;
+  const paramsAt = args.indexOf("--params");
+  const params = paramsAt >= 0 ? args[paramsAt + 1] : "{}";
+  const tagAt = args.indexOf("--tag");
+  const tag = tagAt >= 0 ? args[tagAt + 1] : null;
   const started = Date.now();
-  const rows = (await Promise.all(Array.from({ length: shards }, (_, i) => runShard(set, i, shards)))).flat();
+  const rows = (await Promise.all(Array.from({ length: shards }, (_, i) => runShard(set, i, shards, params)))).flat();
   rows.sort((a, b) => a.seed.localeCompare(b.seed, "en", { numeric: true }));
   const date = new Date().toISOString().slice(0, 10);
-  const report = { set, date, years: 1000, minutes: Math.round((Date.now() - started) / 60000), rows };
-  const file = `docs/measurements/world-${set}-${date}.json`;
+  const report = { set, date, years: 1000, params: JSON.parse(params), minutes: Math.round((Date.now() - started) / 60000), rows };
+  const file = `docs/measurements/world-${set}-${tag ?? date}.json`;
   writeFileSync(new URL(`../${file}`, import.meta.url), JSON.stringify(report, null, 2) + "\n");
   console.log(`Saved ${file} (${rows.length} worlds, ${report.minutes} min).`);
   printSummary(report, null);
 }
 
 /** Runs one shard of the set's worlds and returns its rows. */
-function runShard(set, shard, shards) {
+function runShard(set, shard, shards, params) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, ["node_modules/vitest/vitest.mjs", "run", "tests/worldReport.test.ts"], {
       cwd: root,
-      env: { ...process.env, WORLD_REPORT: set, WORLD_SHARD: `${shard}/${shards}` },
+      env: { ...process.env, WORLD_REPORT: set, WORLD_SHARD: `${shard}/${shards}`, WORLD_PARAMS: params },
     });
     let out = "";
     child.stdout.on("data", (chunk) => (out += chunk));

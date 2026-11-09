@@ -12,6 +12,7 @@ import { SIM } from "../params";
 import { greatBonus } from "../rulers";
 import { siegeResistance } from "../siege";
 import { claimedCells, conquestCells, openGoals } from "../warGoals";
+import { crownPartners, vassalsOf } from "../vassals";
 import type { Controller, Controllers, View, WarContext } from "./controller";
 
 /**
@@ -76,12 +77,21 @@ export function chooseGoal(
   return { goal, goalCells: conquestCells(state, attacker, defender, prize!) };
 }
 
+/** A realm's fighting power with its vassals' (docs/systems/vassalage.md). */
+export function crownPower(view: View, nation: Nation): number {
+  return vassalsOf(view, nation.id).reduce((sum, v) => sum + fightingPower(view, v), fightingPower(view, nation));
+}
+
 export const AI: Controller = {
   declareWar(view, me, them, why, rng) {
     // Weigh up whose allies would join in, then how the two sides compare, as this ruler sees it.
-    const help = (allies: Nation[], joinChance: number) => allies.reduce((sum, n) => sum + fightingPower(view, n) * joinChance, 0);
-    const mine = fightingPower(view, me) + help(why.myHelpers, SIM.ALLY_ATTACK_PROB);
-    const theirs = fightingPower(view, them) + help(why.theirHelpers, SIM.ALLY_DEFEND_PROB);
+    // An overlord or vassal joins by duty, so it counts in full; an ally only as likely as allies join.
+    const help = (friend: Nation, allies: Nation[], joinChance: number) => {
+      const bound = new Set(crownPartners(view, friend.id));
+      return allies.reduce((sum, n) => sum + fightingPower(view, n) * (bound.has(n.id) ? 1 : joinChance), 0);
+    };
+    const mine = fightingPower(view, me) + help(me, why.myHelpers, SIM.ALLY_ATTACK_PROB);
+    const theirs = fightingPower(view, them) + help(them, why.theirHelpers, SIM.ALLY_DEFEND_PROB);
     const ratio = estimate(me, them, mine / Math.max(theirs, 1e-6), rng);
     // Only a side that believes it's the stronger considers war; both may believe it.
     if (ratio <= 1) return null;
@@ -180,6 +190,16 @@ export const AI: Controller = {
 
   crushRevolt(_view, _me, _rebels, rng) {
     return rng.chance(SIM.REBEL_WAR_PROB);
+  },
+
+  subjugate(view, me, loser, capitalHeld, rng) {
+    const aggression = traits(me.race).aggression;
+    // Holding the capital: aggressive races are likelier to swallow the realm whole.
+    if (capitalHeld) return rng.chance(SIM.ANNEX_CHANCE * aggression ** 2) ? "annex" : "vassal";
+    // Otherwise a far stronger winner may demand submission; gentler races like vassals more than land.
+    const ratio = crownPower(view, me) / Math.max(crownPower(view, loser), 1e-6);
+    if (ratio < SIM.VASSAL_DEMAND_RATIO) return "land";
+    return rng.chance(SIM.VASSAL_DEMAND_CHANCE / aggression) ? "vassal" : "land";
   },
 
   declareIndependence(view, me, overlord, rng) {

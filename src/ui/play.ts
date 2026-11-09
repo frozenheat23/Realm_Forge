@@ -77,6 +77,8 @@ const POLICY_LABELS: Record<ChoicePolicy, string> = {
   suePeace: "Sue for peace when losing",
   enemySues: "When the enemy sues",
   rebels: "When rebels break away",
+  takenCapital: "Holding a beaten realm's capital",
+  demandSubmission: "Demand submission",
 };
 const ANSWER_LABELS: { [K in ChoicePolicy]: Record<Policies[K], string> } = {
   joinWar: { always: "Always", defending: "Only when an ally is attacked", kin: "Only allies of my race", never: "Never" },
@@ -85,6 +87,8 @@ const ANSWER_LABELS: { [K in ChoicePolicy]: Record<Policies[K], string> } = {
   suePeace: { never: "Never by ourselves", weary: "Once war-weary" },
   enemySues: { accept: "Accept", weary: "Accept once war-weary", refuse: "Refuse" },
   rebels: { fight: "Go to war on them", letGo: "Let them go" },
+  takenCapital: { vassal: "Make it a vassal", annex: "Take the whole realm" },
+  demandSubmission: { stronger: "When far stronger (as the AI)", never: "Never: only take land" },
 };
 
 /** A new element with a class and some text. */

@@ -43,11 +43,12 @@ async function fingerprint(seed: string, years: number, width?: number, height?:
 // generals and peace offers (M18 part 3). Re-recorded 2026-11-08 for imperfect
 // army engagement estimates (defensive ground, yearly scouting reports and general personality),
 // then for strength-sensitive sieges, costly assaults, supply routes and hunger. Re-recorded
-// 2026-11-09: holding a capital at peace makes the loser a vassal (vassalage v1).
+// 2026-11-09: holding a capital at peace makes the loser a vassal (vassalage v1), and again when
+// winners chose to annex or demand submission and crowns counted their vassals in war.
 const GOLDEN = {
-  full: "deb6d95f",
-  smallA: "fa8f62c8",
-  smallB: "4713c759",
+  full: "4e41f448",
+  smallA: "69c0ebe8",
+  smallB: "f65108a6",
 };
 
 describe("golden history", () => {

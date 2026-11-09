@@ -10,7 +10,7 @@ import { allianceRefusal, applyBreakAlliance, applyFormAlliance } from "./diplom
 import { applyAdoptFaith, offeredFaith } from "./faith";
 import { applyDeclareIndependence } from "./independence";
 import { livingNations } from "./helpers";
-import { applyDeclareWar, applySuePeace, callAllies, declareWarRefusal, helpers, suePeaceRefusal, warLookups, winningSide } from "./war";
+import { applyDeclareWar, applySuePeace, askSubjugation, callAllies, declareWarRefusal, helpers, suePeaceRefusal, warLookups, winningSide } from "./war";
 
 /** The player order of one kind, e.g. `OrderOf<"declareWar">`. */
 type OrderOf<K extends PlayerCommand["kind"]> = Extract<PlayerCommand, { kind: K }>;
@@ -99,7 +99,7 @@ function applyPlayerSue(state: WorldState, me: Nation, cmd: OrderOf<"suePeace">,
   const war = state.wars.find((w) => w.id === cmd.war)!;
   const winner = winningSide(state, cmd.war)!;
   if (!controllers(winner.id).acceptTerms(state, winner, war, rng.fork(`terms-${war.id}`))) return refuse(`${winner.name} won't hear of peace`);
-  return applySuePeace(state, { kind: "suePeace", nation: me.id, war: cmd.war });
+  return applySuePeace(state, { kind: "suePeace", nation: me.id, war: cmd.war }, askSubjugation(state, war, controllers, rng));
 }
 
 /** "proposeAlliance": the other side's controller decides at once whether to accept. */

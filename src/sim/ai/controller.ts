@@ -3,7 +3,7 @@
 // Today every nation has the AI controller (`ai/default.ts`); later a player can
 // take one nation's place without the rules changing.
 import type { Rng } from "../../core/rng";
-import type { Army, CellId, FaithId, Nation, NationId, SimEvent, War, WarGoal, WorldState } from "../../core/types";
+import type { Army, CellId, FaithId, Nation, NationId, SimEvent, Subjugation, War, WarGoal, WorldState } from "../../core/types";
 import type { Command, CommandResult } from "../commands";
 
 /** The world as a controller sees it. A controller must never change it. */
@@ -67,6 +67,11 @@ export interface Controller {
   orderSiege(view: View, army: Army, target: CellId, rng: Rng): "wait" | "assault";
   /** Go to war to crush `rebels`, who just broke away? */
   crushRevolt(view: View, me: Nation, rebels: Nation, rng: Rng): boolean;
+  /**
+   * Won a war against `loser`: what to make of it (docs/systems/vassalage.md)? Holding its capital
+   * (`capitalHeld`), "annex" or "vassal"; otherwise "vassal" (it must submit) or "land" (only the terms' land).
+   */
+  subjugate(view: View, me: Nation, loser: Nation, capitalHeld: boolean, rng: Rng): Subjugation;
   /** Declare independence from `overlord`, whose new ruler was crowned this year (docs/systems/vassalage.md)? */
   declareIndependence(view: View, me: Nation, overlord: Nation, rng: Rng): boolean;
   /** Adopt `faith`, now that most of the realm holds it? */
