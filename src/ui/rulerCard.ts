@@ -1,6 +1,6 @@
 // The ruler card (SPEC §5.4k): a portrait in a parchment frame whose wax seal takes
 // the nation's color, with the ruler's name inked on the nameplate. Hover a nation to see its ruler; a great
-// ruler's rise holds the card up for a few seconds.
+// ruler's rise holds the card up for a few seconds, and a fallen realm's last ruler burns.
 import type { Nation } from "../core/types";
 import { rulerName } from "../gen/rulers";
 import {
@@ -11,7 +11,8 @@ import {
   RULER_CARD_TEXT,
   RULER_CARD_WIDTH,
 } from "../render/palette";
-import { RULER_CARD_SECONDS } from "./config";
+import { burnFrame, burnOrder } from "./burn";
+import { RULER_CARD_BURN_SECONDS, RULER_CARD_FALL_SECONDS, RULER_CARD_SECONDS } from "./config";
 import { fallbackPath, portraitPath } from "./portraits";
 
 /** The drawing size; the page shrinks it to RULER_CARD_WIDTH. */
@@ -23,6 +24,8 @@ export interface RulerCard {
   hover(nation: Nation | null): void;
   /** Shows a great ruler who just rose, and keeps it up for RULER_CARD_SECONDS. */
   announce(nation: Nation): void;
+  /** Shows the last ruler of a realm that just fell, and burns the card. */
+  fall(nation: Nation): void;
   /** Turns the card on or off (key P). */
   toggle(): void;
 }
@@ -80,7 +83,8 @@ export function createRulerCard(container: HTMLElement): RulerCard {
   // Counts draws, so a slow image load can't paint over a newer card.
   let drawId = 0;
 
-  async function draw(nation: Nation): Promise<void> {
+  /** Draws the nation's card. Resolves to false if a newer card took its place while images loaded. */
+  async function draw(nation: Nation): Promise<boolean> {
     const id = ++drawId;
     const { ruler } = nation;
     const kind = ruler.great === undefined ? "ordinary" : "great";
@@ -92,7 +96,7 @@ export function createRulerCard(container: HTMLElement): RulerCard {
       document.fonts.load(RULER_CARD_NAME_FONT),
       document.fonts.load(RULER_CARD_SUB_FONT),
     ]);
-    if (id !== drawId) return;
+    if (id !== drawId) return false;
 
     g.clearRect(0, 0, W, H);
     // The portrait fills the opening's width, top-aligned, so the face and crown show.
@@ -120,6 +124,28 @@ export function createRulerCard(container: HTMLElement): RulerCard {
     fitText(g, rulerName(ruler, nation.race), cx, plateMid - 13, plateWidth, RULER_CARD_NAME_FONT);
     fitText(g, `${ruler.dynasty} · ${nation.name}`, cx, plateMid + 15, plateWidth, RULER_CARD_SUB_FONT);
     container.hidden = !enabled;
+    return true;
+  }
+
+  /** Draws the card, then burns it frame by frame, and takes it down when its time is up. */
+  async function burn(nation: Nation): Promise<void> {
+    if (!(await draw(nation)) || !enabled) return;
+    const id = drawId;
+    const clean = g.getImageData(0, 0, W, H);
+    const frame = g.createImageData(W, H);
+    const order = burnOrder(W, H, nation.name);
+    const start = performance.now();
+    const step = (now: number): void => {
+      if (id !== drawId) return; // another card has taken over
+      const t = Math.min(1, (now - start) / (RULER_CARD_BURN_SECONDS * 1000));
+      burnFrame(clean.data, frame.data, order, t);
+      g.putImageData(frame, 0, 0);
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+    setTimeout(() => {
+      if (id === drawId) container.hidden = true;
+    }, RULER_CARD_FALL_SECONDS * 1000);
   }
 
   return {
@@ -135,6 +161,10 @@ export function createRulerCard(container: HTMLElement): RulerCard {
     announce(nation) {
       holdUntil = performance.now() + RULER_CARD_SECONDS * 1000;
       void draw(nation);
+    },
+    fall(nation) {
+      holdUntil = performance.now() + RULER_CARD_FALL_SECONDS * 1000;
+      void burn(nation);
     },
     toggle() {
       enabled = !enabled;

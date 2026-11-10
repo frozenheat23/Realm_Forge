@@ -734,6 +734,27 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | `RULER_CARD_PLATES` | see file | — | Where the name is written on each frame's nameplate | — | — |
 | `RULER_CARD_NAME_FONT` / `RULER_CARD_SUB_FONT` | 28px IM Fell English SC / italic 20px IM Fell English | — | Name and dynasty fonts (shrunk to fit if too long) | — | — |
 | `RULER_CARD_TEXT` | #1d150d | — | Ink color on the nameplate | — | — |
+| `RULER_CARD_BURN_REACH` | 0.42 | 0.2–0.8 | How far into a fallen ruler's card the fire eats | Little left, the face goes | Only the rim is singed |
+| `RULER_CARD_BURN_BOTTOM` | 6 | 1–10 | How much harder the nameplate edge is to burn | Name always readable | Name burns away with the rest |
+| `RULER_CARD_BURN_SCORCH` | 0.45 | 0–0.8 | How brown the surviving card turns | Dark, smoked | Colors stay fresh |
+| `RULER_CARD_BURN_EMBER` / `RULER_CARD_BURN_CHAR` | #ff8a2a / #120b07 | — | The glowing front and the black behind it | — | — |
+| `RULER_CARD_BURN_SECONDS` | 2.2 | 1–5 | How long the burning takes (`src/ui/config.ts`) | Slow, solemn | Quick flash |
+| `RULER_CARD_FALL_SECONDS` | 4 | ≥ burn seconds | How long the fallen card stays up in all (`src/ui/config.ts`) | Lingers, blocks hover longer | Gone as soon as it's burned |
+
+### 3D relief view
+
+> Key V, the **3D map** button, or `?view=3d`. In `src/render/palette.ts`. Visual only: the simulation never sees these. Design in SPEC §5.4n.
+
+| Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
+|---|---|---|---|---|---|
+| `RELIEF_HEIGHT` | 120 | 40–250 | Height of the tallest peak, in map pixels (the map is 1600 wide) | Towering mountains that hide land behind them | A nearly flat sheet |
+| `RELIEF_CURVE` | 1.5 | 1–3 | How height grows with elevation (height = elevation ^ curve) | Flat lowlands, sudden peaks | Everything rises evenly, hilly plains |
+| `RELIEF_STEP` | 4 | 2–10 | Map pixels between points of the 3D surface | Smoother, blockier hills; faster | Finer ground; slower to build and draw |
+| `RELIEF_AMBIENT` | 2.1 | 1–3.5 | Even light from everywhere | Brighter, flatter-looking | Darker, moodier |
+| `RELIEF_SUN` | 1.5 | 0–3 | Light from the north-west that shades slopes | Stronger light and dark on hills | Slopes hard to read |
+| `RELIEF_BACKGROUND` | #17120c | — | Color around the map | — | — |
+| `RELIEF_FOV` | 40 | 25–60 | Camera's angle of view (degrees) | Wide-angle, stretched edges | Flatter, telescope-like |
+| `RELIEF_NEAR_FAR` | 0.12, 1.6 | — | Closest and farthest the camera may go, × map width | — | — |
 
 ---
 

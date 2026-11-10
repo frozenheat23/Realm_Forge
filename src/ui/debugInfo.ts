@@ -88,25 +88,28 @@ export function canvasPoint(canvas: HTMLCanvasElement, event: MouseEvent): [numb
   return [((event.clientX - rect.left) / rect.width) * canvas.width, ((event.clientY - rect.top) / rect.height) * canvas.height];
 }
 
-/** The map cell under the mouse, if any, seen through `camera` (M19). */
-export function cellUnderMouse(canvas: HTMLCanvasElement, world: GeneratedWorld, event: MouseEvent, camera: Camera = WHOLE_MAP): GeneratedWorld["cells"][number] | undefined {
-  const [wx, wy] = toWorld(camera, ...canvasPoint(canvas, event));
+type Cell = GeneratedWorld["cells"][number];
+
+/** Finds the map cell under the mouse, if any. The flat map and the 3D view each have their own way. */
+export type CellFinder = (event: MouseEvent) => Cell | undefined;
+
+/** The cell at map point (wx, wy), if it's on the map. */
+export function cellAtPoint(world: GeneratedWorld, wx: number, wy: number): Cell | undefined {
   const x = Math.floor(wx);
   const y = Math.floor(wy);
   if (x < 0 || y < 0 || x >= world.width || y >= world.height) return undefined;
   return world.cells[world.pixelToCell[y * world.width + x]!];
 }
 
-/** Shows details of the cell under the mouse in `panel`. */
-export function showCellOnHover(
-  canvas: HTMLCanvasElement,
-  panel: HTMLElement,
-  world: GeneratedWorld,
-  getState: () => WorldState,
-  getCamera: () => Camera = () => WHOLE_MAP,
-): void {
+/** The map cell under the mouse, if any, seen through `camera` (M19). */
+export function cellUnderMouse(canvas: HTMLCanvasElement, world: GeneratedWorld, event: MouseEvent, camera: Camera = WHOLE_MAP): Cell | undefined {
+  return cellAtPoint(world, ...toWorld(camera, ...canvasPoint(canvas, event)));
+}
+
+/** Shows details of the cell under the mouse in `panel`. `cellAt` says which cell that is on this `canvas`. */
+export function showCellOnHover(canvas: HTMLCanvasElement, panel: HTMLElement, getState: () => WorldState, cellAt: CellFinder): void {
   canvas.addEventListener("mousemove", (event) => {
-    const cell = cellUnderMouse(canvas, world, event, getCamera());
+    const cell = cellAt(event);
     if (!cell) return;
 
     const tags = [cell.coastal && "coastal", cell.mountain && "mountain", cell.river && "river"]

@@ -15,6 +15,9 @@ export const HIGHLIGHT_SECONDS = 4;
 export const FOLLOW_SPEED = 5;
 /** How long a newly risen great ruler's card stays up before hover takes over again. */
 export const RULER_CARD_SECONDS = 5;
+/** How long a fallen ruler's card takes to burn, and how long it stays up in all (seconds). */
+export const RULER_CARD_BURN_SECONDS = 2.2;
+export const RULER_CARD_FALL_SECONDS = 4;
 
 // --- Map zoom (M19). See docs/PARAMS.md ("Zoom"). ---
 /** Closest zoom: 4 = a quarter of the map across. */

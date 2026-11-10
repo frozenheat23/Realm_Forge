@@ -48,6 +48,8 @@ export interface Layers {
   /** Army banners and marches (SPEC §5.4h). */
   armies: boolean;
   cells: boolean;
+  /** A fallen realm's last ruler is shown, burning (SPEC §5.4k). Not a map layer, but switched here with them. */
+  falls: boolean;
 }
 
 /**
@@ -71,6 +73,7 @@ export function createSettings(container: HTMLElement, layers: Layers, onLayersC
     ["effects", "Effects"],
     ["armies", "Armies"],
     ["cells", "Cell outlines"],
+    ["falls", "Burn fallen rulers"],
   ];
   for (const [key, label] of layerNames) {
     const box = document.createElement("input");

@@ -449,3 +449,32 @@ export const RULER_CARD_NAME_FONT = "28px 'IM Fell English SC', Georgia, serif";
 export const RULER_CARD_SUB_FONT = "italic 20px 'IM Fell English', Georgia, serif";
 /** Ink on the nameplate. */
 export const RULER_CARD_TEXT = "#1d150d";
+
+// --- 3D relief view (SPEC §5.4n): the flat map laid over raised terrain ---
+/** How tall the highest peak stands, in map pixels (the map is 1600 across). */
+export const RELIEF_HEIGHT = 120;
+/** Above 1 keeps lowlands flat and lets mountains rise steeply; 1 = height straight from elevation. */
+export const RELIEF_CURVE = 1.5;
+/** Map pixels between neighbouring points of the 3D surface. Smaller = finer hills, more work to draw. */
+export const RELIEF_STEP = 4;
+/** Soft light from everywhere: keeps the parchment's own colors. */
+export const RELIEF_AMBIENT = 2.1;
+/** The sun, from the north-west like the map's own shading: makes slopes light and dark. */
+export const RELIEF_SUN = 1.5;
+/** The table the map lies on. */
+export const RELIEF_BACKGROUND = "#17120c";
+/** Camera angle of view, in degrees. */
+export const RELIEF_FOV = 40;
+/** How close and how far the camera may go, as shares of the map's width. */
+export const RELIEF_NEAR_FAR = [0.12, 1.6] as const;
+
+// --- A fallen ruler's card burns (SPEC §5.4k) ---
+/** How far in the fire eats before it dies: 0 = not at all, 1 = the whole card. */
+export const RULER_CARD_BURN_REACH = 0.42;
+/** How much harder the bottom edge (the nameplate) is to burn than the top and sides. */
+export const RULER_CARD_BURN_BOTTOM = 6;
+/** How brown the heat leaves what survives, 0..1. */
+export const RULER_CARD_BURN_SCORCH = 0.45;
+/** The glowing line at the fire's front, and the black it leaves behind. */
+export const RULER_CARD_BURN_EMBER = "#ff8a2a";
+export const RULER_CARD_BURN_CHAR = "#120b07";

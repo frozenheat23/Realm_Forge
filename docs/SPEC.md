@@ -15,6 +15,7 @@ Five layers. Each layer may only use the layers below it.
 ```
 ui/        buttons, speed control, event log, export        (screen)
 render/    terrain, nation overlay, borders, labels          (screen)
+render3d/  the 3D relief view (three.js), reads only        (screen)
 sim/       yearly tick: population, wars, rebellions...      (pure data)
 gen/       terrain, climate, biomes, rivers, cells, nations  (pure data)
 core/      types, seeded random generator, math, graph helpers
@@ -801,6 +802,7 @@ A portrait card floats at the map's top right (`src/ui/rulerCard.ts`), toggled w
 - **Portrait:** `public/portraits/{race}-{m|f}-{ordinary|conqueror|lawgiver|builder|prophet|schemer}.webp`, 48 files. Orcs and Dwarves have no women, so they always use `m`. `portraitPath()` in `src/ui/portraits.ts` picks the file, and a test checks every one exists.
 - **Frame:** `public/frames/ordinary.png` or `great.png`, aged parchment to match the map, drawn as they are. Only the wax seal at the top takes the nation's color: `{kind}-seal.png` is the seal alone in light grey, multiplied by the color. Text is dark ink in the map's IM Fell fonts. The portrait is clipped to the frame's opening (`RULER_CARD_OPENINGS`). Name, then dynasty and nation, go on the nameplate (`RULER_CARD_PLATES`).
 - **Making the files:** `scripts/portraits.py` turns the drafts in `assets/` (not committed) into these files (lifting each seal out by its red color) and prints the opening boxes. Prompts are in `docs/art/portrait-prompts.md`.
+- **Fallen realms burn:** in the year a realm dies, however it dies (conquered, annexed, dissolved), its last ruler's card is shown and burns for `RULER_CARD_BURN_SECONDS`, then comes down after `RULER_CARD_FALL_SECONDS`. If several fall in one year, the last is shown. Switch it off with **Burn fallen rulers** in Settings. The burn is worked out in `src/ui/burn.ts` (pure, tested): `burnOrder` says when each pixel catches fire (from the top and sides, raggedly, by a noise pattern picked from the realm's name; the nameplate resists), and `burnFrame` paints one moment of it (burned pixels see-through, a glowing front, a black band, the rest browned). Visual only: the simulation never knows.
 - The card is a page element, not drawn on the map, so it doesn't appear in recorded videos.
 
 ### 5.4l Zoom (M19)
@@ -818,6 +820,16 @@ Mouse wheel or trackpad pinch zooms toward the pointer, dragging moves the map, 
 ### 5.4m Play tab (M20)
 
 A fifth side-panel tab (`src/ui/play.ts`). With no one playing it lists the living realms of a chosen race, largest first; clicking one takes it over (the "play" order) at the year shown. Then it shows **Your realm**: the ruler with their portrait, land, people, faith, soldiers and reserve, stability, war weariness, unrest, allies, worst rival, your wars (click to follow one), an **Orders** part (declare war on a neighbor with a goal, propose or break an alliance, sue for peace in a war you're losing, adopt the faith most of the realm holds; disallowed orders greyed with the rules' reasons, and clicking a realm on the map picks it as the war target), and a drop-down per policy, each change a "setPolicy" order. If your realm falls, the list comes back so you can pick another. On the map the played realm's border is drawn heavier (`playedBorderWidth`), sharp when zoomed. Opening the tab pauses only while choosing. **Dispatches:** after each year, what happened to your realm (wars on you or your allies, your first rout in each war, your capital besieged or taken, your wars ending, great rulers, crises and civil wars, revolts, alliances, faith, your fall) pauses playback and shows at the top of the tab, with **Carry on**; each kind can be switched off under "Pause for…", and "Every new ruler" starts off (`ui/dispatches.ts`). **When your realm falls** the tab lists realms of your people (else your race) to carry on as (`heirsOf`); **at year 1000** it shows what became of the realms you played and your people (`ui/summary.ts`). See [`systems/play.md`](systems/play.md).
+
+### 5.4n 3D relief view (M22)
+
+A second way to look at the same map, switched with the **3D map** button, key V or `?view=3d`. The flat map stays the default and nothing in `gen/`, `sim/` or the 2D drawing changes.
+
+- **How it works** (`src/render3d/relief.ts`, the only file using three.js): a grid of points `RELIEF_STEP` map pixels apart is lifted to the heightmap's heights (`reliefHeights`, pure and tested: sea flat at 0, land up to `RELIEF_HEIGHT`, shaped by `RELIEF_CURVE`). The finished 2D map canvas is copied onto it every frame as its skin (a texture), so terrain, nation colors, borders, names, markers, armies, effects, the frame and the title all show without being drawn again. A north-west sun shades the slopes.
+- **Camera:** drag to turn, wheel to zoom toward the pointer, right-drag to slide; it can't go below the table or leave the map. While 3D shows, the flat map's own camera stays at the whole map.
+- **Loaded on demand:** `main.ts` fetches the 3D code with `import()` the first time it's switched on, so the main download stays the same size (three.js is a separate ~134 kB file). If the browser can't do WebGL, it says so and stays flat.
+- **Mouse:** hovering inspects a cell and shows its ruler, and clicking a realm picks it as your war target, as on the flat map. `mapPointAt` shoots a line from the camera through the mouse (a raycast) to find the map point it hits; `attachMapMouse` in `main.ts` gives both views the same behaviour through a `CellFinder`.
+- **Not yet in 3D:** the sharp redraw when zoomed (close up the skin is the 1600×900 picture, so it goes soft), and video recording (Record still films the flat map).
 
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 10 ms, smooth at 50 years per second. Measured after M13: overlay 1.4 ms, effects 0.2 ms, tick ~4.6 ms in the browser, a whole new-year frame ~21 ms.

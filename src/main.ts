@@ -1,6 +1,6 @@
 // Entry point: generates a world from a seed, draws it, and plays its history.
-// Page address options: ?seed=anything picks the world, ?style=cel or ?style=painted switches to an older look.
-// Keys: Space play/pause, → step, + / − / 0 zoom (or wheel, drag, double-click), C cell outlines, N nations, R races, K cultures, F faiths, A alliances, M resources, T towns, H heatmaps, E effects, W armies, P ruler card. Hover the map to inspect a cell and see its ruler.
+// Page address options: ?seed=anything picks the world, ?style=cel or ?style=painted switches to an older look, ?view=3d opens the 3D relief view.
+// Keys: Space play/pause, → step, + / − / 0 zoom (or wheel, drag, double-click), C cell outlines, N nations, R races, K cultures, F faiths, A alliances, M resources, T towns, H heatmaps, E effects, W armies, P ruler card, V 3D map. Hover the map to inspect a cell and see its ruler.
 import "@fontsource/im-fell-english/400.css";
 import "@fontsource/im-fell-english/400-italic.css";
 import "@fontsource/im-fell-english-sc/400.css";
@@ -28,12 +28,13 @@ import { renderAtlasTerrain } from "./render/terrainAtlas";
 import { renderCelTerrain } from "./render/terrainCel";
 import { renderPaintedTerrain } from "./render/terrainPainted";
 import { drawWarFocus } from "./render/warFocus";
+import type { ReliefView } from "./render3d/relief";
 import { fromSnapshot, type Snapshot } from "./sim/snapshot";
 import { createWorld, startFromText, startToText } from "./sim/start";
 import { tick } from "./sim/tick";
 import { FOLLOW_SPEED, FOLLOW_ZOOM_MAX, CLICK_SLOP, HIGHLIGHT_SECONDS, MAP_BESIDE_WIDTH, MAX_ZOOM, SIM_YEARS, ZOOM_SHARP_DELAY } from "./ui/config";
 import { createControls, makeButton } from "./ui/controls";
-import { cellUnderMouse, onKey, showCellOnHover } from "./ui/debugInfo";
+import { cellAtPoint, cellUnderMouse, onKey, showCellOnHover, type CellFinder } from "./ui/debugInfo";
 import { dispatchesFor, watchRealm } from "./ui/dispatches";
 import { createEventLog } from "./ui/eventLog";
 import { createRecorder, pickSnapshot, saveSnapshot } from "./ui/files";
@@ -107,6 +108,10 @@ function outerHeight(node: Element): number {
   const css = getComputedStyle(node);
   return node.getBoundingClientRect().height + parseFloat(css.marginTop) + parseFloat(css.marginBottom);
 }
+// --- 3D relief view (SPEC §5.4n): built the first time it's switched on ---
+let relief: ReliefView | null = null;
+/** Is the 3D view showing instead of the flat map? */
+let show3d = false;
 function fitMap(): void {
   const width = mapArea.clientWidth;
   let height = Infinity;
@@ -117,6 +122,7 @@ function fitMap(): void {
   const scale = Math.max(0.1, Math.min(width / canvas.width, height / canvas.height));
   canvas.style.width = `${Math.floor(canvas.width * scale)}px`;
   canvas.style.height = `${Math.floor(canvas.height * scale)}px`;
+  relief?.setSize(Math.floor(canvas.width * scale), Math.floor(canvas.height * scale));
 }
 // Refit when the window changes size, or anything below the map grows or shrinks (the settings opening).
 const refit = new ResizeObserver(fitMap);
@@ -153,7 +159,7 @@ function paintTerrain(): void {
 paintTerrain();
 
 // --- Drawing ---
-const layers: Layers = { nations: true, races: false, cultures: false, faiths: false, alliances: true, resources: false, settlements: true, labels: true, effects: true, armies: true, cells: query.get("debug") === "cells" };
+const layers: Layers = { nations: true, races: false, cultures: false, faiths: false, alliances: true, resources: false, settlements: true, labels: true, effects: true, armies: true, cells: query.get("debug") === "cells", falls: true };
 /** The Races, Cultures and Faiths layers replace nation colors. Only one shows at a time. */
 function overlayTint(): OverlayTint {
   if (layers.faiths) return "faith";
@@ -269,6 +275,8 @@ function refreshSharp(view: SharpView): void {
 
 /** Moves the view. It shows at once, stretched, and is redrawn sharp once it stops moving. */
 function setCamera(next: Camera): void {
+  // The 3D view wears the whole flat map as its skin, and has a camera of its own.
+  if (show3d) next = WHOLE_MAP;
   if (sameCamera(next, camera)) return;
   camera = next;
   canvas.classList.toggle("zoomed", camera.zoom > 1);
@@ -450,6 +458,10 @@ function advanceYear(): void {
     // A great ruler crowned this year is a rise (other ruler events are deaths and crises).
     if (nation?.alive && nation.ruler.great !== undefined && nation.ruler.crowned === state.year) rulerCard.announce(nation);
   }
+  // A realm that died this year, however it died: its last ruler's card burns. If several fell, the last is shown.
+  if (layers.falls) {
+    for (const nation of state.nations.values()) if (!nation.alive && nation.fell === state.year) rulerCard.fall(nation);
+  }
 }
 
 const controls = createControls(bar, () => {
@@ -485,6 +497,7 @@ function frame(now: number): void {
     yearsDue = 0;
   }
   present(now); // every frame, so effects keep moving even while paused
+  if (show3d) relief?.render(); // the 3D view copies the picture just drawn
   requestAnimationFrame(frame);
 }
 
@@ -511,9 +524,45 @@ function switchMapStyle(): void {
 }
 const styleButton = makeButton(style === "atlas" ? "Classic map" : "Parchment map", "Switch map style while keeping your progress", switchMapStyle);
 
+/**
+ * Switches between the flat map and the 3D relief view, keeping the world as it is.
+ * `await import(...)` fetches the 3D code (and three.js) only now, so people who never
+ * use 3D never download it.
+ */
+async function switchView(): Promise<void> {
+  if (!relief) {
+    try {
+      const { createReliefView } = await import("./render3d/relief");
+      relief = createReliefView(world, canvas);
+      relief.canvas.id = "map3d";
+      canvas.after(relief.canvas);
+      const view = relief;
+      attachMapMouse(view.canvas, (event) => {
+        const point = view.mapPointAt(event);
+        return point ? cellAtPoint(world, ...point) : undefined;
+      });
+    } catch (error) {
+      alert(`This browser can't show the 3D map: ${(error as Error).message}`);
+      return;
+    }
+  }
+  if (!show3d) setCamera(WHOLE_MAP); // before the switch: afterwards the flat camera stays put
+  show3d = !show3d;
+  canvas.style.display = show3d ? "none" : "";
+  relief.canvas.style.display = show3d ? "block" : "none";
+  fitMap();
+  viewButton.textContent = show3d ? "Flat map" : "3D map";
+  const url = new URL(location.href);
+  if (show3d) url.searchParams.set("view", "3d");
+  else url.searchParams.delete("view");
+  history.replaceState(null, "", url);
+}
+const viewButton = makeButton("3D map", "Show the map as raised terrain you can swing around (key V): drag to turn, wheel to zoom, right-drag to slide", () => void switchView());
+
 function goTo(newSeed: string, newStyle: string = style, newStart: string = startToText(start)): void {
   const params = new URLSearchParams({ seed: newSeed });
   if (newStyle !== "atlas") params.set("style", newStyle);
+  if (show3d) params.set("view", "3d");
   params.set("start", newStart);
   location.search = params.toString();
 }
@@ -567,6 +616,7 @@ bar.append(
   makeButton("Whole map", "Zoom out to show the whole map (key 0). Zoom in with the mouse wheel, double-click or +, and drag to move.", () => setCamera(WHOLE_MAP)),
   recordButton,
   styleButton,
+  viewButton,
 );
 
 // --- Settings, keys, hover ---
@@ -622,28 +672,39 @@ onKey("n", () => {
   draw();
 });
 onKey("p", () => rulerCard.toggle());
-showCellOnHover(canvas, infoPanel, world, () => state, () => camera);
+onKey("v", () => void switchView());
+/**
+ * What the mouse does on a map picture, flat or 3D: hover to inspect a cell and see its
+ * ruler, click a realm to pick it as your war target. `cellAt` finds the cell under the mouse.
+ * (A `function` declaration, so `switchView` above can call it.)
+ */
+function attachMapMouse(target: HTMLCanvasElement, cellAt: CellFinder): void {
+  showCellOnHover(target, infoPanel, () => state, cellAt);
+  target.addEventListener("mousemove", (event) => {
+    const cell = cellAt(event);
+    rulerCard.hover((cell && state.nations.get(state.state.owner[cell.id]!)) ?? null);
+  });
+  target.addEventListener("mouseleave", () => rulerCard.hover(null));
+  // Playing (M20): click a realm to pick it as your war target. A drag to move the map isn't a click.
+  let pressedAt: [number, number] = [0, 0];
+  target.addEventListener("mousedown", (event) => (pressedAt = [event.clientX, event.clientY]));
+  target.addEventListener("click", (event) => {
+    if (!state.player || Math.hypot(event.clientX - pressedAt[0], event.clientY - pressedAt[1]) > CLICK_SLOP) return;
+    const cell = cellAt(event);
+    const owner = cell ? state.state.owner[cell.id]! : 0;
+    if (owner === 0) return;
+    warRoom.showTab("play");
+    playTab.pickTarget(owner);
+  });
+}
+attachMapMouse(canvas, (event) => cellUnderMouse(canvas, world, event, camera));
 attachZoom(canvas, bounds, () => camera, setCamera);
-canvas.addEventListener("mousemove", (event) => {
-  const cell = cellUnderMouse(canvas, world, event, camera);
-  rulerCard.hover((cell && state.nations.get(state.state.owner[cell.id]!)) ?? null);
-});
-canvas.addEventListener("mouseleave", () => rulerCard.hover(null));
-// Playing (M20): click a realm to pick it as your war target. A drag to move the map isn't a click.
-let pressedAt: [number, number] = [0, 0];
-canvas.addEventListener("mousedown", (event) => (pressedAt = [event.clientX, event.clientY]));
-canvas.addEventListener("click", (event) => {
-  if (!state.player || Math.hypot(event.clientX - pressedAt[0], event.clientY - pressedAt[1]) > CLICK_SLOP) return;
-  const cell = cellUnderMouse(canvas, world, event, camera);
-  const owner = cell ? state.state.owner[cell.id]! : 0;
-  if (owner === 0) return;
-  warRoom.showTab("play");
-  playTab.pickTarget(owner);
-});
 
 redrawNations();
 draw();
 warRoom.update(state);
 requestAnimationFrame(frame);
+// ?view=3d opens straight into the 3D view.
+if (query.get("view") === "3d") void switchView();
 // Canvas text can't wait for a font, so draw again once the parchment map's fonts arrive.
 if (chart) void Promise.all(ATLAS_FONTS.map((font) => document.fonts.load(font))).then(draw);

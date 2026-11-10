@@ -57,7 +57,7 @@ I'm new to coding and learning TypeScript through this project. Every session is
 |---|---|
 | Language | TypeScript (strict mode) |
 | Dev server / build | Vite |
-| Drawing | Canvas 2D |
+| Drawing | Canvas 2D; `three` only for the optional 3D relief view (`src/render3d/`) |
 | Terrain noise | `simplex-noise` |
 | Map cells | `d3-delaunay` (Voronoi) |
 | Randomness | Our own seeded random number generator. **Never use `Math.random()`.** |
@@ -73,6 +73,7 @@ Pin exact versions in `package.json` (no `^` or `~`).
 - `render/` only reads the world. It never changes it.
 - All randomness comes from one seeded generator, split into named streams (e.g. `rng.fork("war")`).
 - **Every nation choice goes through a controller** (`sim/ai/`) and comes back as a command the rules apply. God and player orders are logged commands, so a save's log replays to the same history.
+- `render3d/` follows the same rule as `render/`, and is the only place three.js is used.
 - **No magic numbers.** Tunable values live only in `gen/params.ts`, `sim/params.ts`, `render/palette.ts` or `ui/config.ts`, and are documented in PARAMS.md.
 - **The core loop to protect:** grow → get too big → become unstable → break apart. If history looks frozen or chaotic, check the tuning recipes in PARAMS.md first.
 - **Measuring:** tune on one set of seeds and report numbers from seeds never tuned on; compare old and new code on the same seeds. 5–10 seeds can't separate small changes.
@@ -106,6 +107,7 @@ All built. Each one's design is in the SPEC section or system doc listed.
 | M19 ✅ | Map zoom | SPEC §5.4l |
 | M20 ✅ | Play as a nation | `docs/systems/play.md` |
 | M21 ✅ | Vassalage v1: submission at peace, duties, independence at a new overlord ruler | `docs/systems/vassalage.md` |
+| M22 ✅ | 3D relief view (switch beside the flat map) | SPEC §5.4n |
 
 At the end of each milestone: run tests, take a screenshot, give me my exercise, update the Decision log.
 
@@ -175,3 +177,6 @@ Short and current. Earlier detail (tuning runs, measurements) is in git history 
 | 2026-11-09 | Vassalage v1 built: holding a capital at peace makes the loser a vassal (keeps its capital); vassals start no wars or alliances; overlord and vassal join each other's wars by rule; no wars inside a crown; a vassal may declare independence only in the year its overlord's ruler is crowned (AI chance from opinion and strength, `INDEPENDENCE_CHANCE` 1), and goes free if its overlord falls. Save stays v13 (optional `overlord`). Validation seeds: realms alive at 500 13.6 → 22.1, attacker wins 84% unchanged, vassals serve ~50 years. Year now ~15–19 ms (more realms alive); test time limit 30 s. Golden histories re-recorded |
 | 2026-11-09 | Wider measuring: `npm run report` runs 24 worlds × 1,000 years per set (16 small settled, 4 full-size settled, 4 small open) in parallel shards, ~3 minutes; first baseline saved in `docs/measurements/`. Tuning and validation sets differ by ~15 wars a century, so only bigger shifts count |
 | 2026-11-09 | Empires pass (user: bigger empires mostly through vassals, conquest for aggressive races): winners holding a capital annex or vassalize (`ANNEX_CHANCE` × aggression²), far stronger winners demand submission (`VASSAL_DEMAND_RATIO` 3, `VASSAL_DEMAND_CHANCE` 0.15 ÷ aggression), crowns count vassals in full when weighing war, `INDEPENDENCE_CHANCE` 1 → 4; two player policies. Validation: 40% crowns 4% → 42% of worlds, realms at 500 21, giants breaking 38% (short of half), attacker wins 83% → 81%. Golden histories re-recorded |
+| 2026-11-10 | Simulator review (no code changed): attacker wins 81% is structural (only the confident attack, a reached goal always counts for the attacker, no alliances from fear of a giant); rebellions ~9 a century against ~69 wars, and vassal land escapes overextension, so giants rarely break. User chose to leave these fixes for later. Also noted: year-1000 saves are 5.5 MB and Load passes them through `sessionStorage` (untested in Safari/Firefox); `docs/measurements/README.md` and the glossary say the report takes 20–30 minutes while this guide says ~3 and the saved file 4 (not yet settled) |
+| 2026-11-10 | M22 3D relief view: three.js (0.187.0, pinned) added for an optional view beside the flat map (button, key V, `?view=3d`). The 2D canvas is the terrain's texture, so nothing is drawn twice; loaded on demand in its own file. Hover and clicking work in 3D through a raycast; sharp zoom and recording are not in 3D yet. Eight `RELIEF_*` parameters in `render/palette.ts`. Golden history unchanged; 401 tests and build pass; checked in browser |
+| 2026-11-10 | Fallen rulers burn: in the year any realm dies, its last ruler's card is shown and burns (drawn in code, no new art; `src/ui/burn.ts`). One effect for every kind of death, by the user's choice; on by default, switched off with "Burn fallen rulers" in Settings. Visual only, golden history unchanged |
