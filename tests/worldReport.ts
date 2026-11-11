@@ -16,6 +16,37 @@ export const GIANT_SHARE = 0.25;
 /** A great empire that later falls below this share (or vanishes) has broken apart. */
 export const BROKEN_SHARE = 0.125;
 
+/** A realm holding this share of a broken empire's old land counts as one of its successor states. */
+export const SUCCESSOR_SHARE = 0.05;
+
+/** How a vassal's service ended. */
+export type ServiceEnd = "revolt" | "overlordFell" | "absorbed" | "changedCrown" | "letGo";
+
+/**
+ * Why a vassal stopped serving, from what is true afterwards:
+ * it is gone (absorbed), its overlord is gone, it now serves another overlord (changed crown),
+ * it won a war of independence (revolt), or it was simply let go (too far to hold, or its overlord submitted to another).
+ */
+export function serviceEnd(vassalAlive: boolean, overlordAlive: boolean, servesAnother: boolean, wonIndependence: boolean): ServiceEnd {
+  if (!vassalAlive) return "absorbed";
+  if (!overlordAlive) return "overlordFell";
+  if (servesAnother) return "changedCrown";
+  return wonIndependence ? "revolt" : "letGo";
+}
+
+/**
+ * Successor states of a broken empire: how many realms outside its crown each hold
+ * at least `minShare` of the land (`cells`) the empire held at its height.
+ */
+export function countSuccessors(owner: ArrayLike<number>, cells: number[], crown: Set<number>, minShare: number): number {
+  const held = new Map<number, number>();
+  for (const cell of cells) {
+    const id = owner[cell]!;
+    if (id !== 0 && !crown.has(id)) held.set(id, (held.get(id) ?? 0) + 1);
+  }
+  return [...held.values()].filter((count) => count >= cells.length * minShare).length;
+}
+
 /** One world to run: its seed, start and map size. */
 export interface WorldSpec {
   seed: string;
@@ -46,6 +77,22 @@ function crownShares(state: WorldState, land: number): Map<number, number> {
   return shares;
 }
 
+/** The realms of one crown: the overlord and its living vassals. */
+function crownMembers(state: WorldState, crown: number): Set<number> {
+  const members = new Set([crown]);
+  for (const n of state.nations.values()) if (n.alive && n.overlord === crown) members.add(n.id);
+  return members;
+}
+
+/** Every cell owned by one of `members`. */
+function cellsOf(state: WorldState, members: Set<number>): number[] {
+  const cells: number[] = [];
+  state.state.owner.forEach((id, cell) => {
+    if (members.has(id)) cells.push(cell);
+  });
+  return cells;
+}
+
 export async function measureWorld(spec: WorldSpec): Promise<Record<string, number | string>> {
   const { state } = createWorld(spec.seed, spec.start, spec.width, spec.height);
   const rng = createRng(spec.seed).fork("sim");
@@ -57,37 +104,60 @@ export async function measureWorld(spec: WorldSpec): Promise<Record<string, numb
   let peakRealm = 0;
   let peakCrown = 0;
   let tickMs = 0;
-  // Great empires: the most each crown held, years spent at GIANT_SHARE or more, and whether it later broke apart.
-  const giants = new Map<number, { years: number; broken: boolean }>();
+  // Great empires: years spent at GIANT_SHARE or more, the most each held (and which cells), and whether it later broke apart.
+  const giants = new Map<number, { years: number; broken: boolean; peak: number; cells: number[] }>();
+  let successors = 0;
+  // Realms alive: the most there ever were, and the fewest after that.
+  let realmsPeak = 0;
+  let realmsLowAfterPeak = 0;
+  const crownsAt: Record<number, number> = {};
+  const ends: Record<ServiceEnd, number> = { revolt: 0, overlordFell: 0, absorbed: 0, changedCrown: 0, letGo: 0 };
   // Vassals: when each began serving its current overlord; how long finished services lasted.
   const serving = new Map<number, { overlord: number; since: number }>();
   const served: number[] = [];
 
   await runYears(YEARS, () => {
     const t = performance.now();
-    tick(state, rng);
+    const events = tick(state, rng);
     tickMs += performance.now() - t;
     const shares = crownShares(state, land);
     for (const n of state.nations.values()) if (n.alive) peakRealm = Math.max(peakRealm, n.area / land);
     for (const [crown, share] of shares) {
       peakCrown = Math.max(peakCrown, share);
       if (share >= GIANT_SHARE) {
-        const giant = giants.get(crown) ?? { years: 0, broken: false };
+        const giant = giants.get(crown) ?? { years: 0, broken: false, peak: 0, cells: [] };
         giant.years++;
+        // Remember the land it held at its height, to count who holds it after a breakup.
+        if (share > giant.peak) {
+          giant.peak = share;
+          giant.cells = cellsOf(state, crownMembers(state, crown));
+        }
         giants.set(crown, giant);
       }
     }
-    for (const [crown, giant] of giants) if (!giant.broken && (shares.get(crown) ?? 0) < BROKEN_SHARE) giant.broken = true;
+    for (const [crown, giant] of giants) {
+      if (giant.broken || (shares.get(crown) ?? 0) >= BROKEN_SHARE) continue;
+      giant.broken = true;
+      successors += countSuccessors(state.state.owner, giant.cells, crownMembers(state, crown), SUCCESSOR_SHARE);
+    }
+    const wonFree = new Set(events.filter((e) => e.type === "vassal" && e.text.includes("wins its independence")).map((e) => e.actors[0]));
     for (const n of state.nations.values()) {
       const now = n.alive ? n.overlord : undefined;
       const was = serving.get(n.id);
       if (was && was.overlord !== now) {
         served.push(state.year - was.since);
+        ends[serviceEnd(n.alive, state.nations.get(was.overlord)?.alive ?? false, now !== undefined, wonFree.has(n.id))]++;
         serving.delete(n.id);
       }
       if (now !== undefined && !serving.has(n.id)) serving.set(n.id, { overlord: now, since: state.year });
     }
-    if (state.year === 250 || state.year === 500 || state.year === 1000) aliveAt[state.year] = alive();
+    const realms = alive();
+    if (realms > realmsPeak) realmsLowAfterPeak = realmsPeak = realms;
+    realmsLowAfterPeak = Math.min(realmsLowAfterPeak, realms);
+    if (state.year === 250 || state.year === 500 || state.year === 1000) {
+      aliveAt[state.year] = realms;
+      crownsAt[state.year] = shares.size;
+    }
   });
 
   const centuries = YEARS / 100;
@@ -124,6 +194,11 @@ export async function measureWorld(spec: WorldSpec): Promise<Record<string, numb
     realmsAt250: aliveAt[250] ?? 0,
     realmsAt500: aliveAt[500] ?? 0,
     realmsAt1000: aliveAt[1000] ?? 0,
+    realmsPeak,
+    realmsLowAfterPeak,
+    crownsAt250: crownsAt[250] ?? 0,
+    crownsAt500: crownsAt[500] ?? 0,
+    crownsAt1000: crownsAt[1000] ?? 0,
     foundersAliveAt1000: founders.filter((id) => state.nations.get(id)!.alive).length,
     // Empires and crowns
     peakRealmShare: peakRealm,
@@ -134,6 +209,7 @@ export async function measureWorld(spec: WorldSpec): Promise<Record<string, numb
     giants: giantList.length,
     giantYears: mean(giantList.map((g) => g.years)),
     giantsBroken: giantList.filter((g) => g.broken).length,
+    successorStates: successors,
     // Vassals
     submissionsPerCentury: events((text, type) => type === "vassal" && text.includes("submits")) / centuries,
     independenceWarsPerCentury: events((text, type) => type === "vassal" && text.includes("declares independence")) / centuries,
@@ -141,6 +217,11 @@ export async function measureWorld(spec: WorldSpec): Promise<Record<string, numb
     vassalsAt1000: vassals.length,
     vassalLandShareAt1000: sum(vassals.map((n) => n.area)) / land,
     averageServiceYears: mean(served),
+    vassalsRevolted: ends.revolt,
+    vassalsFreedByFall: ends.overlordFell,
+    vassalsAbsorbed: ends.absorbed,
+    vassalsChangedCrown: ends.changedCrown,
+    vassalsLetGo: ends.letGo,
     // Races
     biggestRaceShare: Math.max(...PLAYABLE_RACES.map((r) => (raceCounts.get(r) ?? 0) / Math.max(settled, 1))),
     // Speed (wall time; several shards share the machine, so read it as a rough guide)

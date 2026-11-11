@@ -67,9 +67,27 @@ function printSummary(report, before) {
     const cells = Object.values(groups).map((keep) => {
       const now = mean(report.rows.filter(keep), key);
       if (!before) return fmt(now).padStart(10);
-      const was = mean(before.rows.filter(keep), key);
+      // An older report may not have this measure.
+      const was = key in before.rows[0] ? mean(before.rows.filter(keep), key) : NaN;
       return `${fmt(was)} → ${fmt(now)}`.padStart(18);
     });
     console.log([key.padEnd(28), ...cells].join(""));
+  }
+  // Ratios worked out over all the worlds of a group together, so worlds with no breakups or vassals don't count as zero.
+  const total = (rows, key) => rows.reduce((a, r) => a + (r[key] ?? NaN), 0);
+  const left = (rows) => total(rows, "vassalsRevolted") + total(rows, "vassalsFreedByFall") + total(rows, "vassalsAbsorbed") + total(rows, "vassalsChangedCrown") + total(rows, "vassalsLetGo");
+  const ratios = {
+    giantsBrokenShare: (rows) => total(rows, "giantsBroken") / total(rows, "giants"),
+    successorsPerBreakup: (rows) => total(rows, "successorStates") / total(rows, "giantsBroken"),
+    vassalsRevoltedShare: (rows) => total(rows, "vassalsRevolted") / left(rows),
+    vassalsChangedCrownShare: (rows) => total(rows, "vassalsChangedCrown") / left(rows),
+    vassalsAbsorbedShare: (rows) => total(rows, "vassalsAbsorbed") / left(rows),
+  };
+  for (const [name, ratio] of Object.entries(ratios)) {
+    const cells = Object.values(groups).map((keep) => {
+      const now = fmt(ratio(report.rows.filter(keep)));
+      return before ? `${fmt(ratio(before.rows.filter(keep)))} → ${now}`.padStart(18) : now.padStart(10);
+    });
+    console.log([name.padEnd(28), ...cells].join(""));
   }
 }

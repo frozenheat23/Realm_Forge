@@ -866,6 +866,10 @@ A second way to look at the same map, switched with the **3D map** button, key V
 
 Holding the loser's capital at peace makes it a vassal instead of swallowing it; vassals serve and fight beside their overlord, and may declare independence when the overlord's crown passes. See [`systems/vassalage.md`](systems/vassalage.md), including what's left for later (levy share, annex-or-vassalize choice, breaking away after defeats, absorbing vassals).
 
+### The empire cycle (scoped 2026-11-11, not built)
+
+Empires that rise, break into successor states and may be joined again: vassals rebelling at moments of weakness and together, vassal land straining the crown, a different style of empire per race, and warning signs for the player. See [`systems/empire-cycle.md`](systems/empire-cycle.md).
+
 ### Later ideas
 
 Not designed yet. When one is picked up, give it its own `docs/systems/` file (§9) and matching parameters in `PARAMS.md`.
