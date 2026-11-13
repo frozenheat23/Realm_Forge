@@ -17,7 +17,7 @@ import { buildDisplayCells, buildViewCells, groupPixelsByCell, type ViewGrid } f
 import { createEffects } from "./render/effects";
 import { HEAT_KINDS, renderHeatmap, type HeatKind } from "./render/heatmap";
 import { drawHeatmapName, drawYear } from "./render/hud";
-import { drawLabels } from "./render/labels";
+import { drawLabels, planNameLabels } from "./render/labels";
 import { ATLAS_FONTS, LOOK_ATLAS, LOOK_STANDARD } from "./render/palette";
 import { markScale } from "./render/marks";
 import { createNationOverlay, type NationOverlay, type OverlayTint } from "./render/overlay";
@@ -339,7 +339,10 @@ function draw(): void {
   if (layers.alliances) drawAlliances(baseCtx, world, state, look);
   const record = followedRecord();
   if (record) drawWarFocus(baseCtx, world, state, record);
-  if (layers.nations && layers.labels) drawLabels(baseCtx, world, state, look);
+  // In 3D the names stand up as signs instead of lying on the map.
+  const showNames = layers.nations && layers.labels;
+  if (showNames) drawLabels(baseCtx, world, state, look, !show3d);
+  if (show3d) relief?.setNames(showNames ? planNameLabels(baseCtx, world, state, look, 1) : [], look);
   if (chart) drawChartFrame(baseCtx, world);
   // The title panel and year stay put on screen, whatever the zoom.
   baseCtx.setTransform(pictureScale, 0, 0, pictureScale, 0, 0);

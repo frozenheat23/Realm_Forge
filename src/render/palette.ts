@@ -450,6 +450,9 @@ export const RULER_CARD_SUB_FONT = "italic 20px 'IM Fell English', Georgia, seri
 /** Ink on the nameplate. */
 export const RULER_CARD_TEXT = "#1d150d";
 
+/** A name's light outline (halo), as a share of its letter height. */
+export const NAME_HALO_SHARE = 0.18;
+
 // --- 3D relief view (SPEC §5.4n): the flat map laid over raised terrain ---
 /** How tall the highest peak stands, in map pixels (the map is 1600 across). */
 export const RELIEF_HEIGHT = 120;
@@ -459,6 +462,12 @@ export const RELIEF_CURVE = 1.5;
 export const RELIEF_STEP = 4;
 /** How many times larger than the flat map the 3D skin is drawn (whole number). 1 = soft close up; 2 = sharp, four times the memory. */
 export const RELIEF_SKIN_SCALE = 2;
+/** Realm names stand as signs in 3D: their size compared with the flat map's names. */
+export const RELIEF_NAME_SCALE = 1;
+/** How far a name sign floats above the ground, as a share of its letter height. */
+export const RELIEF_NAME_LIFT = 0.4;
+/** Letter height, in pixels, of the picture each name sign is made from. Bigger = sharper close up. */
+export const RELIEF_NAME_PIXELS = 96;
 /** Soft light from everywhere: keeps the parchment's own colors. */
 export const RELIEF_AMBIENT = 2.1;
 /** The sun, from the north-west like the map's own shading: makes slopes light and dark. */

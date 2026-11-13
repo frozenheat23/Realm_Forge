@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { generateWorld } from "../src/gen";
-import { reliefHeights } from "../src/render3d/reliefHeights";
+import { reliefHeightAt, reliefHeights } from "../src/render3d/reliefHeights";
 
 describe("3D relief heights", () => {
   const { world } = generateWorld("relief-test", 320, 180);
   const cols = 80;
   const rows = 45;
   const heights = reliefHeights(world.heightmap, cols, rows, 100, 1.5);
+
+  it("gives a single point the same height as the grid does there", () => {
+    const [col, row] = [30, 20];
+    const x = (col / cols) * world.heightmap.width;
+    const y = (row / rows) * world.heightmap.height;
+    // The grid keeps its heights in fewer digits (Float32), so compare to 3 decimal places.
+    expect(reliefHeightAt(world.heightmap, x, y, 100, 1.5)).toBeCloseTo(heights[row * (cols + 1) + col]!, 3);
+  });
 
   it("has one height for every grid point", () => {
     expect(heights.length).toBe((cols + 1) * (rows + 1));

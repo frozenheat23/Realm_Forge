@@ -5,8 +5,25 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { GeneratedWorld } from "../gen";
-import { RELIEF_AMBIENT, RELIEF_BACKGROUND, RELIEF_CURVE, RELIEF_FOV, RELIEF_HEIGHT, RELIEF_NEAR_FAR, RELIEF_SKIN_SCALE, RELIEF_STEP, RELIEF_SUN } from "../render/palette";
-import { reliefHeights } from "./reliefHeights";
+import { setNameFont, type NameLabel } from "../render/labels";
+import { markScale } from "../render/marks";
+import {
+  NAME_HALO_SHARE,
+  RELIEF_AMBIENT,
+  RELIEF_BACKGROUND,
+  RELIEF_CURVE,
+  RELIEF_FOV,
+  RELIEF_HEIGHT,
+  RELIEF_NAME_LIFT,
+  RELIEF_NAME_PIXELS,
+  RELIEF_NAME_SCALE,
+  RELIEF_NEAR_FAR,
+  RELIEF_SKIN_SCALE,
+  RELIEF_STEP,
+  RELIEF_SUN,
+  type MapLook,
+} from "../render/palette";
+import { reliefHeightAt, reliefHeights } from "./reliefHeights";
 
 export interface ReliefView {
   /** The canvas the 3D picture is drawn on. main.ts puts it on the page. */
@@ -15,6 +32,8 @@ export interface ReliefView {
   readonly skinScale: number;
   /** Matches the 3D picture to its size on the page, in CSS pixels. */
   setSize(width: number, height: number): void;
+  /** Stands these realm names up as signs that always face the camera, replacing the ones before. */
+  setNames(labels: NameLabel[], look: MapLook): void;
   /** Copies the flat map's latest picture onto the terrain and draws one frame. */
   render(): void;
   /** The map point (in map pixels, like the flat map's) under the mouse, or null if it's off the map. */
@@ -35,6 +54,25 @@ function buildTerrain(world: GeneratedWorld): THREE.BufferGeometry {
   // Normals say which way each bit of ground faces, so the sun can light slopes.
   geometry.computeVertexNormals();
   return geometry;
+}
+
+/** A name sign's picture: the name in the map's own lettering, on a see-through background. */
+function paintName(text: string, look: MapLook): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d")!;
+  const size = RELIEF_NAME_PIXELS;
+  setNameFont(ctx, size, look);
+  // Room for the letters plus their halo on every side.
+  canvas.width = Math.ceil(ctx.measureText(text).width + size);
+  canvas.height = Math.ceil(size * 1.5);
+  setNameFont(ctx, size, look); // resizing a canvas resets its settings
+  const [x, y] = [canvas.width / 2, canvas.height / 2];
+  ctx.lineWidth = size * NAME_HALO_SHARE;
+  ctx.strokeStyle = look.labelHalo;
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = look.labelColor;
+  ctx.fillText(text, x, y);
+  return canvas;
 }
 
 /**
@@ -68,6 +106,14 @@ export function createReliefView(world: GeneratedWorld, flatMap: HTMLCanvasEleme
   const camera = new THREE.PerspectiveCamera(RELIEF_FOV, world.width / world.height, 1, world.width * 6);
   camera.position.set(0, world.width * 0.62, world.width * 0.58); // above the southern edge, looking north
 
+  // --- Realm names: sprites, which are flat pictures that always turn to face the camera ---
+  const names = new THREE.Group();
+  scene.add(names);
+  /** Each name's picture is made once and kept, since most names stay for centuries. */
+  const namePictures = new Map<string, THREE.SpriteMaterial>();
+  /** The camera's starting distance: names are their flat-map size from here. */
+  const homeDistance = camera.position.length();
+
   // OrbitControls: drag to swing around, wheel to zoom, right-drag to slide across the table.
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -86,6 +132,39 @@ export function createReliefView(world: GeneratedWorld, flatMap: HTMLCanvasEleme
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
     },
+    setNames(labels, look) {
+      names.clear();
+      const used = new Set<string>();
+      for (const label of labels) {
+        // The key changes once the map's font has loaded, so a name first made in a stand-in font is remade.
+        const key = [label.text, look.labelFont, look.labelColor, look.labelHalo, document.fonts.check(`${RELIEF_NAME_PIXELS}px ${look.labelFont}`)].join("|");
+        used.add(key);
+        let picture = namePictures.get(key);
+        if (!picture) {
+          const map = new THREE.CanvasTexture(paintName(label.text, look));
+          map.colorSpace = THREE.SRGBColorSpace;
+          // depthTest off: a name shows even when a mountain stands in front of it.
+          picture = new THREE.SpriteMaterial({ map, depthTest: false });
+          namePictures.set(key, picture);
+        }
+        const sign = new THREE.Sprite(picture);
+        const image = picture.map!.image as HTMLCanvasElement;
+        const tall = (label.size * RELIEF_NAME_SCALE * image.height) / RELIEF_NAME_PIXELS;
+        sign.userData.size = [(tall * image.width) / image.height, tall];
+        sign.center.set(0.5, 0); // the sign is placed by the middle of its bottom edge
+        const ground = reliefHeightAt(world.heightmap, label.x, label.y, RELIEF_HEIGHT, RELIEF_CURVE);
+        sign.position.set(label.x - world.width / 2, ground + label.size * RELIEF_NAME_LIFT, label.y - world.height / 2);
+        sign.renderOrder = 1; // drawn after the ground
+        names.add(sign);
+      }
+      // Forget the pictures of names no longer on the map.
+      for (const [key, picture] of namePictures) {
+        if (used.has(key)) continue;
+        picture.map?.dispose();
+        picture.dispose();
+        namePictures.delete(key);
+      }
+    },
     render() {
       controls.update();
       // Keep the camera's pivot on the map, however far it's been slid.
@@ -96,6 +175,12 @@ export function createReliefView(world: GeneratedWorld, flatMap: HTMLCanvasEleme
       if (flatMap.width !== skinWidth) {
         skin.dispose();
         skinWidth = flatMap.width;
+      }
+      // Like markers on the zoomed flat map, names grow more slowly than the map as the camera comes close.
+      for (const sign of names.children) {
+        const k = markScale(homeDistance / camera.position.distanceTo(sign.position));
+        const [wide, tall] = sign.userData.size as [number, number];
+        sign.scale.set(wide * k, tall * k, 1);
       }
       skin.needsUpdate = true;
       renderer.render(scene, camera);

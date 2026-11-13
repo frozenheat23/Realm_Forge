@@ -751,6 +751,9 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | `RELIEF_CURVE` | 1.5 | 1–3 | How height grows with elevation (height = elevation ^ curve) | Flat lowlands, sudden peaks | Everything rises evenly, hilly plains |
 | `RELIEF_STEP` | 4 | 2–10 | Map pixels between points of the 3D surface | Smoother, blockier hills; faster | Finer ground; slower to build and draw |
 | `RELIEF_SKIN_SCALE` | 2 | 1–2 (whole number) | How many times larger than the flat map the picture laid over the terrain is drawn | Sharper close up; about four times the memory and a ~1.5 s wait when switching to 3D | 1 = the old soft picture, instant switch |
+| `RELIEF_NAME_SCALE` | 1 | 0.5–2 | Size of the standing realm names in 3D, compared with the flat map's names | Bigger names, more overlap | Smaller, harder to read from afar |
+| `RELIEF_NAME_LIFT` | 0.4 | 0–2 | How far a name floats above the ground, × its letter height | Names hover high, harder to tell whose land they mark | Names sit on the ground |
+| `RELIEF_NAME_PIXELS` | 96 | 48–160 | Letter height of each name's picture, in pixels | Sharper names close up, more memory | Soft names close up |
 | `RELIEF_AMBIENT` | 2.1 | 1–3.5 | Even light from everywhere | Brighter, flatter-looking | Darker, moodier |
 | `RELIEF_SUN` | 1.5 | 0–3 | Light from the north-west that shades slopes | Stronger light and dark on hills | Slopes hard to read |
 | `RELIEF_BACKGROUND` | #17120c | — | Color around the map | — | — |
