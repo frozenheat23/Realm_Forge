@@ -461,7 +461,7 @@ export const RELIEF_CURVE = 1.5;
 /** Map pixels between neighbouring points of the 3D surface. Smaller = finer hills, more work to draw. */
 export const RELIEF_STEP = 4;
 /** How many times larger than the flat map the 3D skin is drawn (whole number). 1 = soft close up; 2 = sharp, four times the memory. */
-export const RELIEF_SKIN_SCALE = 2;
+export const RELIEF_SKIN_SCALE = 1;
 /** Realm names stand as signs in 3D: their size compared with the flat map's names. */
 export const RELIEF_NAME_SCALE = 1;
 /** How far a name sign floats above the ground, as a share of its letter height. */
