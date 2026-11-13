@@ -5,12 +5,14 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { GeneratedWorld } from "../gen";
-import { RELIEF_AMBIENT, RELIEF_BACKGROUND, RELIEF_CURVE, RELIEF_FOV, RELIEF_HEIGHT, RELIEF_NEAR_FAR, RELIEF_STEP, RELIEF_SUN } from "../render/palette";
+import { RELIEF_AMBIENT, RELIEF_BACKGROUND, RELIEF_CURVE, RELIEF_FOV, RELIEF_HEIGHT, RELIEF_NEAR_FAR, RELIEF_SKIN_SCALE, RELIEF_STEP, RELIEF_SUN } from "../render/palette";
 import { reliefHeights } from "./reliefHeights";
 
 export interface ReliefView {
   /** The canvas the 3D picture is drawn on. main.ts puts it on the page. */
   readonly canvas: HTMLCanvasElement;
+  /** How many times larger than the map the flat picture should be drawn while 3D shows, to stay sharp close up. */
+  readonly skinScale: number;
   /** Matches the 3D picture to its size on the page, in CSS pixels. */
   setSize(width: number, height: number): void;
   /** Copies the flat map's latest picture onto the terrain and draws one frame. */
@@ -49,6 +51,9 @@ export function createReliefView(world: GeneratedWorld, flatMap: HTMLCanvasEleme
   const skin = new THREE.CanvasTexture(flatMap);
   skin.colorSpace = THREE.SRGBColorSpace;
   skin.anisotropy = renderer.capabilities.getMaxAnisotropy(); // keeps the map sharp when seen at a low angle
+  // A graphics card has a largest picture it can hold; never ask for a skin wider than that.
+  const skinScale = Math.max(1, Math.min(RELIEF_SKIN_SCALE, Math.floor(renderer.capabilities.maxTextureSize / world.width)));
+  let skinWidth = flatMap.width;
   const terrain = new THREE.Mesh(buildTerrain(world), new THREE.MeshLambertMaterial({ map: skin }));
   scene.add(terrain);
   // A raycaster shoots a line from the camera through the mouse and finds where it hits the ground.
@@ -74,6 +79,7 @@ export function createReliefView(world: GeneratedWorld, flatMap: HTMLCanvasEleme
 
   return {
     canvas: renderer.domElement,
+    skinScale,
     setSize(width, height) {
       renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
       renderer.setSize(width, height);
@@ -86,6 +92,11 @@ export function createReliefView(world: GeneratedWorld, flatMap: HTMLCanvasEleme
       controls.target.x = Math.min(world.width / 2, Math.max(-world.width / 2, controls.target.x));
       controls.target.z = Math.min(world.height / 2, Math.max(-world.height / 2, controls.target.z));
       controls.target.y = 0;
+      // If the flat picture changed size, the card's old copy no longer fits: drop it and start again.
+      if (flatMap.width !== skinWidth) {
+        skin.dispose();
+        skinWidth = flatMap.width;
+      }
       skin.needsUpdate = true;
       renderer.render(scene, camera);
     },

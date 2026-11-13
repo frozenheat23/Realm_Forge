@@ -457,6 +457,8 @@ export const RELIEF_HEIGHT = 120;
 export const RELIEF_CURVE = 1.5;
 /** Map pixels between neighbouring points of the 3D surface. Smaller = finer hills, more work to draw. */
 export const RELIEF_STEP = 4;
+/** How many times larger than the flat map the 3D skin is drawn (whole number). 1 = soft close up; 2 = sharp, four times the memory. */
+export const RELIEF_SKIN_SCALE = 2;
 /** Soft light from everywhere: keeps the parchment's own colors. */
 export const RELIEF_AMBIENT = 2.1;
 /** The sun, from the north-west like the map's own shading: makes slopes light and dark. */

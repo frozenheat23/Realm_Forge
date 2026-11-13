@@ -750,6 +750,7 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | `RELIEF_HEIGHT` | 120 | 40–250 | Height of the tallest peak, in map pixels (the map is 1600 wide) | Towering mountains that hide land behind them | A nearly flat sheet |
 | `RELIEF_CURVE` | 1.5 | 1–3 | How height grows with elevation (height = elevation ^ curve) | Flat lowlands, sudden peaks | Everything rises evenly, hilly plains |
 | `RELIEF_STEP` | 4 | 2–10 | Map pixels between points of the 3D surface | Smoother, blockier hills; faster | Finer ground; slower to build and draw |
+| `RELIEF_SKIN_SCALE` | 2 | 1–2 (whole number) | How many times larger than the flat map the picture laid over the terrain is drawn | Sharper close up; about four times the memory and a ~1.5 s wait when switching to 3D | 1 = the old soft picture, instant switch |
 | `RELIEF_AMBIENT` | 2.1 | 1–3.5 | Even light from everywhere | Brighter, flatter-looking | Darker, moodier |
 | `RELIEF_SUN` | 1.5 | 0–3 | Light from the north-west that shades slopes | Stronger light and dark on hills | Slopes hard to read |
 | `RELIEF_BACKGROUND` | #17120c | — | Color around the map | — | — |

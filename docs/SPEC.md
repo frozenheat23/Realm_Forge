@@ -829,7 +829,8 @@ A second way to look at the same map, switched with the **3D map** button, key V
 - **Camera:** drag to turn, wheel to zoom toward the pointer, right-drag to slide; it can't go below the table or leave the map. While 3D shows, the flat map's own camera stays at the whole map.
 - **Loaded on demand:** `main.ts` fetches the 3D code with `import()` the first time it's switched on, so the main download stays the same size (three.js is a separate ~134 kB file). If the browser can't do WebGL, it says so and stays flat.
 - **Mouse:** hovering inspects a cell and shows its ruler, and clicking a realm picks it as your war target, as on the flat map. `mapPointAt` shoots a line from the camera through the mouse (a raycast) to find the map point it hits; `attachMapMouse` in `main.ts` gives both views the same behaviour through a `CellFinder`.
-- **Not yet in 3D:** the sharp redraw when zoomed (close up the skin is the 1600×900 picture, so it goes soft), and video recording (Record still films the flat map).
+- **Sharp skin:** while 3D shows, the flat map is drawn `RELIEF_SKIN_SCALE` times larger (3200×1800 at 2) by the same sharp drawing a zoomed flat view uses (§5.4l): a camera zoomed in 2× on a canvas twice the size shows the whole map (`setPictureScale` in `main.ts`). Markers and names follow the zoom rule, so they are finer than on the whole flat map. The scale never exceeds what the graphics card can hold. Switching to 3D takes about 1.5 s while the picture is built.
+- **Not yet in 3D:** video recording (Record still films the flat picture); names and symbols still bend over slopes because they are part of the skin.
 
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 10 ms, smooth at 50 years per second. Measured after M13: overlay 1.4 ms, effects 0.2 ms, tick ~4.6 ms in the browser, a whole new-year frame ~21 ms.
