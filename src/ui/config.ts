@@ -38,3 +38,47 @@ export const PLAYER_MOBILIZE_CHOICES = [0.25, 0.5, 0.8, 1];
 export const PLAY_LIST_MAX = 40;
 /** A press that moves further than this (screen pixels) is a drag, not a click on the map. */
 export const CLICK_SLOP = 4;
+
+// --- Headlines on the map (SPEC §5.4o). See docs/PARAMS.md ("Headlines"). ---
+/** How long a headline stays on the map (real seconds), and how long its fade at the end takes. */
+export const HEADLINE_SECONDS = 4;
+export const HEADLINE_FADE_SECONDS = 0.6;
+/** A headline's first seconds, in which only bigger news can replace it. After that it gives way more and more easily. */
+export const HEADLINE_HOLD_SECONDS = 1.5;
+/** News scoring less than this is never a headline, so quiet years show none. */
+export const HEADLINE_MIN_SCORE = 0.9;
+/** Added to a realm's share of the land when scoring, so news of a small realm still counts for something. */
+export const HEADLINE_SIZE_FLOOR = 0.05;
+/** How much each kind of news matters. Its score is this × (HEADLINE_SIZE_FLOOR + the biggest realm's share of the land). */
+export const HEADLINE_WEIGHTS = {
+  conquest: 10,
+  collapse: 10,
+  civilWar: 9,
+  submission: 8,
+  independenceWon: 8,
+  reborn: 7,
+  rebellion: 6,
+  peace: 6,
+  independenceWar: 6,
+  greatDies: 6,
+  greatRises: 5,
+  war: 5,
+  crisis: 5,
+  succession: 8,
+  faith: 3,
+  whitePeace: 3,
+  raid: 2,
+  joinsWar: 2,
+  vassalOther: 2,
+  founded: 2,
+  alliance: 2,
+  minor: 0,
+};
+
+// --- Versus screen (SPEC §5.4p). See docs/PARAMS.md ("Versus screen"). ---
+/** How long the two rulers face each other before the outcome is told and the loser burns (seconds). */
+export const VERSUS_FACE_SECONDS = 1.5;
+/** How long the whole screen stays up (seconds). */
+export const VERSUS_SECONDS = 5;
+/** Only a conquered realm that at its height held at least this share of the land gets a versus screen; smaller ones burn as before. */
+export const VERSUS_MIN_SHARE = 0.009;

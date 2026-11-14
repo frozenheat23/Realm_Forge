@@ -478,3 +478,22 @@ export const RULER_CARD_BURN_SCORCH = 0.45;
 /** The glowing line at the fire's front, and the black it leaves behind. */
 export const RULER_CARD_BURN_EMBER = "#ff8a2a";
 export const RULER_CARD_BURN_CHAR = "#120b07";
+
+// --- Headline banner (SPEC §5.4o) ---
+/** The banner's text; it shrinks to fit when a line is too long. */
+export const HEADLINE_FONT_SIZE = 28;
+export const HEADLINE_FONT_FAMILY = "'IM Fell English', Georgia, serif";
+export const HEADLINE_INK = "#2a1c10";
+export const HEADLINE_PAPER = "rgba(239, 224, 189, 0.94)";
+/** The banner's height, its gap from the bottom of the map, and the most of the map's width it may take. */
+export const HEADLINE_HEIGHT = 52;
+export const HEADLINE_BOTTOM = 34;
+export const HEADLINE_MAX_WIDTH = 0.8;
+/** Radius of the seal in the realm's color at the banner's left end. */
+export const HEADLINE_SEAL = 11;
+
+// --- Versus screen (SPEC §5.4p) ---
+/** Width of each ruler card on the versus screen (page pixels; the height is 1.5 × this). */
+export const VERSUS_CARD_WIDTH = 132;
+/** Gap kept above and below the versus screen when it sits in the band below the map (page pixels). */
+export const VERSUS_GAP = 8;

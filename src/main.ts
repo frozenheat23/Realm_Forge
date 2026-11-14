@@ -16,7 +16,7 @@ import { lookAt, sameCamera, setView, WHOLE_MAP, type Camera } from "./render/ca
 import { buildDisplayCells, buildViewCells, groupPixelsByCell, type ViewGrid } from "./render/displayCells";
 import { createEffects } from "./render/effects";
 import { HEAT_KINDS, renderHeatmap, type HeatKind } from "./render/heatmap";
-import { drawHeatmapName, drawYear } from "./render/hud";
+import { drawHeadline, drawHeatmapName, drawYear } from "./render/hud";
 import { drawLabels } from "./render/labels";
 import { ATLAS_FONTS, LOOK_ATLAS, LOOK_STANDARD } from "./render/palette";
 import { markScale } from "./render/marks";
@@ -38,7 +38,9 @@ import { cellAtPoint, cellUnderMouse, onKey, showCellOnHover, type CellFinder } 
 import { dispatchesFor, watchRealm } from "./ui/dispatches";
 import { createEventLog } from "./ui/eventLog";
 import { createRecorder, pickSnapshot, saveSnapshot } from "./ui/files";
+import { createHeadlines, headlineText } from "./ui/headlines";
 import { createRulerCard } from "./ui/rulerCard";
+import { createVersus, pickDuel } from "./ui/versus";
 import { applyParams, createSettings, type Layers } from "./ui/settings";
 import { createPlayTab } from "./ui/play";
 import { createSandbox } from "./ui/sandbox";
@@ -159,7 +161,7 @@ function paintTerrain(): void {
 paintTerrain();
 
 // --- Drawing ---
-const layers: Layers = { nations: true, races: false, cultures: false, faiths: false, alliances: true, resources: false, settlements: true, labels: true, effects: true, armies: true, cells: query.get("debug") === "cells", falls: true };
+const layers: Layers = { nations: true, races: false, cultures: false, faiths: false, alliances: true, resources: false, settlements: true, labels: true, effects: true, armies: true, cells: query.get("debug") === "cells", falls: true, headlines: true };
 /** The Races, Cultures and Faiths layers replace nation colors. Only one shows at a time. */
 function overlayTint(): OverlayTint {
   if (layers.faiths) return "faith";
@@ -187,6 +189,7 @@ const [heatLayer, heatCtx] = offscreen();
 // Animated war and unrest effects (SPEC §5.4g) remember last year themselves.
 const cellPixels = groupPixelsByCell(displayCells, world.cells.length);
 let effects = createEffects(world, cellPixels, look);
+const headlines = createHeadlines(world.cells.filter((c) => c.isLand).length);
 let overlay = createNationOverlay(world, displayCells, cellPixels, look);
 // Shares the overlay's memory; rebuilt only when a new style replaces the overlay.
 let nationImage = new ImageData(new Uint8ClampedArray(overlay.pixels.buffer), world.width, world.height);
@@ -334,6 +337,9 @@ function present(now: number): void {
   if (layers.effects) effects.draw(ctx, now);
   if (layers.armies) drawArmies(ctx, world, state, (now - yearStart) * controls.speed / 1000, look);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // The headline stays put on screen, like the year. It is asked for every frame so its clock keeps time.
+  const headline = headlines.current(now, controls.playing);
+  if (headline && layers.headlines) drawHeadline(ctx, headline.text, headline.color, headline.alpha, world.width, world.height);
 }
 
 // --- Event log (click an event → its nations light up for a few seconds) ---
@@ -432,6 +438,12 @@ let yearStart = 0;
 
 // Hover a nation to see its ruler; a great ruler's rise shows on its own.
 const rulerCard = createRulerCard(rulerCardBox);
+// The versus screen measures the page when it opens: the map shown, and where the controls below it end.
+const versus = createVersus(
+  element("#versus"),
+  () => (show3d && relief ? relief.canvas : canvas).getBoundingClientRect(),
+  () => element("#settings").getBoundingClientRect().bottom,
+);
 
 function advanceYear(): void {
   const realmBefore = watchRealm(state);
@@ -439,6 +451,7 @@ function advanceYear(): void {
   yearStart = performance.now();
   eventLog.add(events, state);
   effects.noteYear(state, events, performance.now());
+  headlines.noteYear(state, events, performance.now());
   watchFollowed();
   // Playing (M20): pause on what happened to your realm, and say what it was.
   const news = dispatchesFor(state, events, realmBefore).filter((d) => playTab.wants(d.kind));
@@ -460,7 +473,14 @@ function advanceYear(): void {
   }
   // A realm that died this year, however it died: its last ruler's card burns. If several fell, the last is shown.
   if (layers.falls) {
-    for (const nation of state.nations.values()) if (!nation.alive && nation.fell === state.year) rulerCard.fall(nation);
+    // A conquered realm of some size gets the versus screen: its ruler faces the conqueror's, then burns there.
+    const duel = versus.busy ? null : pickDuel(events, headlines.peakOf);
+    const winner = duel && state.nations.get(duel.winner);
+    const loser = duel && state.nations.get(duel.loser);
+    if (duel && winner?.alive && loser) versus.show(winner, loser, headlineText(duel.event.text));
+    for (const nation of state.nations.values()) {
+      if (!nation.alive && nation.fell === state.year && !(winner?.alive && nation === loser)) rulerCard.fall(nation);
+    }
   }
 }
 

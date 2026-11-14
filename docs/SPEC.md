@@ -831,6 +831,27 @@ A second way to look at the same map, switched with the **3D map** button, key V
 - **Mouse:** hovering inspects a cell and shows its ruler, and clicking a realm picks it as your war target, as on the flat map. `mapPointAt` shoots a line from the camera through the mouse (a raycast) to find the map point it hits; `attachMapMouse` in `main.ts` gives both views the same behaviour through a `CellFinder`.
 - **Not yet in 3D:** the sharp redraw when zoomed (close up the skin is the 1600×900 picture, so it goes soft), and video recording (Record still films the flat map).
 
+### 5.4o Headlines
+
+A banner at the bottom of the map tells the year's most important news in one line, so a watcher knows when a ruler dies, a war ends or a realm falls without reading the log. Switched with **Headlines** in Settings (on by default). It is drawn on the map, so it appears in recorded videos. Visual only: history is unchanged.
+
+- **Importance** (`src/ui/headlines.ts`): each event scores its kind's weight (`HEADLINE_WEIGHTS`) × (`HEADLINE_SIZE_FLOOR` + the biggest realm involved, as a share of all land). A realm is judged by this year's or last year's size, whichever is larger, so a realm that just fell still counts. Battles and other small news weigh 0 and never show.
+- **Kinds** are told apart by the event's type and wording (`headlineKind`): conquest, collapse, civil war, submission, independence, rebellion, a realm reborn, peace, war, great rulers, crises, faith and more.
+- **Successions.** The rules log only great rulers' deaths, so the banner writes its own line whenever a throne changes hands: *"King Aldric of Kethar dies after 28 years. King Berin is crowned."*, or that the old house ends. Being weighed by size, only larger realms' successions reach the banner.
+- **One at a time.** The year's top event shows if it scores at least `HEADLINE_MIN_SCORE`. A headline stays for `HEADLINE_SECONDS`; for its first `HEADLINE_HOLD_SECONDS` only bigger news replaces it, after that it gives way more and more easily. While paused it stays up.
+- **Look** (`drawHeadline` in `render/hud.ts`): a parchment strip with a seal in the color of the realm the news is about; long lines are set smaller to fit.
+- **Not yet:** marks on the map where the news happened, slowing playback for great events, and a headline of its own in the 3D view (there it lies on the terrain with the rest of the picture).
+
+### 5.4p Versus screen
+
+When a realm is conquered outright in war, its last ruler's card faces the conqueror's with crossed swords between them; after `VERSUS_FACE_SECONDS` the outcome is told in one line (the log's own words) and the loser's card burns, as in §5.4k. The whole screen stays `VERSUS_SECONDS`. Part of "Burn fallen rulers" in Settings. Visual only: history is unchanged.
+
+- **Which conquests** (`pickDuel` in `src/ui/versus.ts`): only a conquest in war ("conquers the whole realm"), and only if the fallen realm at its height held at least `VERSUS_MIN_SHARE` of the land. Its height is used because realms are worn down to very little before they are conquered. If several fall in one year, the one that was once biggest is shown. Realms that collapse, dissolve or are too small burn alone, as before; so does a realm conquered while a versus screen is still up.
+- **Where** (`versusTop`): in the empty band below the controls when the whole screen fits there (tall windows), otherwise centered over the map.
+- **Shared code:** `prepareCard` and `burnCanvas` in `src/ui/rulerCard.ts` paint and burn a card for both the ruler card and this screen.
+- A page element, like the ruler card, so it doesn't appear in recorded videos.
+- **Finding while building:** on two full-size worlds, 26 and 34 realms were conquered in 1,000 years, and nearly all were small (about 1% of the land at their height). Great realms are almost never conquered outright; they are worn down or break. Only 2–5 conquered realms per world had ever held 3%.
+
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 10 ms, smooth at 50 years per second. Measured after M13: overlay 1.4 ms, effects 0.2 ms, tick ~4.6 ms in the browser, a whole new-year frame ~21 ms.
 - Run the sim on the main thread until M6; move it to a Web Worker only if it slows the screen.

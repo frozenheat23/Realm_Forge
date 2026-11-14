@@ -14,6 +14,12 @@
       .map-box { position: relative; width: fit-content; margin: 0 auto; }
       #ruler-card { position: absolute; top: 9%; right: 12px; pointer-events: none; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)); }
       #ruler-card canvas { display: block; height: auto; }
+      /* The versus screen (ui/versus.ts): two ruler cards and the outcome. main.ts places it below the map, or over it when there's no room. */
+      #versus { position: fixed; transform: translateX(-50%); z-index: 5; pointer-events: none; text-align: center; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)); }
+      #versus canvas { display: block; height: auto; }
+      .versus-cards { display: flex; align-items: center; justify-content: center; gap: 14px; }
+      .versus-swords { font-size: 34px; color: #e8d9a8; text-shadow: 0 2px 6px #000; }
+      .versus-line { margin-top: 4px; padding: 3px 12px; font: italic 15px 'IM Fell English', Georgia, serif; color: #2a1c10; background: rgba(239, 224, 189, 0.94); border: 1px solid #2a1c10; border-radius: 4px; display: inline-block; max-width: 560px; }
       #map { display: block; }
       /* The 3D relief view takes the flat map's place (main.ts switchView). */
       #map3d { display: none; cursor: grab; }
@@ -137,6 +143,7 @@
           <div class="map-box">
             <canvas id="map"></canvas>
             <div id="ruler-card" hidden></div>
+            <div id="versus" hidden></div>
           </div>
         </div>
         <div id="bar" class="bar"></div>

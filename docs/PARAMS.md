@@ -741,6 +741,38 @@ Animated layer (key E). Visual only: changing these never changes history. Times
 | `RULER_CARD_BURN_SECONDS` | 2.2 | 1–5 | How long the burning takes (`src/ui/config.ts`) | Slow, solemn | Quick flash |
 | `RULER_CARD_FALL_SECONDS` | 4 | ≥ burn seconds | How long the fallen card stays up in all (`src/ui/config.ts`) | Lingers, blocks hover longer | Gone as soon as it's burned |
 
+### Headlines
+
+The banner of news at the bottom of the map (SPEC §5.4o). Timing and weights are in `src/ui/config.ts`, the look in `src/render/palette.ts`.
+
+| Parameter | Default | Range | What it does | Higher | Lower |
+|---|---|---|---|---|---|
+| `HEADLINE_SECONDS` | 4 | 2–8 | How long a headline stays (real seconds) | Easier to read, more news is skipped | Quicker turnover |
+| `HEADLINE_HOLD_SECONDS` | 1.5 | 0–3 | A headline's first seconds, when only bigger news can replace it | Calmer banner | Flickers at high speed |
+| `HEADLINE_FADE_SECONDS` | 0.6 | 0–2 | Length of the fade at the end | Softer exit | Cuts off |
+| `HEADLINE_MIN_SCORE` | 0.9 | 0–3 | News scoring less never shows | Only great events; more empty years | Small news fills quiet years |
+| `HEADLINE_SIZE_FLOOR` | 0.05 | 0–0.3 | Added to a realm's share of the land when scoring | Kind of news matters more than size | Only big realms make news |
+| `HEADLINE_WEIGHTS` | conquest and collapse 10, civil war 9, submission and independence won 8, reborn 7, rebellion, peace, independence war and a great ruler's death 6, great ruler rises, war and crisis 5, succession 4, faith and white peace 3, the rest 2, minor 0 | 0–10 each | How much each kind of news matters | That kind shows more often | Less often; 0 = never |
+| `HEADLINE_FONT_SIZE` | 28 | 18–40 | Text size in map pixels (long lines shrink to fit) | | |
+| `HEADLINE_HEIGHT`, `HEADLINE_BOTTOM` | 52, 34 | | The strip's height and its gap from the bottom of the map | | |
+| `HEADLINE_MAX_WIDTH` | 0.8 | 0.4–0.95 | Most of the map's width the strip may take | Fewer lines shrink | More lines shrink |
+| `HEADLINE_SEAL` | 11 | 6–16 | Radius of the seal in the realm's color | | |
+| `HEADLINE_INK`, `HEADLINE_PAPER`, `HEADLINE_FONT_FAMILY` | | | Colors and typeface, matching the parchment title panel | | |
+
+A score example: a realm holding 30% of the land declaring war scores 5 × (0.05 + 0.30) = 1.75; a realm of 2% collapsing scores 10 × 0.07 = 0.7, below the minimum.
+
+### Versus screen
+
+Two ruler cards facing each other when a realm is conquered (SPEC §5.4p).
+
+| Parameter | Default | Range | What it does | Higher | Lower |
+|---|---|---|---|---|---|
+| `VERSUS_MIN_SHARE` | 0.009 | 0–0.1 | The fallen realm must once have held this share of the land (`src/ui/config.ts`) | Rarer: at 0.03 only 2–5 a world | More often; 0 = every conquest (about 30 a world) |
+| `VERSUS_FACE_SECONDS` | 1.5 | 0.5–4 | How long the rulers face each other before the outcome and the burning | More suspense | Straight to the burn |
+| `VERSUS_SECONDS` | 5 | 3–10 | How long the whole screen stays; keep it above `VERSUS_FACE_SECONDS` + `RULER_CARD_BURN_SECONDS` | Lingers; more conquests fall back to the plain burn | Cut short |
+| `VERSUS_CARD_WIDTH` | 132 | 90–200 | Width of each card in page pixels (`src/render/palette.ts`) | Easier to see, covers more map, fits below the map less often | |
+| `VERSUS_GAP` | 8 | 0–24 | Space kept above and below it in the band below the map | | |
+
 ### 3D relief view
 
 > Key V, the **3D map** button, or `?view=3d`. In `src/render/palette.ts`. Visual only: the simulation never sees these. Design in SPEC §5.4n.
