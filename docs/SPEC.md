@@ -829,7 +829,9 @@ A second way to look at the same map, switched with the **3D map** button, key V
 - **Camera:** drag to turn, wheel to zoom toward the pointer, right-drag to slide; it can't go below the table or leave the map. While 3D shows, the flat map's own camera stays at the whole map.
 - **Loaded on demand:** `main.ts` fetches the 3D code with `import()` the first time it's switched on, so the main download stays the same size (three.js is a separate ~134 kB file). If the browser can't do WebGL, it says so and stays flat.
 - **Mouse:** hovering inspects a cell and shows its ruler, and clicking a realm picks it as your war target, as on the flat map. `mapPointAt` shoots a line from the camera through the mouse (a raycast) to find the map point it hits; `attachMapMouse` in `main.ts` gives both views the same behaviour through a `CellFinder`.
-- **Not yet in 3D:** the sharp redraw when zoomed (close up the skin is the 1600×900 picture, so it goes soft), and video recording (Record still films the flat map).
+- **Sharp skin:** while 3D shows, the flat map is drawn `RELIEF_SKIN_SCALE` times larger (3200×1800 at 2) by the same sharp drawing a zoomed flat view uses (§5.4l): a camera zoomed in 2× on a canvas twice the size shows the whole map (`setPictureScale` in `main.ts`). Markers and names follow the zoom rule, so they are finer than on the whole flat map. The scale never exceeds what the graphics card can hold. Switching to 3D takes about 1.5 s while the picture is built.
+- **Standing names:** realm names are left off the skin and shown as sprites (flat pictures that always face the camera), one per name, standing on the ground at the name's place (`setNames` in `relief.ts`). `planNameLabels` in `render/labels.ts` chooses the names, places and sizes for both the flat map and the signs. They show through mountains, and shrink more slowly than the map as the camera nears (the zoom rule for markers). Seen from a low angle, names of realms one behind another can overlap.
+- **Not yet in 3D:** video recording (Record still films the flat picture); mountain symbols, towns and capitals are still part of the skin and lie flat.
 
 ### 5.4o Headlines
 

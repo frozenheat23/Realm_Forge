@@ -17,7 +17,7 @@ import { buildDisplayCells, buildViewCells, groupPixelsByCell, type ViewGrid } f
 import { createEffects } from "./render/effects";
 import { HEAT_KINDS, renderHeatmap, type HeatKind } from "./render/heatmap";
 import { drawHeadline, drawHeatmapName, drawYear } from "./render/hud";
-import { drawLabels } from "./render/labels";
+import { drawLabels, planNameLabels } from "./render/labels";
 import { ATLAS_FONTS, LOOK_ATLAS, LOOK_STANDARD } from "./render/palette";
 import { markScale } from "./render/marks";
 import { createNationOverlay, type NationOverlay, type OverlayTint } from "./render/overlay";
@@ -115,6 +115,11 @@ function outerHeight(node: Element): number {
 let relief: ReliefView | null = null;
 /** Is the 3D view showing instead of the flat map? */
 let show3d = false;
+/**
+ * How many canvas pixels each map pixel gets. 1 for the flat map; the 3D view asks for
+ * more (RELIEF_SKIN_SCALE) so its skin stays sharp when the 3D camera comes close.
+ */
+let pictureScale = 1;
 function fitMap(): void {
   const width = mapArea.clientWidth;
   let height = Infinity;
@@ -123,10 +128,10 @@ function fitMap(): void {
     const below = [...mainColumn.children].filter((child) => child !== mapArea && child.id !== "band").reduce((sum, child) => sum + outerHeight(child), 0);
     height = mainColumn.clientHeight - below;
   }
-  const scale = Math.max(0.1, Math.min(width / canvas.width, height / canvas.height));
-  canvas.style.width = `${Math.floor(canvas.width * scale)}px`;
-  canvas.style.height = `${Math.floor(canvas.height * scale)}px`;
-  relief?.setSize(Math.floor(canvas.width * scale), Math.floor(canvas.height * scale));
+  const scale = Math.max(0.1, Math.min(width / world.width, height / world.height));
+  canvas.style.width = `${Math.floor(world.width * scale)}px`;
+  canvas.style.height = `${Math.floor(world.height * scale)}px`;
+  relief?.setSize(Math.floor(world.width * scale), Math.floor(world.height * scale));
 }
 // Refit when the window changes size, or anything below the map grows or shrinks (the settings opening).
 const refit = new ResizeObserver(fitMap);
@@ -134,11 +139,11 @@ for (const child of [mainColumn, ...mainColumn.children]) refit.observe(child);
 addEventListener("resize", fitMap);
 fitMap();
 
-// Makes an off-screen canvas the same size as the map.
-function offscreen(): [HTMLCanvasElement, CanvasRenderingContext2D] {
+// Makes an off-screen canvas the same size as the map, or `scale` times as large.
+function offscreen(scale = 1): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = document.createElement("canvas");
-  c.width = world.width;
-  c.height = world.height;
+  c.width = world.width * scale;
+  c.height = world.height * scale;
   return [c, c.getContext("2d")!];
 }
 
@@ -213,6 +218,7 @@ const bounds = { width: world.width, height: world.height, maxZoom: MAX_ZOOM };
  * A zoomed view drawn sharp: terrain, nation colors, heatmap and terrain symbols
  * redrawn for just the part on screen, at screen size. Rebuilt when the view settles;
  * while it moves, the whole-map pictures are stretched instead.
+ * The 3D view's skin is one of these too: the whole map, at `pictureScale` times the size.
  */
 interface SharpView {
   camera: Camera;
@@ -232,7 +238,7 @@ let sharpTimer = 0;
 
 function buildSharp(): SharpView | null {
   if (camera.zoom === 1) return null;
-  const view: ViewGrid = { width: world.width, height: world.height, zoom: camera.zoom, x: camera.x, y: camera.y };
+  const view: ViewGrid = { width: world.width * pictureScale, height: world.height * pictureScale, zoom: camera.zoom, x: camera.x, y: camera.y };
   const cells = buildViewCells(world, view);
   const grid = { width: view.width, height: view.height, cells: world.cells };
   // The tinted band and the played realm's border keep their look: as wide as at zoom 1, grown like a marker.
@@ -242,16 +248,16 @@ function buildSharp(): SharpView | null {
     overlayEdgeWidth: grow(look.overlayEdgeWidth),
     playedBorderWidth: grow(look.playedBorderWidth),
   });
-  const [nation, viewNationCtx] = offscreen();
-  const [heatCanvas, viewHeatCtx] = offscreen();
+  const [nation, viewNationCtx] = offscreen(pictureScale);
+  const [heatCanvas, viewHeatCtx] = offscreen(pictureScale);
   let terrainCanvas: HTMLCanvasElement | null = null;
   let symbolCanvas: HTMLCanvasElement | null = null;
   if (chart) {
-    const [t, tCtx] = offscreen();
+    const [t, tCtx] = offscreen(pictureScale);
     tCtx.putImageData(renderAtlasTerrain(world, chart, view), 0, 0);
     setView(tCtx, camera);
     drawSailingLines(tCtx, world, chart);
-    const [s, sCtx] = offscreen();
+    const [s, sCtx] = offscreen(pictureScale);
     setView(sCtx, camera);
     drawAtlasLand(sCtx, world, chart);
     [terrainCanvas, symbolCanvas] = [t, s];
@@ -276,14 +282,14 @@ function buildSharp(): SharpView | null {
 function refreshSharp(view: SharpView): void {
   view.overlay.update(state, highlight(), overlayTint(), state.player?.nation);
   view.nationCtx.putImageData(view.nationImage, 0, 0);
-  if (heat) view.heatCtx.putImageData(renderHeatmap(world, view.cells, state, heat), 0, 0);
+  const size = { width: view.nation.width, height: view.nation.height };
+  if (heat) view.heatCtx.putImageData(renderHeatmap(size, view.cells, state, heat), 0, 0);
 }
 
 /** Moves the view. It shows at once, stretched, and is redrawn sharp once it stops moving. */
 function setCamera(next: Camera): void {
   // The 3D view wears the whole flat map as its skin, and has a camera of its own.
-  if (show3d) next = WHOLE_MAP;
-  if (sameCamera(next, camera)) return;
+  if (show3d || sameCamera(next, camera)) return;
   camera = next;
   canvas.classList.toggle("zoomed", camera.zoom > 1);
   draw();
@@ -292,6 +298,25 @@ function setCamera(next: Camera): void {
     sharp = buildSharp();
     draw();
   }, ZOOM_SHARP_DELAY);
+}
+
+/**
+ * Makes the map picture `scale` times as large, showing the whole map (1 = the flat map's size).
+ * A camera zoomed in by `scale` on a canvas `scale` times as large shows exactly the whole
+ * map, so the sharp zoomed drawing (M19) does the work.
+ */
+function setPictureScale(scale: number): void {
+  pictureScale = scale;
+  for (const c of [canvas, base]) {
+    c.width = world.width * scale;
+    c.height = world.height * scale;
+  }
+  baseCtx.imageSmoothingQuality = "high"; // resizing a canvas resets its settings
+  camera = { zoom: scale, x: 0, y: 0 };
+  canvas.classList.remove("zoomed");
+  clearTimeout(sharpTimer);
+  sharp = buildSharp();
+  draw();
 }
 
 // The whole still map is drawn to `base` only when something changes. Every screen
@@ -320,10 +345,13 @@ function draw(): void {
   if (layers.alliances) drawAlliances(baseCtx, world, state, look);
   const record = followedRecord();
   if (record) drawWarFocus(baseCtx, world, state, record);
-  if (layers.nations && layers.labels) drawLabels(baseCtx, world, state, look);
+  // In 3D the names stand up as signs instead of lying on the map.
+  const showNames = layers.nations && layers.labels;
+  if (showNames) drawLabels(baseCtx, world, state, look, !show3d);
+  if (show3d) relief?.setNames(showNames ? planNameLabels(baseCtx, world, state, look, 1) : [], look);
   if (chart) drawChartFrame(baseCtx, world);
   // The title panel and year stay put on screen, whatever the zoom.
-  baseCtx.setTransform(1, 0, 0, 1, 0, 0);
+  baseCtx.setTransform(pictureScale, 0, 0, pictureScale, 0, 0);
   if (chart) {
     drawTitlePanel(baseCtx, chart, state.year, heat);
   } else {
@@ -339,7 +367,8 @@ function present(now: number): void {
   setView(ctx, camera);
   if (layers.effects) effects.draw(ctx, now);
   if (layers.armies) drawArmies(ctx, world, state, (now - yearStart) * controls.speed / 1000, look);
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // Same scale as the year, so the headline keeps its place when the 3D skin is drawn larger.
+  ctx.setTransform(pictureScale, 0, 0, pictureScale, 0, 0);
   // The headline stays put on screen, like the year. It is asked for every frame so its clock keeps time.
   const headline = headlines.current(now, controls.playing);
   if (headline && layers.headlines) drawHeadline(ctx, headline.text, headline.color, headline.alpha, world.width, world.height);
@@ -579,8 +608,8 @@ async function switchView(): Promise<void> {
       return;
     }
   }
-  if (!show3d) setCamera(WHOLE_MAP); // before the switch: afterwards the flat camera stays put
   show3d = !show3d;
+  setPictureScale(show3d ? relief.skinScale : 1);
   canvas.style.display = show3d ? "none" : "";
   relief.canvas.style.display = show3d ? "block" : "none";
   fitMap();
