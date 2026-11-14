@@ -217,7 +217,7 @@ export function createKingdoms(rng: Rng, cells: Cell[], width: number, height: n
     nations.set(id, {
       id,
       name: nameNationAt(nameRng, cultureHomes, takenNames, x, y, race),
-      color: nationColor(colorHue, id),
+      color: nationColor(colorHue, id, race),
       capital,
       founded: -OLD_REALM_YEARS,
       race,

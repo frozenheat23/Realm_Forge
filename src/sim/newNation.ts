@@ -34,7 +34,7 @@ export function addNation(
   const nation: Nation = {
     id,
     name: heritage?.name ?? nameNationAt(rng, state.cultureHomes, takenNames(state), x, y, race),
-    color: heritage?.color ?? nationColor(state.colorHue, id),
+    color: heritage?.color ?? nationColor(state.colorHue, id, race),
     capital,
     founded: state.year,
     race,

@@ -1,10 +1,12 @@
 // The War Room (M16, docs/systems/warroom.md): the side panel's tabs, the list of
 // wars going on, past wars, and the report of a war. Only reads the world.
 import type { NationId, WarRecord, WorldState } from "../core/types";
+import { rulerName } from "../gen/rulers";
 import { menText } from "../sim/events";
 import { SIM } from "../sim/params";
 import { sideOf } from "../sim/warRecords";
 import { supplyStatus } from "../sim/supply";
+import { fallbackPath, portraitPath } from "./portraits";
 
 export type Tab = "wars" | "past" | "log" | "sandbox" | "play";
 
@@ -57,17 +59,41 @@ function swatch(state: WorldState, id: NationId): HTMLElement {
   return s;
 }
 
-/** "Kethar ⚔ Velmora (+2 allies)" with color swatches. */
-export function sides(record: WarRecord, state: WorldState): HTMLElement {
-  const row = el("div", "war-sides");
+/**
+ * A small cutout of a realm's ruler, framed in the realm's color, so a war reads as one face against another.
+ * Shows the ruler of today, so it is only used for wars still being fought.
+ */
+function face(state: WorldState, id: NationId): HTMLElement {
+  const nation = state.nations.get(id);
+  if (!nation) return swatch(state, id);
+  // The frame is a small window; the picture inside is larger and shifted so only the face shows (sizes in index.html).
+  const frame = el("span", "face");
+  frame.title = `${rulerName(nation.ruler, nation.race)} of ${nation.name}`;
+  frame.style.borderColor = nation.color;
+  const img = el("img");
+  img.alt = "";
+  // A great ruler's own picture may be missing: fall back to the ordinary one.
+  img.onerror = () => {
+    img.onerror = null;
+    img.src = fallbackPath(nation.race, nation.ruler);
+  };
+  img.src = portraitPath(nation.race, nation.ruler);
+  frame.append(img);
+  return frame;
+}
+
+/** "Kethar ⚔ Velmora (+2 allies)" with color swatches, or with the rulers' faces (`faces`, for wars going on now). */
+export function sides(record: WarRecord, state: WorldState, faces = false): HTMLElement {
+  const mark = faces ? face : swatch;
+  const row = el("div", faces ? "war-sides with-faces" : "war-sides");
   const allies = (side: "attack" | "defend") => record.allies.filter((a) => a.side === side).length;
   const more = (n: number) => (n > 0 ? el("span", "allies", `+${n}`) : el("span"));
   row.append(
-    swatch(state, record.attacker),
+    mark(state, record.attacker),
     nameOf(state, record.attacker),
     more(allies("attack")),
     el("span", "vs", "vs"),
-    swatch(state, record.defender),
+    mark(state, record.defender),
     nameOf(state, record.defender),
     more(allies("defend")),
   );
@@ -265,7 +291,7 @@ export function createWarRoom(panel: HTMLElement, followed: () => number | null,
       row.addEventListener("click", () => onFollow(war.id));
       const field = inTheField(state, record);
       row.append(
-        sides(record, state),
+        sides(record, state, true),
         el("div", "war-meta", `${GOALS[record.goal]} · year ${state.year - record.start + 1} · ${record.battles.length} battles`),
         scoreBar(state, record, war.score),
       );

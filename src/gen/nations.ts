@@ -9,8 +9,9 @@ import { PLAYABLE_RACES, raceAt, raceCapacity, traits } from "./races";
 import { RESOURCE_KINDS } from "./resources";
 import { MinHeap } from "./rivers";
 import {
-  NATION_LIGHTNESS,
+  NATION_LIGHTNESS_STEPS,
   NATION_SATURATION,
+  RACE_HUES,
   START_CORE_SIZE,
   START_HOME_RANGE,
   START_MIN_SPACING,
@@ -124,13 +125,20 @@ export function hslToHex(hue: number, sat: number, light: number): string {
   return `#${channel(0)}${channel(8)}${channel(4)}`;
 }
 
-// Stepping round the color wheel by the "golden angle" (~137.5°) keeps every
+// Stepping through a range by the "golden ratio" (~0.618 of it each time) keeps every
 // new color far from the ones before it, however many nations there are.
-const GOLDEN_ANGLE = 137.508;
+const GOLDEN_STEP = 0.618034;
 
-/** Color for nation number `id`. Every new nation steps further round the color wheel. */
-export function nationColor(colorHue: number, id: NationId): string {
-  return hslToHex((colorHue + (id - 1) * GOLDEN_ANGLE) % 360, NATION_SATURATION, NATION_LIGHTNESS);
+/**
+ * Color for nation number `id`, ruled by `race`: a hue inside the race's family (RACE_HUES),
+ * so Orcs are always reddish and Humans bluish. Each new nation steps to a different hue of the
+ * family and the next brightness level. `colorHue` (0..360, rolled per world) shifts where the steps start.
+ */
+export function nationColor(colorHue: number, id: NationId, race: RaceId): string {
+  const [first, last] = RACE_HUES[race]!;
+  const place = (colorHue / 360 + (id - 1) * GOLDEN_STEP) % 1;
+  const light = NATION_LIGHTNESS_STEPS[(id - 1) % NATION_LIGHTNESS_STEPS.length]!;
+  return hslToHex(first + place * (last - first), NATION_SATURATION, light);
 }
 
 /** Which culture's names a nation at (x, y) uses: the one with the nearest home point. */
@@ -254,7 +262,7 @@ export function createStartingNations(
     nations.set(id, {
       id,
       name,
-      color: nationColor(colorHue, id),
+      color: nationColor(colorHue, id, race),
       capital,
       founded: 0,
       race,

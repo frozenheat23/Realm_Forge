@@ -3,7 +3,7 @@
 // so the fall of an empire outranks a border raid. Only reads the world.
 import type { Nation, NationId, Ruler, SimEvent, WorldState } from "../core/types";
 import { rulerName } from "../gen/rulers";
-import { HEADLINE_FADE_SECONDS, HEADLINE_HOLD_SECONDS, HEADLINE_MIN_SCORE, HEADLINE_SECONDS, HEADLINE_SIZE_FLOOR, HEADLINE_WEIGHTS } from "./config";
+import { CHRONICLE_MIN_SCORE, HEADLINE_FADE_SECONDS, HEADLINE_HOLD_SECONDS, HEADLINE_MIN_SCORE, HEADLINE_SECONDS, HEADLINE_SIZE_FLOOR, HEADLINE_WEIGHTS } from "./config";
 
 export type HeadlineKind = keyof typeof HEADLINE_WEIGHTS;
 
@@ -63,9 +63,22 @@ export function successionNews(year: number, nation: Nation, old: Ruler): SimEve
   return { year, type: "ruler", actors: [nation.id], text: `Year ${year}: ${died}. ${next}.` };
 }
 
+/** A year's top news, for the chronicle below the map. */
+export interface News {
+  year: number;
+  text: string;
+  /** Color of the realm the news is about. */
+  color: string;
+  /** The realms involved, to light up on the map. */
+  actors: NationId[];
+}
+
 export interface Headlines {
-  /** Call after each simulated year, with its events and the time now (ms). */
-  noteYear(state: WorldState, events: SimEvent[], now: number): void;
+  /**
+   * Call after each simulated year, with its events and the time now (ms).
+   * Returns the year's top news if it is great enough for the chronicle (CHRONICLE_MIN_SCORE), else null.
+   */
+  noteYear(state: WorldState, events: SimEvent[], now: number): News | null;
   /** The headline to draw at time `now`, or null. While paused it stays up, so it can be read. */
   current(now: number, playing: boolean): Headline | null;
   /** A realm's share of the land (0..1): this year's or last year's, whichever is larger, so a realm that just fell still has a size. */
@@ -116,11 +129,12 @@ export function createHeadlines(land: number): Headlines {
         const score = importance(kind, Math.max(0, ...event.actors.map(sizeOf)));
         if (!best || score > best.score) best = { event, score };
       }
-      if (best && best.score >= HEADLINE_MIN_SCORE && best.score > scoreLeft(now)) {
-        const about = state.nations.get(best.event.actors[0]!);
-        shown = { text: headlineText(best.event.text), color: about?.color ?? "#000", score: best.score, start: now };
-      }
       rulersBefore = rulers;
+      if (!best || best.score < HEADLINE_MIN_SCORE) return null;
+      const text = headlineText(best.event.text);
+      const color = state.nations.get(best.event.actors[0]!)?.color ?? "#000";
+      if (best.score > scoreLeft(now)) shown = { text, color, score: best.score, start: now };
+      return best.score >= CHRONICLE_MIN_SCORE ? { year: state.year, text, color, actors: best.event.actors } : null;
     },
 
     sizeOf,

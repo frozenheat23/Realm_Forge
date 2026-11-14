@@ -41,6 +41,7 @@ import { createRecorder, pickSnapshot, saveSnapshot } from "./ui/files";
 import { createHeadlines, headlineText } from "./ui/headlines";
 import { createRulerCard } from "./ui/rulerCard";
 import { createVersus, pickDuel } from "./ui/versus";
+import { createWorldBand } from "./ui/worldBand";
 import { applyParams, createSettings, type Layers } from "./ui/settings";
 import { createPlayTab } from "./ui/play";
 import { createSandbox } from "./ui/sandbox";
@@ -118,7 +119,8 @@ function fitMap(): void {
   const width = mapArea.clientWidth;
   let height = Infinity;
   if (wide.matches) {
-    const below = [...mainColumn.children].filter((child) => child !== mapArea).reduce((sum, child) => sum + outerHeight(child), 0);
+    // The band takes whatever height is left over, so it doesn't count against the map.
+    const below = [...mainColumn.children].filter((child) => child !== mapArea && child.id !== "band").reduce((sum, child) => sum + outerHeight(child), 0);
     height = mainColumn.clientHeight - below;
   }
   const scale = Math.max(0.1, Math.min(width / canvas.width, height / canvas.height));
@@ -189,7 +191,8 @@ const [heatLayer, heatCtx] = offscreen();
 // Animated war and unrest effects (SPEC §5.4g) remember last year themselves.
 const cellPixels = groupPixelsByCell(displayCells, world.cells.length);
 let effects = createEffects(world, cellPixels, look);
-const headlines = createHeadlines(world.cells.filter((c) => c.isLand).length);
+const landCells = world.cells.filter((c) => c.isLand).length;
+const headlines = createHeadlines(landCells);
 let overlay = createNationOverlay(world, displayCells, cellPixels, look);
 // Shares the overlay's memory; rebuilt only when a new style replaces the overlay.
 let nationImage = new ImageData(new Uint8ClampedArray(overlay.pixels.buffer), world.width, world.height);
@@ -343,7 +346,8 @@ function present(now: number): void {
 }
 
 // --- Event log (click an event → its nations light up for a few seconds) ---
-const eventLog = createEventLog(logFilters, logList, (nations) => {
+/** Lights up these nations on the map for a few seconds. */
+function highlightNations(nations: NationId[]): void {
   eventHighlight = new Set(nations);
   redrawNations();
   draw();
@@ -353,7 +357,10 @@ const eventLog = createEventLog(logFilters, logList, (nations) => {
     redrawNations();
     draw();
   }, HIGHLIGHT_SECONDS * 1000);
-});
+}
+const eventLog = createEventLog(logFilters, logList, highlightNations);
+// The band below the map: the largest crowns, and a chronicle of great news. Clicking a line lights up its realms.
+const worldBand = createWorldBand(element("#band"), landCells, highlightNations);
 eventLog.add(state.events, state);
 
 // --- War Room (M16): the side panel's wars, and following one ---
@@ -369,6 +376,7 @@ const sandbox = createSandbox(element("#tab-sandbox"), {
     redrawNations();
     draw();
     warRoom.update(state);
+    worldBand.update(state);
   },
 });
 // The Play tab (M20): taking over a nation and its policies are orders, as god commands are.
@@ -380,6 +388,7 @@ const playTab = createPlayTab(element("#tab-play"), {
     redrawNations();
     draw();
     warRoom.update(state);
+    worldBand.update(state);
   },
   follow: (war) => follow(war),
   resume: () => controls.play(),
@@ -404,6 +413,7 @@ function follow(id: number | null): void {
   const record = followedRecord();
   if (record) setCamera(warView(record.attacker, record.defender));
   warRoom.update(state);
+  worldBand.update(state);
   redrawNations();
   draw();
 }
@@ -451,7 +461,8 @@ function advanceYear(): void {
   yearStart = performance.now();
   eventLog.add(events, state);
   effects.noteYear(state, events, performance.now());
-  headlines.noteYear(state, events, performance.now());
+  const greatNews = headlines.noteYear(state, events, performance.now());
+  if (greatNews) worldBand.addNews(greatNews);
   watchFollowed();
   // Playing (M20): pause on what happened to your realm, and say what it was.
   const news = dispatchesFor(state, events, realmBefore).filter((d) => playTab.wants(d.kind));
@@ -489,6 +500,7 @@ const controls = createControls(bar, () => {
   redrawNations();
   draw();
   warRoom.update(state);
+  worldBand.update(state);
 });
 
 // Runs every screen frame (~60 times a second). Works out how many years are
@@ -512,6 +524,7 @@ function frame(now: number): void {
       redrawNations();
       draw();
       warRoom.update(state);
+      worldBand.update(state);
     }
   } else {
     yearsDue = 0;
@@ -723,6 +736,7 @@ attachZoom(canvas, bounds, () => camera, setCamera);
 redrawNations();
 draw();
 warRoom.update(state);
+worldBand.update(state);
 requestAnimationFrame(frame);
 // ?view=3d opens straight into the 3D view.
 if (query.get("view") === "3d") void switchView();

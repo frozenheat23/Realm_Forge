@@ -123,7 +123,8 @@ Base capacity is relative (1.0 = grassland). Move cost affects expansion and con
 | `KINGDOM_ROOM` | 6 | 0–12 | Steps a capital may move toward open country | Fewer peninsula kingdoms | Capitals stay at their homelands |
 | `SETTLED_DEV` | 0.85 | 0.3–1.0 | Settled start: development × control at year 0 | More towns and cities | Thinly settled old realms |
 | `NATION_SATURATION` | 0.7 | 0.3–0.9 | How vivid nation colors are | Bold, game-like colors | Muted, pastel colors |
-| `NATION_LIGHTNESS` | 0.52 | 0.35–0.7 | How light nation colors are | Pastel | Dark, heavy |
+| `RACE_HUES` | Humans 205–238 (blue), Light Elves 115–160 (green), Dark Elves 255–280 (violet), Dwarves 40–54 (amber), Orcs 2–16 (red) | 0–360, not overlapping | Each race's family of realm colors: the first and last hue its realms may take | A wider family: realms of one race differ more, families sit closer | Realms of one race look more alike |
+| `NATION_LIGHTNESS_STEPS` | 0.5, 0.4, 0.58 | 0.35–0.7 each | Brightness levels the realms of a family take in turn | Further apart: same-race neighbors differ more | All alike |
 
 ## Names
 
@@ -676,7 +677,7 @@ Flat biome colors on the low bands, rock/snow colors on high bands, 3-tone shadi
 | `VASSAL_BAND_WIDTH` | 3 | 0–6 | Width in pixels of the band inside a vassal's borders, in its overlord's color | Crowns read as blocks | Vassals look independent (0) |
 | `VASSAL_BAND_ALPHA` | 0.8 | 0.3–1 | How solid that band is | Bold | Faint |
 | `CAPITAL_RADIUS` | 3 | 2–6 | Capital dot size (pixels) | Bigger dots | Smaller dots |
-| `RACE_COLORS` | Humans #d9a441, Light Elves #9fd8e8, Dark Elves #6a4c93, Dwarves #a0522d, Orcs #6b8e23 | — | Tint per race in the **Races** map layer | — | — |
+| `RACE_COLORS` | Humans #2f64da, Light Elves #2fda61, Dark Elves #7d2fda, Dwarves #dab52f, Orcs #da492f | — | Tint per race in the **Races** map layer: the middle of each race's `RACE_HUES` family, so both views agree | — | — |
 | `ALLIANCE_COLOR` / `ALLIANCE_OUTLINE` | light cream / dark brown, see code | — | Dashed line between allied capitals and its outline | — | — |
 | `ALLIANCE_WIDTH` | 2 | 1–4 | Alliance line width (pixels) | Bolder lines | Subtler lines |
 | `ALLIANCE_DASH` | [6, 4] | — | Dash and gap length (pixels) | — | — |
@@ -772,6 +773,17 @@ Two ruler cards facing each other when a realm is conquered (SPEC §5.4p).
 | `VERSUS_SECONDS` | 5 | 3–10 | How long the whole screen stays; keep it above `VERSUS_FACE_SECONDS` + `RULER_CARD_BURN_SECONDS` | Lingers; more conquests fall back to the plain burn | Cut short |
 | `VERSUS_CARD_WIDTH` | 132 | 90–200 | Width of each card in page pixels (`src/render/palette.ts`) | Easier to see, covers more map, fits below the map less often | |
 | `VERSUS_GAP` | 8 | 0–24 | Space kept above and below it in the band below the map | | |
+
+### Band below the map
+
+Standings and chronicle (SPEC §5.4q), in `src/ui/config.ts`.
+
+| Parameter | Default | Range | What it does | Higher | Lower |
+|---|---|---|---|---|---|
+| `STANDINGS_COUNT` | 5 | 3–8 | How many of the largest crowns are listed | Needs more height | Only the giants |
+| `CHRONICLE_MIN_SCORE` | 1.4 | 0.9–3 | A year's top news enters the chronicle only at this headline score | Only the greatest events (at 2, about one line per 80 years) | More lines (at 0.9, nearly every year) |
+| `CHRONICLE_MAX` | 60 | 20–300 | Most lines kept; older ones drop off | Longer memory | |
+| `BAND_MIN_HEIGHT` | 96 | 60–150 | With less height than this left below the map, the band shows nothing | Hides sooner on short windows | Shows even when cramped |
 
 ### 3D relief view
 

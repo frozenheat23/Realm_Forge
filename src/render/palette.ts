@@ -108,8 +108,11 @@ export const HIGHLIGHT_DIM = 0.2;
 export const VASSAL_BAND_WIDTH = 3;
 /** How solid that band is, 0..1. */
 export const VASSAL_BAND_ALPHA = 0.8;
-/** Tint per race in the Races map layer (SPEC §5.4b), indexed by RaceId (0 = nobody, unused). */
-export const RACE_COLORS: string[] = ["#000000", "#d9a441", "#9fd8e8", "#6a4c93", "#a0522d", "#6b8e23"];
+/**
+ * Tint per race in the Races map layer (SPEC §5.4b), indexed by RaceId (0 = nobody, unused).
+ * Each is the middle of that race's family of realm colors (RACE_HUES in gen/params.ts): keep the two in step.
+ */
+export const RACE_COLORS: string[] = ["#000000", "#2f64da", "#2fda61", "#7d2fda", "#dab52f", "#da492f"];
 /** Tint per faith in the Faiths map layer (SPEC §5.4i), indexed by FaithId (0 = nobody, unused). */
 export const FAITH_COLORS: string[] = ["#000000", "#3b3b4f", "#f2c94c", "#4caf50", "#b0bec5", "#7b1fa2", "#8d5a2b", "#ef6c00", "#c62828", "#d7b899"];
 /** Lines between allied capitals (SPEC §5.4c). */

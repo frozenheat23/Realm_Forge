@@ -382,7 +382,7 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
       const ahead = onAttack ? main.score : -main.score;
       const standing = Math.abs(main.score) < SIM.WIN_SCORE ? "even" : ahead > 0 ? "winning" : "losing";
       const role = war.joined !== undefined ? "as an ally" : onAttack ? "you attacked" : "you were attacked";
-      row.append(sides(record, state), el("div", "war-meta", `${role} · year ${state.year - record.start + 1} · ${standing}`), scoreBar(state, record, main.score));
+      row.append(sides(record, state, true), el("div", "war-meta", `${role} · year ${state.year - record.start + 1} · ${standing}`), scoreBar(state, record, main.score));
       // Only a side clearly losing its own war can offer terms.
       if (war.joined === undefined && suePeaceRefusal(state, war.id, me.id) === null) {
         const sue = el("button", "", "Sue for peace");

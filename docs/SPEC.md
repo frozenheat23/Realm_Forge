@@ -233,7 +233,7 @@ Look up each land cell's biome from temperature × moisture (Whittaker-style cha
 Each cell also gets `defensibility`, maybe a resource deposit (stream `resources`), and a province (stream `provinces`). How they're made is in §4.11.
 
 ### 3.8 Starting nations
-Place `START_NATIONS` capitals on the highest-capacity land cells, at least `START_MIN_SPACING` cell-steps apart. Once a capital has its race (below) it may shift up to `START_HOME_RANGE` steps to the free land that race likes best. Each claims a core of `START_CORE_SIZE × startSize` cells (race trait), cheapest terrain for its race first, so elves spread along their forests. Starting population is `START_POP_FRACTION` × capacity, stability `START_STABILITY`. Colors step round the color wheel by the golden angle (~137.5°) so no two are alike. Each nation logs a `founded` event at year 0.
+Place `START_NATIONS` capitals on the highest-capacity land cells, at least `START_MIN_SPACING` cell-steps apart. Once a capital has its race (below) it may shift up to `START_HOME_RANGE` steps to the free land that race likes best. Each claims a core of `START_CORE_SIZE × startSize` cells (race trait), cheapest terrain for its race first, so elves spread along their forests. Starting population is `START_POP_FRACTION` × capacity, stability `START_STABILITY`. Each realm's color comes from its ruling race's family (`RACE_HUES`: Humans blue, Light Elves green, Dark Elves violet, Dwarves amber, Orcs red; kept narrow and well apart because the parchment style washes colors toward brown), so the map shows who is who at a glance. Inside a family each new realm steps to a different hue (by the golden ratio, so no two land close together) and the next brightness level (`NATION_LIGHTNESS_STEPS`). The Races layer (§5.4b) uses each family's middle color. Each nation logs a `founded` event at year 0.
 
 Each starting nation's race is the race of the nearest race homeland (§4.10); its core cells are settled by that race. If a race ends up with no starting nation, the capital nearest to that race's homeland switches to it, so every race is on the map at year 0.
 
@@ -847,10 +847,20 @@ A banner at the bottom of the map tells the year's most important news in one li
 When a realm is conquered outright in war, its last ruler's card faces the conqueror's with crossed swords between them; after `VERSUS_FACE_SECONDS` the outcome is told in one line (the log's own words) and the loser's card burns, as in §5.4k. The whole screen stays `VERSUS_SECONDS`. Part of "Burn fallen rulers" in Settings. Visual only: history is unchanged.
 
 - **Which conquests** (`pickDuel` in `src/ui/versus.ts`): only a conquest in war ("conquers the whole realm"), and only if the fallen realm at its height held at least `VERSUS_MIN_SHARE` of the land. Its height is used because realms are worn down to very little before they are conquered. If several fall in one year, the one that was once biggest is shown. Realms that collapse, dissolve or are too small burn alone, as before; so does a realm conquered while a versus screen is still up.
-- **Where** (`versusTop`): in the empty band below the controls when the whole screen fits there (tall windows), otherwise centered over the map.
+- **Where** (`versusTop`): below the page's content when the whole screen fits there (very tall windows), otherwise centered over the map, which is the usual case since the band of §5.4q fills the space below.
 - **Shared code:** `prepareCard` and `burnCanvas` in `src/ui/rulerCard.ts` paint and burn a card for both the ruler card and this screen.
 - A page element, like the ruler card, so it doesn't appear in recorded videos.
 - **Finding while building:** on two full-size worlds, 26 and 34 realms were conquered in 1,000 years, and nearly all were small (about 1% of the land at their height). Great realms are almost never conquered outright; they are worn down or break. Only 2–5 conquered realms per world had ever held 3%.
+
+### 5.4q The band below the map
+
+The space between the controls and the hints (`#band`, `src/ui/worldBand.ts`) shows two things, updated as history plays. Clicking any line lights up its realms on the map for a few seconds, like the log.
+
+- **Greatest crowns:** the `STANDINGS_COUNT` largest crowns (a realm with its vassals), largest first (`standings()`). Each has a bar for its share of all land; the paler end of the bar is land held through vassals. Ties go to the older realm so the order doesn't flicker.
+- **Chronicle:** each year's top news (the headline score of §5.4o) if it scores at least `CHRONICLE_MIN_SCORE`, newest first, at most `CHRONICLE_MAX` lines. It is stricter than the headline banner, so it keeps about one line per 8 years: a record to read back, where the banner is a passing notice.
+- **Size:** on wide screens the band takes only the height the map and controls leave over (it never makes the map smaller) up to 210 px, and shows nothing with less than `BAND_MIN_HEIGHT`. On narrow screens it is 170 px high.
+- Because the band now fills that space, the versus screen (§5.4p) appears over the map on most windows.
+- Page elements, so they don't appear in recorded videos. The chronicle starts empty when a save is loaded.
 
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 10 ms, smooth at 50 years per second. Measured after M13: overlay 1.4 ms, effects 0.2 ms, tick ~4.6 ms in the browser, a whole new-year frame ~21 ms.

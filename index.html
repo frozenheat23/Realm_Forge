@@ -36,6 +36,23 @@
       button.active { background: #c9b26b; color: #1b1b1b; border-color: #c9b26b; }
       button.recording { background: #b8322b; border-color: #b8322b; }
       .bar input[type="text"] { width: 140px; cursor: text; }
+      /* The band below the map (ui/worldBand.ts): standings and chronicle. On wide screens it takes the height the map leaves. */
+      #band { display: flex; gap: 16px; height: 170px; padding: 0 12px 6px; overflow: hidden; font: 13px/1.5 system-ui, sans-serif; color: #d8d2c4; }
+      #band.cramped > * { display: none; }
+      .band-part { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+      .band-part h4 { margin: 2px 0 4px; font: 600 12px system-ui, sans-serif; color: #c9b26b; text-transform: uppercase; letter-spacing: 0.06em; }
+      .band-standings { flex: 0 0 38%; max-width: 420px; }
+      .band-chronicle { flex: 1; }
+      .band-list { overflow-y: auto; min-height: 0; }
+      .standing { display: flex; align-items: center; gap: 7px; cursor: pointer; white-space: nowrap; }
+      .standing:hover, .chronicle-line:hover { background: #1f2530; }
+      .standing-name { flex: 0 0 96px; overflow: hidden; text-overflow: ellipsis; font-family: Georgia, serif; }
+      .standing-bar { flex: 1; display: flex; height: 8px; background: #262c37; border-radius: 3px; overflow: hidden; }
+      .standing-vassals { opacity: 0.45; }
+      .standing-share { flex: 0 0 104px; color: #a9a395; font-size: 12px; }
+      .chronicle-line { cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .chronicle-year { display: inline-block; width: 38px; color: #8f8a7e; font-size: 12px; }
+      .chronicle-line .sw { margin-right: 7px; }
       #info { padding: 0 12px 8px; font: 13px/1.4 system-ui, sans-serif; color: #b9b3a5; min-height: 1.4em; }
 
       #settings { margin: 0 12px 8px; font: 13px system-ui, sans-serif; }
@@ -80,6 +97,7 @@
       @media (min-width: 900px) {
         .wrap { max-width: none; display: grid; grid-template-columns: minmax(0, 1fr) clamp(320px, 27vw, 400px); height: 100vh; }
         main { display: flex; flex-direction: column; height: 100vh; min-width: 0; overflow-y: auto; }
+        #band { flex: 1; height: auto; min-height: 0; max-height: 210px; }
         #settings[open] { max-height: 40vh; overflow-y: auto; }
         #panel { border-top: none; border-left: 1px solid #2c3340; height: 100vh; min-height: 0; }
         .tab { height: auto; flex: 1; min-height: 0; }
@@ -91,6 +109,11 @@
       .war-row:hover { background: #1f2530; }
       .war-row.followed { background: #2a2a1e; box-shadow: inset 3px 0 0 #c9b26b; }
       .war-sides { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-family: Georgia, serif; font-size: 14px; color: #e8e2d4; }
+      /* A ruler's face on a war going on now (ui/warRoom.ts): a square window framed in the realm's color.
+         The portraits all have the head in the same place (about 30–76% across, 7–38% down), so the picture
+         is shown at 218% of the window and shifted left and up until the head fills it. */
+      .war-sides .face { display: inline-block; flex: none; width: 32px; height: 32px; overflow: hidden; border: 2px solid; border-radius: 3px; background: #262c37; }
+      .war-sides .face img { display: block; width: 218%; margin-left: -65%; margin-top: -23%; }
       .war-sides .vs { color: #8f8a7e; font-size: 12px; }
       .war-sides .allies { color: #8f8a7e; font: 11px system-ui, sans-serif; }
       .war-meta { color: #a9a395; font-size: 12px; }
@@ -147,6 +170,7 @@
           </div>
         </div>
         <div id="bar" class="bar"></div>
+        <div id="band"></div>
         <div id="info">Hover the map to inspect a cell and see its ruler · wheel or double-click to zoom, drag to move, 0 whole map · Space play/pause · → step · C cells · N nations · R races · A alliances · M resources · T towns · H heatmaps · E effects · W armies · P ruler card · V 3D map · click an event to highlight it, or a war to follow it</div>
         <details id="settings"><summary>Settings</summary></details>
       </main>

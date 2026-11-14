@@ -98,6 +98,12 @@ describe("createHeadlines", () => {
     expect(paused.current(HEADLINE_SECONDS * 1000 + 1, false)).not.toBeNull();
   });
 
+  it("hands back great news for the chronicle, but not small news", () => {
+    const headlines = createHeadlines(1000);
+    expect(headlines.noteYear(state, [war], 0)).toMatchObject({ year: 5, text: "Kethar declares war on Ordhun.", actors: [1, 2] });
+    expect(headlines.noteYear(state, [raid], 100)).toBeNull();
+  });
+
   it("writes its own line when a throne changes hands", () => {
     const headlines = createHeadlines(1000);
     const realm = nation(1, "Kethar", 300, "Aldric", 0);

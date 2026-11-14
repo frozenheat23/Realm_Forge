@@ -39,7 +39,7 @@ interface WarRecord {
 
 From `MAP_BESIDE_WIDTH` (900 px) up the page is one screen with two columns: the map with its toolbar on the left, shrunk to fit the window's height (`fitMap` in `main.ts`), and the panel on the right, whose tabs scroll inside it (changed 2026-11-07, M20; it was ≥ 1200 px with a page that scrolled). On narrower screens the panel drops below the map. The panel has three tabs.
 
-- **Wars**: the wars going on now. Each row shows both sides (color swatches) and how many allies each has, the goal (and the city it's about), years so far, a score bar from the defender's win line to the attacker's, and soldiers fallen on each side. Click a row to follow it.
+- **Wars**: the wars going on now. Each row shows both sides, each with a small square cutout of its ruler's face framed in the realm's color (hover it for the ruler's name; since 2026-11-14, also on "Your wars" in the Play tab), and how many allies each has, the goal (and the city it's about), years so far, a score bar from the defender's win line to the attacker's, and soldiers fallen on each side. Click a row to follow it.
 - **Past wars**: every war that has ended, newest first, sortable by length, by soldiers fallen, and by land that changed hands. Click one for its report.
 - **Log**: the event log as before, with its filters.
 

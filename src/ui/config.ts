@@ -82,3 +82,13 @@ export const VERSUS_FACE_SECONDS = 1.5;
 export const VERSUS_SECONDS = 5;
 /** Only a conquered realm that at its height held at least this share of the land gets a versus screen; smaller ones burn as before. */
 export const VERSUS_MIN_SHARE = 0.009;
+
+// --- The band below the map (SPEC §5.4q). See docs/PARAMS.md ("Band below the map"). ---
+/** How many of the largest crowns the standings list. */
+export const STANDINGS_COUNT = 5;
+/** A year's top news goes into the chronicle only if it scores at least this (the same score as headlines). */
+export const CHRONICLE_MIN_SCORE = 1.4;
+/** Most lines the chronicle keeps (older ones drop off the bottom). */
+export const CHRONICLE_MAX = 60;
+/** With less height than this (page pixels) left below the map, the band shows nothing. */
+export const BAND_MIN_HEIGHT = 96;
