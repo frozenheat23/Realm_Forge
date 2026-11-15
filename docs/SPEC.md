@@ -734,7 +734,7 @@ An old chart, chosen from mockups by the user: aged paper, a pale sea with engra
 - **Terrain layer:** paper and sea (`terrainAtlas.ts`), then sailing lines over water only, a faint grid and the compass rose (`atlasChart.ts`).
 - **Symbol layer:** rivers, mountains, hills, trees and desert dots (`atlasSymbols.ts`). They sit on their own layer above the nation colors, so tinting doesn't fade the ink.
 - **Nation colors:** the same overlay, given `LOOK_ATLAS`: pale colors leaning toward sepia, a stronger band along borders, and one ink for every border. War borders stay red.
-- **Labels and places:** IM Fell fonts (bundled, SIL Open Font License), no town dots. `atlasMarkers.ts` draws a castle flying the realm's color for capitals, a spire for cities and an ink picture on each resource.
+- **Labels and places:** IM Fell fonts (bundled, SIL Open Font License), no town dots. `atlasMarkers.ts` draws a castle for capitals (a keep and two roofed towers behind a gated wall, flying a pennant in the realm's color), a spire among houses for cities, a war banner on a spear for armies, and an ink picture on each resource. Walls are light on the west and shaded on the east like the mountains, roofs are a faded red, and each marker casts a soft shadow.
 - **Armies, alliances and effects:** the same layers, given the look: colors leaning toward sepia, ink outlines and lines, red-brown war borders and siege rings.
 - **Frame and title panel:** drawn with the labels each year. The panel takes the corner with the least land and carries the year and heatmap name, replacing `hud.ts`.
 
@@ -791,7 +791,7 @@ A layer toggle (**Armies**, key W, on by default) for banners and marches. Like 
 
 | What | Looks like |
 |---|---|
-| **Army** | A banner (shield shape) in the nation's color at the army's cell, with its size in men (*"12k"*). Banner size grows with the army (`ARMY_BANNER_*`). Routed armies don't show. |
+| **Army** | A marker in the nation's color at the army's cell, with its size in men (*"12k"*): a shield with the size on it on the Classic map, a war banner on a spear with the size beneath on the parchment map (`MapLook.armyMarker`). Banner size grows with the army (`ARMY_BANNER_*`). Routed armies don't show. |
 | **March** | During playback the banner slides along this year's `trail`, so armies visibly walk instead of jumping once a year. A thin dashed line points to its target. |
 
 Hovering over an army (or next to it, since banners are wider than a cell) shows its nation, size, morale and target. Hovering over land also says who occupies it and how far a siege has come. Occupied land and sieges are in the Effects layer (§5.4g).

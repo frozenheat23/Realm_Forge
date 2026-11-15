@@ -168,6 +168,12 @@ export const CAPITAL_RADIUS = 3;
 export const CAPITAL_FILL = "#fbf6e9";
 /** Pale fill of the parchment map's castles and compass. */
 export const CASTLE_WALL = "#f0e2c0";
+/** The shaded east face of castle and city walls on the parchment map. */
+export const MARKER_SHADE = "#cdb78a";
+/** Roofs of castles and cities on the parchment map: the faded red of old hand-tinted charts. */
+export const MARKER_ROOF = "#a8553a";
+/** How dark the soft shadow under castles, cities and banners is (0 = none). */
+export const MARKER_SHADOW_ALPHA = 0.22;
 /** The crown over the capital of a realm with a great ruler. */
 export const CROWN_FILL = "#f2c744";
 export const CROWN_WIDTH = 22;
@@ -290,6 +296,8 @@ export interface MapLook {
   allianceOutline: string;
   allianceWidth: number;
   allianceDash: number[];
+  /** How an army is drawn: a shield with its size on it, or a war banner with its size below. */
+  armyMarker: "shield" | "banner";
   armyOutline: string;
   armyFont: string;
   armyLabelColor: string;
@@ -329,6 +337,7 @@ export const LOOK_STANDARD: MapLook = {
   allianceOutline: ALLIANCE_OUTLINE,
   allianceWidth: ALLIANCE_WIDTH,
   allianceDash: ALLIANCE_DASH,
+  armyMarker: "shield",
   armyOutline: CEL_INK_COLOR,
   armyFont: "bold 10px Georgia, serif",
   armyLabelColor: ARMY_LABEL_COLOR,
@@ -390,8 +399,8 @@ export const ATLAS_NOTE_FONT = "italic 16px 'IM Fell English', Georgia, serif";
 /** Bundled with the game; the map redraws once they've loaded. */
 export const ATLAS_FONTS = [ATLAS_TITLE_FONT, ATLAS_NOTE_FONT, "italic 13px 'IM Fell English'"];
 /** Size of the castle on capitals and the spire on cities (1 = as drawn). */
-export const ATLAS_CASTLE_SCALE = 1;
-export const ATLAS_CITY_SCALE = 1;
+export const ATLAS_CASTLE_SCALE = 1.15;
+export const ATLAS_CITY_SCALE = 1.1;
 /** Resource discs: how far their fill leans toward paper, and how much bigger than the classic markers. */
 export const ATLAS_RESOURCE_PAPER = 0.55;
 export const ATLAS_RESOURCE_GROWTH = 1.6;
@@ -413,7 +422,7 @@ export const LOOK_ATLAS: MapLook = {
   labelColor: ATLAS_INK,
   labelHalo: "rgba(236, 220, 182, 0.8)",
   capital: "castle",
-  capitalHeight: 21 * ATLAS_CASTLE_SCALE,
+  capitalHeight: 24 * ATLAS_CASTLE_SCALE,
   crownFill: "#c9a14a",
   townDots: false,
   cityMarker: "spire",
@@ -425,6 +434,7 @@ export const LOOK_ATLAS: MapLook = {
   allianceOutline: "rgba(236, 220, 182, 0.55)",
   allianceWidth: 1.3,
   allianceDash: [7, 4],
+  armyMarker: "banner",
   armyOutline: ATLAS_INK,
   armyFont: "13px 'IM Fell English SC', Georgia, serif",
   armyLabelColor: ATLAS_INK,
