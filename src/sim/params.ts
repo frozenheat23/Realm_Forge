@@ -243,6 +243,12 @@ export const SIM = {
   VASSAL_DEMAND_CHANCE: 0.15,
   /** Occupied non-goal cells a winner may also keep. */
   PEACE_EXTRA_CELLS: 40,
+  /** Tidy borders (SPEC §4.17): passes in which a peace straightens the line between the two realms. 0 = off. */
+  BORDER_ROUNDS: 3,
+  /** Biggest piece of cut-off land that joins the realm around it. 0 = off. */
+  POCKET_MAX_CELLS: 12,
+  /** Years a pocket must be cut off before it joins the realm around it. */
+  POCKET_YEARS: 10,
   /** Stability the loser of a raid loses and the winner gains. */
   RAID_TRIBUTE: 0.1,
   /** Rebel army size as a share of the rebel region's people × martial. The old nation loses this share of its reserve. */

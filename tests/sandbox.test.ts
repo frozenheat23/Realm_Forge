@@ -93,8 +93,9 @@ describe("the command log", () => {
     await runYears(50, () => {
       tick(state, rng);
       if (state.year === 20) {
-        const [a, b] = neighborPairs(state)[0]!;
-        expect(giveCommand(state, { kind: "godWar", nation: a, target: b, goal: "raid" }, everyoneAI).ok).toBe(true);
+        // The first pair of neighbors that may fight (some are bound by a truce or already at war).
+        const started = neighborPairs(state).some(([a, b]) => giveCommand(state, { kind: "godWar", nation: a, target: b, goal: "raid" }, everyoneAI).ok);
+        expect(started).toBe(true);
       }
       const godWar = state.wars.find((w) => w.startYear === 20 && w.joined === undefined);
       if (state.year === 30 && godWar) giveCommand(state, { kind: "godPeace", war: godWar.id, winner: godWar.defender }, everyoneAI);

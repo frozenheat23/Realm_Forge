@@ -146,7 +146,13 @@ describe("taking the capital", () => {
     state.wars.push(war("conquer", [18, 19]));
     state.state.occupier[18] = 1;
     state.state.occupier[19] = 1;
+    // This is about the peace terms alone: tidying would hand the lone, cut-off cell straight back (tests/borders.test.ts).
+    const tidy = { rounds: SIM.BORDER_ROUNDS, pocket: SIM.POCKET_MAX_CELLS };
+    SIM.BORDER_ROUNDS = 0;
+    SIM.POCKET_MAX_CELLS = 0;
     const events = endWars(state, everyoneAI);
+    SIM.BORDER_ROUNDS = tidy.rounds;
+    SIM.POCKET_MAX_CELLS = tidy.pocket;
     const loser = state.nations.get(2)!;
     expect(loser.alive).toBe(true);
     expect(loser.overlord).toBe(1);

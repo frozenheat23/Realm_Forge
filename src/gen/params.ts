@@ -17,7 +17,7 @@ import {
 // --- World ---
 export const MAP_WIDTH = 1600;
 export const MAP_HEIGHT = 900;
-export const CELL_COUNT = 10000;
+export const CELL_COUNT = 7000;
 
 // --- Terrain ---
 export const NOISE_SCALE = 0.0016;

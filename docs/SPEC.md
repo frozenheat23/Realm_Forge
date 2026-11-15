@@ -198,7 +198,7 @@ Races and resources are fixed data tables (`RACES`, `RESOURCES` in `gen/params.t
 Runs once per seed, in this order.
 
 ### 3.1 World
-Map size `MAP_WIDTH` × `MAP_HEIGHT`, divided into about `CELL_COUNT` cells.
+Map size `MAP_WIDTH` × `MAP_HEIGHT`, divided into about `CELL_COUNT` cells (7,000 since 2026-11-15, down from 10,000, for larger and calmer shapes; the other numbers were not rescaled).
 
 ### 3.2 Terrain
 1. **Heightmap:** layered simplex noise (`NOISE_OCTAVES`, `NOISE_SCALE`, `NOISE_PERSISTENCE`, `NOISE_LACUNARITY`), multiplied by a fall-off toward the map edges (`EDGE_FALLOFF`) so land forms continents rather than touching the borders.
@@ -701,6 +701,19 @@ Every nation has a named ruler and dynasty. A few rulers are great (Conqueror, L
 > Built in M15. The full description is in [`systems/controllers.md`](systems/controllers.md).
 
 Every choice a nation makes (declare war and its goal, join an ally, form or break an alliance, accept peace, mobilize, campaign orders, crush a revolt, adopt a faith) is asked of the nation's **controller** and comes back as a **command** that the rules validate and apply. The AI controller is today's logic, moved; a player controller replaces it for the played nation (M20, [`systems/play.md`](systems/play.md)). Battle rolls, revolts, spreading, succession and everything else stay rules. No new tick step.
+
+### 4.17 Tidy borders
+
+> Built 2026-11-15 (`src/sim/borders.ts`). Numbers are in `PARAMS.md` → "Tidy borders".
+
+Without this, borders only ever got messier: by year 1000 a realm held four to seven stray pieces and over half of all land touched a foreign border. Two rules keep the map readable. They are rules, not choices, so no controller is asked.
+
+- **Peace straightens the line.** When a peace moves land, the two realms settle the border between them: a cell with more neighbors in the other realm than in its own goes over, in up to `BORDER_ROUNDS` passes. Each pass decides every cell from the same picture before moving any. Capitals never move. Then any small pocket one of them holds inside the other is handed over.
+- **Pockets join the realm around them.** At the end of each year (after step 8), a piece of land that is not its realm's main body, has at most `POCKET_MAX_CELLS` cells and has been held for `POCKET_YEARS`, goes to the living realm with the most cells touching it. The main body is the piece with the capital. Realms at war with each other wait for the peace. A pocket touching no other realm (an island) stays.
+
+Every change goes through `setOwner`, so claims and core land follow as usual. No events are logged.
+
+**Measured** (year 1000, four worlds not used while building): stray pieces 3–7 per world (before: 147–208), land touching a foreign border 20–27% (before: 51–58%; at the start: 14–18%).
 
 ---
 

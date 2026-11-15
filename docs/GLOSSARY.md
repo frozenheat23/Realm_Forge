@@ -56,7 +56,7 @@ New concepts as we meet them, with where they show up in our code.
 | **Closure** | A function that remembers variables from where it was created, even after that code finished. | `playing`, `speed` inside `createControls()` |
 | **Bit packing** | Squeezing several small numbers into one bigger number (here R, G, B, A into one 32-bit pixel). | `packPixel()` in `src/render/overlay.ts` |
 | **Collision check** | Testing whether two boxes overlap. Used to stop labels piling on top of each other. | `overlaps()` in `src/render/labels.ts` |
-| **Flood fill** | Spreading out from one cell to connected cells that match a rule (here: same owner), like paint filling a shape. | `floodFill()` in `src/sim/rebellion.ts` |
+| **Flood fill** | Spreading out from one cell to connected cells that match a rule (here: same owner), like paint filling a shape. | `floodFill()` in `src/sim/rebellion.ts`; `landPieces()` in `src/sim/borders.ts` |
 | **Connected components** | Splitting cells into separate groups that touch each other. We use it to find empty regions. | `emptyRegions()` in `src/sim/emergence.ts` |
 | **Union type** | A type that can be one of a few exact values, e.g. `"founded" \| "war" \| ...`. | `SimEvent["type"]` in `src/core/types.ts` |
 | **Optional property (`?`)** | A property that may be missing, like `parent?: NationId` (only rebels have one). | `Nation.parent` |
@@ -175,3 +175,5 @@ New concepts as we meet them, with where they show up in our code.
 | **`keyof typeof`** | Makes a type from the names in a table of values. `HEADLINE_WEIGHTS` lists each kind of news with its weight; `keyof typeof HEADLINE_WEIGHTS` is the type "one of those names", so a misspelt kind is an error before the game runs. | `HeadlineKind` in `src/ui/headlines.ts` |
 | **`Promise.all`** | Waits for several slow things at once and carries on when all are ready. The versus screen loads both rulers' pictures together, so neither card appears before the other. | `show()` in `src/ui/versus.ts` |
 | **Flexbox** | A way of laying out a page where boxes in a row or column share the space; a box marked `flex: 1` takes whatever is left over. The band below the map is such a box, so it grows and shrinks with the window without ever squeezing the map. | `#band` in `index.html` |
+| **Connected piece** | A group of cells you can walk across without leaving it. A realm's land can be several pieces; the one with the capital is its main body and the rest are pockets. Found with a flood fill. | `landPieces()` and `pockets()` in `src/sim/borders.ts` |
+| **Decide, then apply** | When many things change at once, first work out every change from the same picture, then make them all. Otherwise the result depends on which one you happened to look at first. | `settleBorder()` in `src/sim/borders.ts` |

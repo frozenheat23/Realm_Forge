@@ -1,4 +1,5 @@
 // One year of history (SPEC §4). Steps always run in this order.
+import { absorbPockets } from "./borders";
 import type { Rng } from "../core/rng";
 import type { SimEvent, WorldState } from "../core/types";
 import { campaign, disbandArmies, musterArmies } from "./armies";
@@ -56,6 +57,7 @@ export function tick(state: WorldState, rng: Rng, controllers: Controllers = con
   events.push(...collapses(state)); //                    8. Collapse
   disbandArmies(state); //                                … armies whose war is over go home
   releaseOccupations(state); //                           … and occupations with no war behind them end
+  absorbPockets(state); //                                … and small pockets of cut-off land join the realm around them
   events.push(...emergence(state, year.fork("emergence"))); //  9. Emergence
 
   state.events.push(...events); //                        10. Events

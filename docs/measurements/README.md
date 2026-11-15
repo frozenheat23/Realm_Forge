@@ -39,3 +39,4 @@ The summary ends with five **ratios**, worked out over all the worlds of a group
 - `world-tuning-baseline.json`, `world-validation-baseline.json`: the first world reports (vassalage v1).
 - `world-tuning-empires.json`, `world-validation-empires.json`: after the empires pass (`docs/systems/vassalage.md`).
 - `world-tuning-cycle-baseline.json`, `world-validation-cycle-baseline.json`: the same code as the empires files, with the empire-cycle measures added (2026-11-11). The starting point for `docs/systems/empire-cycle.md`.
+- `world-tuning-tidy7000.json`, `world-validation-tidy7000.json`: 7,000 cells and tidy borders (2026-11-15), the current baseline. `world-validation-cells7000only.json` is the same with tidying switched off, to tell the two changes apart.

@@ -9,6 +9,7 @@ import { allied, friendsOf, opinion } from "./diplomacy";
 import { conquestEvent, goesFreeEvent, joinAttackEvent, joinDefenseEvent, keptEvent, peaceEvent, raidEvent, submitEvent, suedEvent, warEvent } from "./events";
 import { frontCells, neighborPairs, pairKey } from "./helpers";
 import { fightingPower } from "./manpower";
+import { settleBorder } from "./borders";
 import { SIM } from "./params";
 import { cellValue, effectiveCapacity, grainBonuses } from "./resources";
 import { occupationCounts, occupationScore, occupiedBy } from "./siege";
@@ -312,6 +313,8 @@ export function concludeWar(state: WorldState, war: War, winner: Nation | null, 
     if (capitalHeld || war.joined === undefined) choice = subjugate(winner, loser, capitalHeld);
   }
   const taken = winner && !raided ? takeLand(state, war, winner, loser, sued, choice) : [];
+  // Land changed hands, so the two realms tidy the line between them.
+  if (taken.length > 0) settleBorder(state, attacker, defender);
   // A loser who sued and gave up no land pays in other ways.
   if (sued && winner === attacker && !raided && taken.length === 0) payTribute(attacker, defender);
   state.truces.push({ a: attacker.id, b: defender.id, until: state.year + SIM.TRUCE_YEARS });

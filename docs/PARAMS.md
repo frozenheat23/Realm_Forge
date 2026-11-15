@@ -34,7 +34,7 @@ Quickest way: open **Settings** under the map and change numbers while it runs (
 |---|---|---|---|---|---|
 | `MAP_WIDTH` | 1600 | 800–2400 | Map width in pixels | Bigger world, slower redraw | Smaller, faster |
 | `MAP_HEIGHT` | 900 | 450–1350 | Map height in pixels | Same as above | Same as above |
-| `CELL_COUNT` | 10000 | 3000–20000 | Number of cells | Finer borders, slower sim | Blockier borders, faster |
+| `CELL_COUNT` | 7000 | 3000–20000 | Number of cells | Finer borders, slower sim | Blockier borders, faster |
 
 ## Terrain
 
@@ -491,6 +491,16 @@ Measured after step 5, the finished milestone (same 5 seeds, vs step 4): ~113 wa
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
 | `BATTLE_NAME_RANGE` | 3 | 0–6 | Steps from a battle to a city it can be named after (log text only) | More named battles | More "in the hills of…" |
+
+## Tidy borders
+
+SPEC §4.17. In `sim/params.ts`.
+
+| Name | Default | Range | What it does | Higher | Lower |
+|---|---|---|---|---|---|
+| `BORDER_ROUNDS` | 3 | 0–5 | Passes in which a peace straightens the line between the two realms | Smoother borders after a war | Ragged frontlines stay (0 = off) |
+| `POCKET_MAX_CELLS` | 12 | 0–40 | Biggest cut-off piece that joins the realm around it | Fewer and only large exclaves | Stray pieces stay forever (0 = off) |
+| `POCKET_YEARS` | 10 | 0–50 | Years a pocket must be cut off first | Pockets linger on the map | Pockets vanish at once |
 
 ## Culture and faith
 

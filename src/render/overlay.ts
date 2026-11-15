@@ -27,8 +27,11 @@ export interface NationOverlay {
   update(state: WorldState, highlight?: Set<NationId>, tint?: OverlayTint, played?: NationId): void;
 }
 
-/** War borders are thick, so a change reaches 2 pixels into the next cell, and the wobbly edges can reach one cell further. */
-const REPAINT_RINGS = 2;
+/**
+ * War borders are thick, so a change reaches 2 pixels into the next cell, and the wobbly drawn edges
+ * can put a cell's pixels beside a cell that is two steps away in the cell graph (seen with 7,000 cells).
+ */
+const REPAINT_RINGS = 3;
 
 /** `world` can be the whole map or a zoomed view's grid (M19): only its size and cells are used. */
 export function createNationOverlay(world: Pick<GeneratedWorld, "width" | "height" | "cells">, displayCells: Int32Array, cellPixels: CellPixels, look: MapLook = LOOK_STANDARD): NationOverlay {

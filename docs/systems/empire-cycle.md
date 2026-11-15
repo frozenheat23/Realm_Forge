@@ -46,6 +46,8 @@ Long elven reigns stay as they are: once Part 1 is in, vassals no longer wait 12
 
 ## Targets (measured with `npm run report`)
 
+**Update 2026-11-15:** with 7,000 cells and tidy borders (SPEC §4.17) the validation set reads: 3.3 great empires, crowns peak at 50%, 274 years above 25%, 47% of giants break, 3.1 successors per breakup, 8% of vassals leave by revolt, realms peak 25 and lowest afterwards 17, attacker wins 74% (`world-validation-tidy7000.json`). The table below is the older baseline.
+
 "Now" is the validation set on 2026-11-11 (`world-validation-cycle-baseline.json`; the tuning set in brackets where it differs much).
 
 | Measure | Now | Target |

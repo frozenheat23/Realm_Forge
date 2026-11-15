@@ -45,10 +45,11 @@ async function fingerprint(seed: string, years: number, width?: number, height?:
 // then for strength-sensitive sieges, costly assaults, supply routes and hunger. Re-recorded
 // 2026-11-09: holding a capital at peace makes the loser a vassal (vassalage v1), and again when
 // winners chose to annex or demand submission and crowns counted their vassals in war.
+// Re-recorded 2026-11-15: 7,000 cells instead of 10,000, and borders are tidied (SPEC §4.17).
 const GOLDEN = {
-  full: "4e41f448",
-  smallA: "69c0ebe8",
-  smallB: "f65108a6",
+  full: "900b03df",
+  smallA: "91540831",
+  smallB: "f0280562",
 };
 
 describe("golden history", () => {
