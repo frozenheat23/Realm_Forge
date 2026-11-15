@@ -650,9 +650,7 @@ An old chart: aged paper, pale sea, thin ink outlines, drawn terrain symbols. Co
 | `ATLAS_EDGE_DARKEN` | 0.2 | 0–0.4 | Darkening at the sheet's edge | Stronger | None |
 | `ATLAS_CASTLE_SCALE` | 1.15 | 0.6–1.6 | Size of capital castles | Bigger castles, can cover names | Smaller castles |
 | `ATLAS_CITY_SCALE` | 1.1 | 0.6–1.6 | Size of city markers (a spire among houses) | Cities stand out | Quieter cities |
-| `MARKER_ROOF` | #a8553a | — | Roof color of castles and cities: the faded red of hand-tinted charts | — | — |
-| `MARKER_SHADE` | #cdb78a | — | The shaded east face of castle and city walls | — | — |
-| `MARKER_SHADOW_ALPHA` | 0.22 | 0–0.5 | Darkness of the soft shadow under castles, cities and war banners | Markers look heavier, stuck on | No shadow: markers float |
+| `MARKER_SHADE` | #cdb78a | — | The shaded east side of an army's tent on the parchment map | — | — |
 | `ATLAS_RESOURCE_GROWTH` | 1.6 | 1–2.5 | Resource disc size, as a multiple of the classic marker | Icons easier to read | Less clutter |
 | `ATLAS_RESOURCE_PAPER` | 0.55 | 0–1 | How far resource discs lean toward paper | Paler discs | Stronger colors |
 | `ATLAS_SAILING_RAYS` | 16 | 8–32 | Sailing lines from each hub | Denser net | Sparser |

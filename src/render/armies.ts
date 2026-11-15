@@ -1,4 +1,4 @@
-// Armies layer (SPEC §5.4h): a marker for each army (a shield, or a war banner on the parchment map), sliding along this year's
+// Armies layer (SPEC §5.4h): a marker for each army (a shield, or a camp of tents on the parchment map), sliding along this year's
 // march, with a dashed line to where it's heading. Only reads the world.
 import type { Army, WorldState } from "../core/types";
 import { NO_TARGET } from "../core/types";
@@ -13,7 +13,7 @@ import {
 } from "./palette";
 import { ARMY_MEN_PER_UNIT } from "../sim/params";
 import { cssColor, lookTint } from "./color";
-import { drawWarBanner } from "./atlasMarkers";
+import { drawWarCamp } from "./atlasMarkers";
 import { atMark, markScale, zoomOf } from "./marks";
 
 /** A short size for a banner: "12k", or "800" under a thousand. */
@@ -77,8 +77,8 @@ export function drawArmies(ctx: CanvasRenderingContext2D, world: GeneratedWorld,
       const r = ARMY_BANNER_MIN + (ARMY_BANNER_MAX - ARMY_BANNER_MIN) * grown;
       const label = menLabel(army.size);
       ctx.font = look.armyFont;
-      if (look.armyMarker === "banner") {
-        drawWarBanner(ctx, x, y, r, color);
+      if (look.armyMarker === "camp") {
+        drawWarCamp(ctx, x, y, r, color);
       } else {
         shieldPath(ctx, x, y, r);
         ctx.fillStyle = color;
@@ -87,8 +87,8 @@ export function drawArmies(ctx: CanvasRenderingContext2D, world: GeneratedWorld,
         ctx.lineWidth = 1.5;
         ctx.stroke();
       }
-      // A shield carries its size on its face; a banner has it underneath, like a caption.
-      const labelY = look.armyMarker === "banner" ? y + r + 6 : y - r * 0.1;
+      // A shield carries its size on its face; a camp has it underneath, like a caption.
+      const labelY = look.armyMarker === "camp" ? y + r + 6 : y - r * 0.1;
       ctx.lineWidth = 3;
       ctx.strokeStyle = look.armyLabelHalo;
       ctx.strokeText(label, x, labelY);

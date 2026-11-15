@@ -1,7 +1,7 @@
-// Parchment map: small inked pictures for capitals, cities, armies and resources.
+// Parchment map: small ink engravings for capitals, cities, armies and resources.
 // Each is drawn around (0, 0) on its own scale, so the numbers inside are its shape, not settings.
 import { Resource, type ResourceId } from "../core/types";
-import { ATLAS_CASTLE_SCALE, ATLAS_CITY_SCALE, ATLAS_INK, CASTLE_WALL, MARKER_ROOF, MARKER_SHADE, MARKER_SHADOW_ALPHA } from "./palette";
+import { ATLAS_CASTLE_SCALE, ATLAS_CITY_SCALE, ATLAS_INK, CASTLE_WALL, MARKER_SHADE } from "./palette";
 
 /** Runs `draw` with (0, 0) moved to (x, y) and everything scaled, in ink on paper. */
 function atPlace(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, draw: () => void): void {
@@ -38,52 +38,83 @@ function wall(ctx: CanvasRenderingContext2D, left: number, width: number, top: n
 }
 
 /** How deep the gaps between battlements are cut, in the marker's own units. */
-const MARKER_TOOTH = 1.8;
+const MARKER_TOOTH = 1.5;
 
 /**
- * A building's walls with a pointed roof: light on the west face, shaded on the east
- * (the chart's light comes from the north-west, like its mountains).
+ * Shading the engraver's way: `count` short slanted strokes running down from (x, y),
+ * `gap` apart. Used on east faces, since the chart's light comes from the north-west.
  */
-function roofed(ctx: CanvasRenderingContext2D, left: number, width: number, top: number, bottom: number, roofHeight: number): void {
-  const right = left + width;
-  ctx.fillStyle = CASTLE_WALL;
-  ctx.fillRect(left, top, width, bottom - top);
-  ctx.fillStyle = MARKER_SHADE;
-  ctx.fillRect(left + width * 0.55, top, width * 0.45, bottom - top);
-  ctx.strokeRect(left, top, width, bottom - top);
-  // The roof overhangs the walls a little.
-  ctx.fillStyle = MARKER_ROOF;
-  ctx.beginPath();
-  ctx.moveTo(left - 0.8, top);
-  ctx.lineTo(left + width / 2, top - roofHeight);
-  ctx.lineTo(right + 0.8, top);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = CASTLE_WALL;
-}
-
-/** The soft shadow a marker casts on the paper, so it stands on the map instead of floating. */
-function groundShadow(ctx: CanvasRenderingContext2D, halfWidth: number, y: number): void {
+function hatch(ctx: CanvasRenderingContext2D, x: number, y: number, count: number, gap: number, length: number): void {
   ctx.save();
-  ctx.globalAlpha = MARKER_SHADOW_ALPHA;
-  ctx.fillStyle = ATLAS_INK;
+  ctx.lineWidth *= 0.5;
   ctx.beginPath();
-  ctx.ellipse(halfWidth * 0.15, y, halfWidth, halfWidth * 0.16, 0, 0, Math.PI * 2);
-  ctx.fill();
+  for (let k = 0; k < count; k++) {
+    ctx.moveTo(x, y + gap * k);
+    ctx.lineTo(x + length, y + gap * k + length);
+  }
+  ctx.stroke();
   ctx.restore();
 }
 
-/** A capital: a keep and two roofed towers behind a gated wall, flying a pennant in the realm's color. Stands on (x, y). */
+/** The line of ground a marker stands on. */
+function groundLine(ctx: CanvasRenderingContext2D, left: number, right: number, y: number): void {
+  ctx.save();
+  ctx.lineWidth *= 0.7;
+  ctx.beginPath();
+  ctx.moveTo(left, y);
+  ctx.lineTo(right, y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** A building seen from the front: walls up to `eaves`, then a pointed roof up to `peak`. */
+function gabled(ctx: CanvasRenderingContext2D, left: number, right: number, eaves: number, peak: number, bottom: number): void {
+  ctx.beginPath();
+  ctx.moveTo(left, bottom);
+  ctx.lineTo(left, eaves);
+  ctx.lineTo((left + right) / 2, peak);
+  ctx.lineTo(right, eaves);
+  ctx.lineTo(right, bottom);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+
+/** A triangular pennant flying east from the top of a pole that rises from (0, `foot`) to (0, `top`). */
+function pennant(ctx: CanvasRenderingContext2D, foot: number, top: number, color: string): void {
+  ctx.beginPath();
+  ctx.moveTo(0, foot);
+  ctx.lineTo(0, top);
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, top);
+  ctx.lineTo(7, top + 1.6);
+  ctx.lineTo(0, top + 3.2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+
+/**
+ * A capital, as an ink engraving: a battlemented keep and two towers behind a gated wall,
+ * hatched on their east faces. Only the pennant takes the realm's color. Stands on (x, y).
+ */
 export function drawCastle(ctx: CanvasRenderingContext2D, x: number, y: number, flag: string): void {
   atPlace(ctx, x, y, ATLAS_CASTLE_SCALE, () => {
-    groundShadow(ctx, 13, 3);
-    roofed(ctx, -3.5, 7, -12, 3, 6); // the keep, tallest, in the middle
-    roofed(ctx, -11, 5, -7, 3, 5); // a tower at each end of the wall
-    roofed(ctx, 6, 5, -7, 3, 5);
-    wall(ctx, -7.5, 15, -4, 3, 4);
+    groundLine(ctx, -14, 14, 3);
+    wall(ctx, -4, 8, -15, 3, 3); // the keep, tallest, in the middle
+    wall(ctx, -11, 4.5, -9, 3, 2); // a tower at each end of the wall
+    wall(ctx, 6.5, 4.5, -9, 3, 2);
+    ctx.fillRect(-6.5, -4, 13, 7); // the wall between them
+    ctx.strokeRect(-6.5, -4, 13, 7);
 
-    // Gate: a dark arch in the wall, and a window slit in the keep.
+    hatch(ctx, 1.3, -12, 3, 2.5, 2);
+    hatch(ctx, -8.4, -6.5, 3, 2.5, 1.5);
+    hatch(ctx, 9, -6.5, 3, 2.5, 1.5);
+    hatch(ctx, 3.5, -3, 2, 2.5, 2);
+
+    // Gate: a dark arch in the wall.
     ctx.fillStyle = ATLAS_INK;
     ctx.beginPath();
     ctx.moveTo(-2, 3);
@@ -92,83 +123,73 @@ export function drawCastle(ctx: CanvasRenderingContext2D, x: number, y: number, 
     ctx.lineTo(2, 3);
     ctx.closePath();
     ctx.fill();
-    ctx.fillRect(-0.5, -10, 1, 3);
 
-    // Flagpole and a swallow-tailed pennant.
-    ctx.beginPath();
-    ctx.moveTo(0, -18);
-    ctx.lineTo(0, -24);
-    ctx.stroke();
-    ctx.fillStyle = flag;
-    ctx.beginPath();
-    ctx.moveTo(0, -24);
-    ctx.lineTo(8, -23.3);
-    ctx.lineTo(5.8, -22.2);
-    ctx.lineTo(8, -21.1);
-    ctx.lineTo(0, -20.4);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    pennant(ctx, -15, -22, flag);
   });
 }
 
-/** A city: a church with a spire among two houses. Stands on (x, y). */
+/** A city, as an ink engraving: a spire between two gabled houses. Stands on (x, y). */
 export function drawCitySpire(ctx: CanvasRenderingContext2D, x: number, y: number): void {
   atPlace(ctx, x, y, ATLAS_CITY_SCALE, () => {
-    groundShadow(ctx, 8, 3);
-    roofed(ctx, 0.5, 5, -1.5, 3, 3.5); // a house
-    roofed(ctx, -5.5, 3.2, -5, 3, 6.5); // the spire
-    roofed(ctx, -2.8, 4.2, -0.5, 3, 3); // a lower house in front
+    groundLine(ctx, -9, 9, 3);
+    gabled(ctx, 0.5, 5.5, -1.5, -5, 3); // a house
+    gabled(ctx, -5.5, -2.3, -5, -11.5, 3); // the spire
+    gabled(ctx, -2.8, 1.4, -0.5, -3.5, 3); // a lower house in front
+    hatch(ctx, 3.6, -1, 2, 1.8, 1.4);
+    hatch(ctx, -3.7, -4, 3, 2.2, 1);
   });
 }
 
 /**
- * An army on the parchment map: a war banner on a spear, in the realm's color.
- * (x, y) is its middle and `r` its half-height. Returns nothing; the size label is drawn by armies.ts.
+ * An army on the parchment map: a camp of two tents under a pennant in the realm's color.
+ * (x, y) is its middle and `r` its half-height. The size label is drawn by armies.ts.
  */
-export function drawWarBanner(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string): void {
-  // Drawn on a scale where the banner is 2 units tall, so the numbers below are its shape.
-  atPlace(ctx, x, y, r, () => {
-    ctx.lineWidth = 1.3 / r; // keeps the ink line the same thickness whatever the banner's size
-    ctx.save();
-    ctx.globalAlpha = MARKER_SHADOW_ALPHA;
-    ctx.fillStyle = ATLAS_INK;
-    ctx.beginPath();
-    ctx.ellipse(-0.35, 1, 0.5, 0.1, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+export function drawWarCamp(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string): void {
+  // The camp is drawn 20 units tall (pennant tip at −17, ground at 3), so r / 10 fits it to the banner size.
+  const scale = r / 10;
+  atPlace(ctx, x, y, scale, () => {
+    ctx.lineWidth = 1.1 / scale; // keeps the ink line the same thickness whatever the army's size
+    ctx.translate(-3, 7); // the camp's middle goes on (x, y)
+    groundLine(ctx, -11, 17, 3);
 
-    // The spear: a shaft with a small head.
+    // A smaller tent behind.
     ctx.beginPath();
-    ctx.moveTo(-0.55, 1);
-    ctx.lineTo(-0.55, -0.95);
-    ctx.stroke();
-    ctx.fillStyle = ATLAS_INK;
-    ctx.beginPath();
-    ctx.moveTo(-0.67, -0.92);
-    ctx.lineTo(-0.55, -1.25);
-    ctx.lineTo(-0.43, -0.92);
-    ctx.closePath();
-    ctx.fill();
-
-    // The cloth: swallow-tailed, its edges curved as if stirred by wind.
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(-0.55, -0.85);
-    ctx.quadraticCurveTo(0.1, -1.0, 0.95, -0.78);
-    ctx.lineTo(0.55, -0.32);
-    ctx.lineTo(0.95, 0.12);
-    ctx.quadraticCurveTo(0.1, -0.02, -0.55, 0.15);
+    ctx.moveTo(6, 3);
+    ctx.lineTo(11, -4);
+    ctx.lineTo(16, 3);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    // A fold in the cloth.
-    ctx.globalAlpha = 0.45;
+
+    // The main tent: its east side shaded, its door dark.
     ctx.beginPath();
-    ctx.moveTo(-0.05, -0.9);
-    ctx.quadraticCurveTo(0.08, -0.4, -0.05, 0.02);
+    ctx.moveTo(-8, 3);
+    ctx.lineTo(0, -9);
+    ctx.lineTo(8, 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = MARKER_SHADE;
+    ctx.beginPath();
+    ctx.moveTo(0, -9);
+    ctx.lineTo(8, 3);
+    ctx.lineTo(3.5, 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-8, 3);
+    ctx.lineTo(0, -9);
+    ctx.lineTo(8, 3);
+    ctx.closePath();
     ctx.stroke();
-    ctx.globalAlpha = 1;
+    ctx.fillStyle = ATLAS_INK;
+    ctx.beginPath();
+    ctx.moveTo(-2, 3);
+    ctx.lineTo(0, -3);
+    ctx.lineTo(2, 3);
+    ctx.closePath();
+    ctx.fill();
+
+    pennant(ctx, -9, -17, color);
   });
 }
 
