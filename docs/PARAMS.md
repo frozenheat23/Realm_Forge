@@ -635,10 +635,10 @@ An old chart: aged paper, pale sea, thin ink outlines, drawn terrain symbols. Co
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `LOOK_ATLAS.overlayAlpha` | 0.38 | 0.1–0.7 | Strength of realm color | Bolder, paper fades | Paler, more paper shows |
-| `LOOK_ATLAS.overlayEdgeAlpha` | 0.54 | 0.2–0.9 | Strength of the color band along borders | Hand-tinted edges stand out | Flat color |
+| `LOOK_ATLAS.overlayAlpha` | 0.5 | 0.1–0.7 | Strength of realm color | Bolder, paper fades | Paler, more paper shows |
+| `LOOK_ATLAS.overlayEdgeAlpha` | 0.62 | 0.2–0.9 | Strength of the color band along borders | Hand-tinted edges stand out | Flat color |
 | `LOOK_ATLAS.overlayEdgeWidth` | 3 | 0–5 | Width of that band in pixels (keep ≤ 5, or redraws can miss it) | Wider band | 0 = no band |
-| `LOOK_ATLAS.tintShare` | 0.32 | 0–0.7 | How far realm colors lean toward sepia | Calmer, realms look alike | Brighter colors |
+| `LOOK_ATLAS.tintShare` | 0.22 | 0–0.7 | How far realm colors lean toward sepia | Calmer, realms look alike | Brighter colors |
 | `LOOK_ATLAS.borderAlpha` | 0.88 | 0.3–1 | Darkness of border lines | Crisper | Softer |
 | `playedBorderWidth`, `playedBorder` | 3, ink (gold `#f3dd90` on the classic maps) | 1–5 | The played realm's border (M20): width in pixels and color, in `LOOK_ATLAS` and `LOOK_STANDARD`. Keep ≤ 5, or redraws can miss it | Bolder outline | Like any other border |
 | `ATLAS_HILL_CHANCE` | 0.3 | 0–1 | Share of hill cells with a symbol | Busier | Calmer |

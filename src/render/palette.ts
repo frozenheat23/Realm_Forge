@@ -397,11 +397,11 @@ export const ATLAS_RESOURCE_PAPER = 0.55;
 export const ATLAS_RESOURCE_GROWTH = 1.6;
 
 export const LOOK_ATLAS: MapLook = {
-  overlayAlpha: 0.38,
-  overlayEdgeAlpha: 0.54,
+  overlayAlpha: 0.5,
+  overlayEdgeAlpha: 0.62,
   overlayEdgeWidth: 3,
   tintToward: "#8a6a3f",
-  tintShare: 0.32,
+  tintShare: 0.22,
   borderInk: ATLAS_INK,
   borderAlpha: 0.88,
   playedBorderWidth: 3,
