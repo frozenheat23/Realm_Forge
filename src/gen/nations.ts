@@ -9,8 +9,7 @@ import { PLAYABLE_RACES, raceAt, raceCapacity, traits } from "./races";
 import { RESOURCE_KINDS } from "./resources";
 import { MinHeap } from "./rivers";
 import {
-  NATION_LIGHTNESS_STEPS,
-  NATION_SATURATION,
+  NATION_SHADES,
   RACE_HUES,
   START_CORE_SIZE,
   START_HOME_RANGE,
@@ -132,13 +131,13 @@ const GOLDEN_STEP = 0.618034;
 /**
  * Color for nation number `id`, ruled by `race`: a hue inside the race's family (RACE_HUES),
  * so Orcs are always reddish and Humans bluish. Each new nation steps to a different hue of the
- * family and the next brightness level. `colorHue` (0..360, rolled per world) shifts where the steps start.
+ * family and the next shade (NATION_SHADES). `colorHue` (0..360, rolled per world) shifts where the steps start.
  */
 export function nationColor(colorHue: number, id: NationId, race: RaceId): string {
   const [first, last] = RACE_HUES[race]!;
   const place = (colorHue / 360 + (id - 1) * GOLDEN_STEP) % 1;
-  const light = NATION_LIGHTNESS_STEPS[(id - 1) % NATION_LIGHTNESS_STEPS.length]!;
-  return hslToHex(first + place * (last - first), NATION_SATURATION, light);
+  const [vivid, bright] = NATION_SHADES[(id - 1) % NATION_SHADES.length]!;
+  return hslToHex(first + place * (last - first), vivid, bright);
 }
 
 /** Which culture's names a nation at (x, y) uses: the one with the nearest home point. */

@@ -122,9 +122,8 @@ Base capacity is relative (1.0 = grassland). Move cost affects expansion and con
 | `KINGDOM_MIN_LAND` | 100 | 0–500 | Smallest body of land an old kingdom's capital may stand on | No island kingdoms | Kingdoms on small islands |
 | `KINGDOM_ROOM` | 6 | 0–12 | Steps a capital may move toward open country | Fewer peninsula kingdoms | Capitals stay at their homelands |
 | `SETTLED_DEV` | 0.85 | 0.3–1.0 | Settled start: development × control at year 0 | More towns and cities | Thinly settled old realms |
-| `NATION_SATURATION` | 0.7 | 0.3–0.9 | How vivid nation colors are | Bold, game-like colors | Muted, pastel colors |
 | `RACE_HUES` | Humans 205–238 (blue), Light Elves 115–160 (green), Dark Elves 255–280 (violet), Dwarves 40–54 (amber), Orcs 2–16 (red) | 0–360, not overlapping | Each race's family of realm colors: the first and last hue its realms may take | A wider family: realms of one race differ more, families sit closer | Realms of one race look more alike |
-| `NATION_LIGHTNESS_STEPS` | 0.5, 0.4, 0.58 | 0.35–0.7 each | Brightness levels the realms of a family take in turn | Further apart: same-race neighbors differ more | All alike |
+| `NATION_SHADES` | (0.7, 0.5), (0.9, 0.28), (0.5, 0.72), (0.8, 0.38), (0.6, 0.62) | vivid 0.3–0.9, bright 0.25–0.75 | The shades realms of one family take in turn: each is (how vivid, how bright). Dark shades are more vivid and pale ones less | Shades further apart: same-race neighbors differ more; too dark hides the map, too pale looks unowned | Shades closer: same-race realms look alike |
 
 ## Names
 
