@@ -19,15 +19,19 @@ export interface Standing {
 
 /** The `count` largest crowns, largest first. `land` = how many land cells the map has. */
 export function standings(state: WorldState, land: number, count: number): Standing[] {
+  // Counted from the map itself: a realm's stored `area` is only filled in by the first year's tick.
+  const cellsOf = new Map<NationId, number>();
+  for (const owner of state.state.owner) if (owner !== 0) cellsOf.set(owner, (cellsOf.get(owner) ?? 0) + 1);
   const rows = new Map<NationId, Standing>();
   for (const n of state.nations.values()) {
     if (!n.alive) continue;
     const overlord = n.overlord !== undefined ? state.nations.get(n.overlord) : undefined;
     const head = overlord?.alive ? overlord : n;
     const row = rows.get(head.id) ?? { id: head.id, name: head.name, color: head.color, share: 0, vassalShare: 0, vassals: 0 };
-    row.share += n.area / land;
+    const share = (cellsOf.get(n.id) ?? 0) / land;
+    row.share += share;
     if (head !== n) {
-      row.vassalShare += n.area / land;
+      row.vassalShare += share;
       row.vassals++;
     }
     rows.set(head.id, row);

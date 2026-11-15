@@ -49,7 +49,7 @@ A levy share for the overlord; asking for protection; breaking away after defeat
 - Built as planned, in `sim/vassals.ts` (questions: `overlordOf`, `vassalsOf`, `sameCrown`, `crownPartners`; changes: `becomeVassal`, `setFree`) and `sim/independence.ts` (step 7c and the `declareIndependence` command). Submission happens in `takeLand` (`warGoals.ts`); wars of independence end in `concludeIndependence` (`war.ts`). `friendsOf` and `friendly` (`diplomacy.ts`) add the crown to allies for joining wars, marching, supply and liberating land.
 - One rule added while building: an army that occupies its own crown's land frees it, as allies' armies do.
 - Map: a 3-pixel band (`VASSAL_BAND_WIDTH`) inside a vassal's borders in its overlord's color, on the nation tint only. Log filter "Vassals" (♔). Play tab: "Overlord" and "Vassals" rows, a "Declare independence" button, and a "vassal" dispatch.
-- **Measured** (settled start, 10 kingdoms, 320×180, 500 years; [raw](../measurements/vassals-2026-11-09.json)), against the same seeds before vassals (`campaigns-2026-11-08.json`, "final"):
+- **Measured** (settled start, 10 kingdoms, 320×180, 500 years; raw files `vassals-2026-11-09.json` and `campaigns-2026-11-08.json` are in git history), against the same seeds before vassals:
 
 | Measure | Tuning before → after | Validation before → after |
 |---|---:|---:|
@@ -90,5 +90,5 @@ The user asked for bigger empires, mostly through vassals, with conquest for the
 | Vassals' share of the land at 1000 | 21% → 24% | 20% → 23% | — |
 | Largest race's share | 30% → 30% | 32% → 32% | under 50% |
 
-Raw: `docs/measurements/world-*-baseline.json` (before) and `world-*-empires.json` (after). Sizes now meet the targets on unseen worlds; breakups fall a little short there (38%), and attacker wins barely moved. Both are for the next pass.
+Raw: `world-*-baseline.json` (before) and `world-*-empires.json` (after), both now only in git history. Sizes now meet the targets on unseen worlds; breakups fall a little short there (38%), and attacker wins barely moved. Both are for the next pass.
 

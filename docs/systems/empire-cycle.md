@@ -2,7 +2,7 @@
 
 > Linked from SPEC §8. Agreed with the user on 2026-11-11. **Scope only: nothing here is built, and no parameter is chosen yet.** It builds on [vassalage](vassalage.md) and takes up three items that doc left for later (breaking away after defeats, a fuller loyalty formula, slowly absorbing vassals).
 
-**Goal.** The world should tell the story of great empires: one rises by conquest and vassals, peaks, and breaks into successor states, which may later be joined again. Today giants rise but rarely break (38% do), and the number of realms only climbs.
+**Goal.** The world should tell the story of great empires: one rises by conquest and vassals, peaks, and breaks into successor states, which may later be joined again. Today giants rise but under half of them break (47%), and few vassals ever leave by revolt.
 
 **What the user chose**
 - Large empires that conquer and then break, and vassals that rebel, over a quiet balance of many kingdoms.
@@ -46,28 +46,26 @@ Long elven reigns stay as they are: once Part 1 is in, vassals no longer wait 12
 
 ## Targets (measured with `npm run report`)
 
-**Update 2026-11-15:** with 7,000 cells and tidy borders (SPEC §4.17) the validation set reads: 3.3 great empires, crowns peak at 50%, 274 years above 25%, 47% of giants break, 3.1 successors per breakup, 8% of vassals leave by revolt, realms peak 25 and lowest afterwards 17, attacker wins 74% (`world-validation-tidy7000.json`). The table below is the older baseline.
+"Now" is the validation set on 2026-11-15, with 7,000 cells and tidy borders (`world-validation-tidy7000.json`). "Before" is 2026-11-11 (`world-validation-cycle-baseline.json`).
 
-"Now" is the validation set on 2026-11-11 (`world-validation-cycle-baseline.json`; the tuning set in brackets where it differs much).
+| Measure | Before | Now | Target |
+|---|---|---|---|
+| Great empires (a crown above 25% of the land) per 1,000 years | 2.3 | 3.3 | 2–4 |
+| Peak size, crown with vassals | 38%; 42% of worlds reach 40% | 50%; 79% of worlds reach 40% | 40–60% of the land in most worlds |
+| Years a great empire spends above 25% | 226 | 274 | 100–250 |
+| Giants that break | 38% | 47% | 60–80% |
+| Successor states from one breakup | 2.7 | 3.1 | 3–8 |
+| Vassals that leave by revolt | 4% | 8% | about half |
+| Vassals taken by another overlord | 40% | 27% | no target yet |
+| Vassals swallowed or destroyed | 48% | 50% | no target yet |
+| Realms alive | peak 36, lowest afterwards 28 | peak 25, lowest afterwards 17 | rises and falls between 8 and 30 |
+| Independent crowns at years 250 / 500 / 1000 | 14 / 13 / 17 | 12 / 9 / 12 | no target yet |
+| Attacker wins | 81% | 74% | 55–65% (helped by this, not solved by it) |
 
-| Measure | Now | Target |
-|---|---|---|
-| Great empires (a crown above 25% of the land) per 1,000 years | 2.3 | 2–4 |
-| Peak size, crown with vassals | 38% on average; 42% of worlds reach 40% | 40–60% of the land in most worlds |
-| Years a great empire spends above 25% | 226 | 100–250 |
-| Giants that break | 38% (tuning 49%) | 60–80% |
-| Successor states from one breakup | 2.7 | 3–8 |
-| Vassals that leave by revolt | 4% | about half |
-| Vassals taken by another overlord | 40% | no target yet |
-| Vassals swallowed or destroyed | 48% | no target yet |
-| Realms alive | peak 36, lowest afterwards 28 | rises and falls between 8 and 30 |
-| Independent crowns at years 250 / 500 / 1000 | 14 / 13 / 17 | no target yet |
-| Attacker wins | 81% | 55–65% (helped by this, not solved by it) |
-
-**What the first numbers say**
-- The count of great empires and their length are already inside the target. The gap is in how they end.
-- Almost no vassal leaves by revolt (4%). Nearly all are swallowed, or passed from one overlord to another in war.
-- The realm count barely falls after its peak (36 → 28): the world fragments and never comes back together.
+**What the numbers say**
+- The count of great empires, their size and the number of realms are now inside the targets. The gap is in how empires end.
+- Few vassals leave by revolt (8%). Most are swallowed, or passed from one overlord to another in war.
+- Great empires last a little too long, and under half of them break.
 
 ## Build order
 

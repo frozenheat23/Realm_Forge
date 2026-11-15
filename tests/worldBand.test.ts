@@ -6,7 +6,12 @@ import { standings } from "../src/ui/worldBand";
 function nation(id: number, area: number, overlord?: number, alive = true): Nation {
   return { id, name: `Realm ${id}`, color: "#123456", area, overlord, alive } as unknown as Nation;
 }
-const worldOf = (nations: Nation[]) => ({ nations: new Map(nations.map((n) => [n.id, n])) }) as unknown as WorldState;
+/** A world where each realm owns as many cells as its `area` says (the standings count cells on the map). */
+const worldOf = (nations: Nation[]) =>
+  ({
+    nations: new Map(nations.map((n) => [n.id, n])),
+    state: { owner: nations.flatMap((n) => Array<number>(n.area).fill(n.id)) },
+  }) as unknown as WorldState;
 
 describe("standings", () => {
   it("lists the largest crowns first, counting vassals' land with their overlord", () => {
@@ -30,5 +35,14 @@ describe("standings", () => {
 
   it("puts the older realm first when two are the same size", () => {
     expect(standings(worldOf([nation(7, 100), nation(3, 100)]), 1000, 5).map((r) => r.id)).toEqual([3, 7]);
+  });
+});
+
+describe("standings at year 0", () => {
+  it("shows land before the first year has been simulated", () => {
+    // Before the first tick a realm's stored area is still 0; the map already knows who owns what.
+    const world = worldOf([nation(1, 300)]);
+    world.nations.get(1)!.area = 0;
+    expect(standings(world, 1000, 5)[0]!.share).toBe(0.3);
   });
 });

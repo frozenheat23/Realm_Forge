@@ -4,7 +4,7 @@ Saved numbers from measuring runs, so later changes can be compared on the same 
 
 ## The world report (from 2026-11-09)
 
-`npm run report -- tuning` or `npm run report -- validation` runs **24 worlds × 1,000 years** in parallel shards (about 20–30 minutes on a 14-core PC; `--shards 4` on a smaller one) and saves `world-<set>-<date>.json` here.
+`npm run report -- tuning` or `npm run report -- validation` runs **24 worlds × 1,000 years** in parallel shards (about 1 minute per set on the Mac; `--shards 4` on a smaller machine) and saves `world-<set>-<date>.json` here.
 
 - **Worlds per set:** 16 small settled starts (320×180, 10 kingdoms), 4 full-size settled starts, 4 small open starts. Seeds are `world-tuning-…` and `world-validation-…`.
 - **How to use it:** tune on the tuning set only; check the result once on the validation set. Compare old and new code with `npm run report -- show <new file> <old file>`. Try parameter variants without changing code: `npm run report -- tuning --params '{"VASSAL_DEMAND_CHANCE":0.2}' --tag try-demand02`.
@@ -32,11 +32,9 @@ Saved numbers from measuring runs, so later changes can be compared on the same 
 
 The summary ends with five **ratios**, worked out over all the worlds of a group together (so a world with no breakup doesn't count as zero): `giantsBrokenShare`, `successorsPerBreakup`, `vassalsRevoltedShare`, `vassalsChangedCrownShare`, `vassalsAbsorbedShare`. Compared with a file saved before a measure existed, that measure shows `NaN → value`.
 
-## Older files
+## Saved files
 
-- `campaigns-2026-11-08.json`: 10 small worlds × 500 years, before and after the campaign pass (`npm run balance`).
-- `vassals-2026-11-09.json`: the same report after vassalage v1.
-- `world-tuning-baseline.json`, `world-validation-baseline.json`: the first world reports (vassalage v1).
-- `world-tuning-empires.json`, `world-validation-empires.json`: after the empires pass (`docs/systems/vassalage.md`).
-- `world-tuning-cycle-baseline.json`, `world-validation-cycle-baseline.json`: the same code as the empires files, with the empire-cycle measures added (2026-11-11). The starting point for `docs/systems/empire-cycle.md`.
-- `world-tuning-tidy7000.json`, `world-validation-tidy7000.json`: 7,000 cells and tidy borders (2026-11-15), the current baseline. `world-validation-cells7000only.json` is the same with tidying switched off, to tell the two changes apart.
+- `world-tuning-tidy7000.json`, `world-validation-tidy7000.json`: **the current baseline** (2026-11-15): 7,000 cells and tidy borders.
+- `world-tuning-cycle-baseline.json`, `world-validation-cycle-baseline.json`: the one before (2026-11-11): 10,000 cells, no tidying. The starting point for `docs/systems/empire-cycle.md`.
+
+Older files (the campaign pass, vassalage v1, the empires pass, and 7,000 cells with tidying off) were removed on 2026-11-15; they are in git history.

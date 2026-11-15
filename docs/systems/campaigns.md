@@ -35,7 +35,7 @@ Each run uses settled starts with ten kingdoms, a 320×180 map and 500 years. Th
 
 The first candidate allowed morale recovery on supplied occupations. On tuning seeds, attacker victory share rose from 82.7% to 87.2%, and land taken rose sharply. Restricting recovery to unoccupied friendly territory brought attacker victory share back near the baseline. This adjustment used the tuning seeds; the separate validation set was then inspected.
 
-[Raw paired measurements](../measurements/campaigns-2026-11-08.json) preserve every seed result. Validation means across ten worlds, before this patch → final version:
+The raw paired measurements (`docs/measurements/campaigns-2026-11-08.json`, now only in git history) hold every seed result. Validation means across ten worlds, before this patch → final version:
 
 | Measure | Before | After |
 |---|---:|---:|
