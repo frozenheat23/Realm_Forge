@@ -122,9 +122,8 @@ Base capacity is relative (1.0 = grassland). Move cost affects expansion and con
 | `KINGDOM_MIN_LAND` | 100 | 0–500 | Smallest body of land an old kingdom's capital may stand on | No island kingdoms | Kingdoms on small islands |
 | `KINGDOM_ROOM` | 6 | 0–12 | Steps a capital may move toward open country | Fewer peninsula kingdoms | Capitals stay at their homelands |
 | `SETTLED_DEV` | 0.85 | 0.3–1.0 | Settled start: development × control at year 0 | More towns and cities | Thinly settled old realms |
-| `NATION_SATURATION` | 0.7 | 0.3–0.9 | How vivid nation colors are | Bold, game-like colors | Muted, pastel colors |
 | `RACE_HUES` | Humans 205–238 (blue), Light Elves 115–160 (green), Dark Elves 255–280 (violet), Dwarves 40–54 (amber), Orcs 2–16 (red) | 0–360, not overlapping | Each race's family of realm colors: the first and last hue its realms may take | A wider family: realms of one race differ more, families sit closer | Realms of one race look more alike |
-| `NATION_LIGHTNESS_STEPS` | 0.5, 0.4, 0.58 | 0.35–0.7 each | Brightness levels the realms of a family take in turn | Further apart: same-race neighbors differ more | All alike |
+| `NATION_SHADES` | (0.7, 0.5), (0.9, 0.28), (0.5, 0.72), (0.8, 0.38), (0.6, 0.62) | vivid 0.3–0.9, bright 0.25–0.75 | The shades realms of one family take in turn: each is (how vivid, how bright). Dark shades are more vivid and pale ones less | Shades further apart: same-race neighbors differ more; too dark hides the map, too pale looks unowned | Shades closer: same-race realms look alike |
 
 ## Names
 
@@ -643,10 +642,10 @@ An old chart: aged paper, pale sea, thin ink outlines, drawn terrain symbols. Co
 
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
-| `LOOK_ATLAS.overlayAlpha` | 0.38 | 0.1–0.7 | Strength of realm color | Bolder, paper fades | Paler, more paper shows |
-| `LOOK_ATLAS.overlayEdgeAlpha` | 0.54 | 0.2–0.9 | Strength of the color band along borders | Hand-tinted edges stand out | Flat color |
+| `LOOK_ATLAS.overlayAlpha` | 0.5 | 0.1–0.7 | Strength of realm color | Bolder, paper fades | Paler, more paper shows |
+| `LOOK_ATLAS.overlayEdgeAlpha` | 0.62 | 0.2–0.9 | Strength of the color band along borders | Hand-tinted edges stand out | Flat color |
 | `LOOK_ATLAS.overlayEdgeWidth` | 3 | 0–5 | Width of that band in pixels (keep ≤ 5, or redraws can miss it) | Wider band | 0 = no band |
-| `LOOK_ATLAS.tintShare` | 0.32 | 0–0.7 | How far realm colors lean toward sepia | Calmer, realms look alike | Brighter colors |
+| `LOOK_ATLAS.tintShare` | 0.22 | 0–0.7 | How far realm colors lean toward sepia | Calmer, realms look alike | Brighter colors |
 | `LOOK_ATLAS.borderAlpha` | 0.88 | 0.3–1 | Darkness of border lines | Crisper | Softer |
 | `playedBorderWidth`, `playedBorder` | 3, ink (gold `#f3dd90` on the classic maps) | 1–5 | The played realm's border (M20): width in pixels and color, in `LOOK_ATLAS` and `LOOK_STANDARD`. Keep ≤ 5, or redraws can miss it | Bolder outline | Like any other border |
 | `ATLAS_HILL_CHANCE` | 0.3 | 0–1 | Share of hill cells with a symbol | Busier | Calmer |
@@ -656,8 +655,9 @@ An old chart: aged paper, pale sea, thin ink outlines, drawn terrain symbols. Co
 | `ATLAS_COAST_WIDTH` | 1.7 | 1–4 | Coastline thickness in pixels | Heavier | Finer |
 | `ATLAS_STAIN` | 0.07 | 0–0.15 | Paper stains | Older paper | Clean paper |
 | `ATLAS_EDGE_DARKEN` | 0.2 | 0–0.4 | Darkening at the sheet's edge | Stronger | None |
-| `ATLAS_CASTLE_SCALE` | 1 | 0.6–1.6 | Size of capital castles | Bigger castles, can cover names | Smaller castles |
-| `ATLAS_CITY_SCALE` | 1 | 0.6–1.6 | Size of city spires | Cities stand out | Quieter cities |
+| `ATLAS_CASTLE_SCALE` | 1.15 | 0.6–1.6 | Size of capital castles | Bigger castles, can cover names | Smaller castles |
+| `ATLAS_CITY_SCALE` | 1.1 | 0.6–1.6 | Size of city markers (a spire among houses) | Cities stand out | Quieter cities |
+| `MARKER_SHADE` | #cdb78a | — | The shaded east side of an army's tent on the parchment map | — | — |
 | `ATLAS_RESOURCE_GROWTH` | 1.6 | 1–2.5 | Resource disc size, as a multiple of the classic marker | Icons easier to read | Less clutter |
 | `ATLAS_RESOURCE_PAPER` | 0.55 | 0–1 | How far resource discs lean toward paper | Paler discs | Stronger colors |
 | `ATLAS_SAILING_RAYS` | 16 | 8–32 | Sailing lines from each hub | Denser net | Sparser |

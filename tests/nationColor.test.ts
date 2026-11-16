@@ -36,6 +36,20 @@ describe("nationColor", () => {
     expect(colors.size).toBe(12);
   });
 
+  it("gives realms founded one after another clearly different brightness", () => {
+    // Lightness of a color: halfway between its strongest and weakest of red, green and blue (0 = black, 1 = white).
+    const brightness = (hex: string) => {
+      const parts = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16) / 255);
+      return (Math.max(...parts) + Math.min(...parts)) / 2;
+    };
+    for (const race of PLAYABLE_RACES) {
+      for (let id = 1; id < 30; id++) {
+        const gap = Math.abs(brightness(nationColor(123, id, race)) - brightness(nationColor(123, id + 1, race)));
+        expect(gap).toBeGreaterThan(0.1);
+      }
+    }
+  });
+
   it("gives the same realm the same color every time", () => {
     expect(nationColor(40, 7, 1)).toBe(nationColor(40, 7, 1));
   });

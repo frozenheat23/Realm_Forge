@@ -144,8 +144,6 @@ export const KINGDOM_MIN_LAND = 100;
 export const KINGDOM_ROOM = 6;
 /** Development of a fully controlled cell at year 0; it falls off with control toward the edges. */
 export const SETTLED_DEV = 0.85;
-/** Nation colors: how vivid they are. Hue comes from the ruling race's family (RACE_HUES), brightness from NATION_LIGHTNESS_STEPS. */
-export const NATION_SATURATION = 0.7;
 /**
  * Each race's family of colors: the first and last hue (degrees round the color wheel) its realms may take,
  * indexed by RaceId (0 = nobody, unused). Humans blue, Light Elves green, Dark Elves violet, Dwarves amber, Orcs red.
@@ -153,8 +151,13 @@ export const NATION_SATURATION = 0.7;
  * no yellow-green (it reads as amber there), no magenta (it reads as pink), and Dwarves amber because plain yellow fades into the paper.
  */
 export const RACE_HUES: [number, number][] = [[0, 360], [205, 238], [115, 160], [255, 280], [40, 54], [2, 16]];
-/** Brightness levels realms of one family take in turn, so neighbors of one race still differ. */
-export const NATION_LIGHTNESS_STEPS = [0.5, 0.4, 0.58];
+/**
+ * The shades realms of one family take in turn, so neighbors of one race still differ: each is
+ * [how vivid 0..1, how bright 0..1]. Dark shades are made more vivid and pale ones less, which
+ * keeps them apart even after the parchment style washes colors out. Ordered so each shade is
+ * far from the one before it.
+ */
+export const NATION_SHADES: [number, number][] = [[0.7, 0.5], [0.9, 0.28], [0.5, 0.72], [0.8, 0.38], [0.6, 0.62]];
 
 // --- Races ---
 // Lives here (like BIOME_STATS) because both generation and the simulation use it.

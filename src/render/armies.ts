@@ -1,4 +1,4 @@
-// Armies layer (SPEC §5.4h): a banner for each army, sliding along this year's
+// Armies layer (SPEC §5.4h): a marker for each army (a shield, or a camp of tents on the parchment map), sliding along this year's
 // march, with a dashed line to where it's heading. Only reads the world.
 import type { Army, WorldState } from "../core/types";
 import { NO_TARGET } from "../core/types";
@@ -13,6 +13,7 @@ import {
 } from "./palette";
 import { ARMY_MEN_PER_UNIT } from "../sim/params";
 import { cssColor, lookTint } from "./color";
+import { drawWarCamp } from "./atlasMarkers";
 import { atMark, markScale, zoomOf } from "./marks";
 
 /** A short size for a banner: "12k", or "800" under a thousand. */
@@ -74,19 +75,25 @@ export function drawArmies(ctx: CanvasRenderingContext2D, world: GeneratedWorld,
     atMark(ctx, x, y, () => {
       const grown = Math.sqrt(Math.min(1, army.size / ARMY_BANNER_FULL));
       const r = ARMY_BANNER_MIN + (ARMY_BANNER_MAX - ARMY_BANNER_MIN) * grown;
-      shieldPath(ctx, x, y, r);
-      ctx.fillStyle = color;
-      ctx.fill();
-      ctx.strokeStyle = look.armyOutline;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
+      const label = menLabel(army.size);
       ctx.font = look.armyFont;
+      if (look.armyMarker === "camp") {
+        drawWarCamp(ctx, x, y, r, color);
+      } else {
+        shieldPath(ctx, x, y, r);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = look.armyOutline;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+      // A shield carries its size on its face; a camp has it underneath, like a caption.
+      const labelY = look.armyMarker === "camp" ? y + r + 6 : y - r * 0.1;
       ctx.lineWidth = 3;
       ctx.strokeStyle = look.armyLabelHalo;
-      ctx.strokeText(menLabel(army.size), x, y - r * 0.1);
+      ctx.strokeText(label, x, labelY);
       ctx.fillStyle = look.armyLabelColor;
-      ctx.fillText(menLabel(army.size), x, y - r * 0.1);
+      ctx.fillText(label, x, labelY);
     });
   }
 }

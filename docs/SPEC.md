@@ -233,7 +233,7 @@ Look up each land cell's biome from temperature × moisture (Whittaker-style cha
 Each cell also gets `defensibility`, maybe a resource deposit (stream `resources`), and a province (stream `provinces`). How they're made is in §4.11.
 
 ### 3.8 Starting nations
-Place `START_NATIONS` capitals on the highest-capacity land cells, at least `START_MIN_SPACING` cell-steps apart. Once a capital has its race (below) it may shift up to `START_HOME_RANGE` steps to the free land that race likes best. Each claims a core of `START_CORE_SIZE × startSize` cells (race trait), cheapest terrain for its race first, so elves spread along their forests. Starting population is `START_POP_FRACTION` × capacity, stability `START_STABILITY`. Each realm's color comes from its ruling race's family (`RACE_HUES`: Humans blue, Light Elves green, Dark Elves violet, Dwarves amber, Orcs red; kept narrow and well apart because the parchment style washes colors toward brown), so the map shows who is who at a glance. Inside a family each new realm steps to a different hue (by the golden ratio, so no two land close together) and the next brightness level (`NATION_LIGHTNESS_STEPS`). The Races layer (§5.4b) uses each family's middle color. Each nation logs a `founded` event at year 0.
+Place `START_NATIONS` capitals on the highest-capacity land cells, at least `START_MIN_SPACING` cell-steps apart. Once a capital has its race (below) it may shift up to `START_HOME_RANGE` steps to the free land that race likes best. Each claims a core of `START_CORE_SIZE × startSize` cells (race trait), cheapest terrain for its race first, so elves spread along their forests. Starting population is `START_POP_FRACTION` × capacity, stability `START_STABILITY`. Each realm's color comes from its ruling race's family (`RACE_HUES`: Humans blue, Light Elves green, Dark Elves violet, Dwarves amber, Orcs red; kept narrow and well apart because the parchment style washes colors toward brown), so the map shows who is who at a glance. Inside a family each new realm steps to a different hue (by the golden ratio, so no two land close together) and the next shade (`NATION_SHADES`: five pairs of vivid and bright, from deep to pale). The Races layer (§5.4b) uses each family's middle color. Each nation logs a `founded` event at year 0.
 
 Each starting nation's race is the race of the nearest race homeland (§4.10); its core cells are settled by that race. If a race ends up with no starting nation, the capital nearest to that race's homeland switches to it, so every race is on the map at year 0.
 
@@ -734,7 +734,7 @@ An old chart, chosen from mockups by the user: aged paper, a pale sea with engra
 - **Terrain layer:** paper and sea (`terrainAtlas.ts`), then sailing lines over water only, a faint grid and the compass rose (`atlasChart.ts`).
 - **Symbol layer:** rivers, mountains, hills, trees and desert dots (`atlasSymbols.ts`). They sit on their own layer above the nation colors, so tinting doesn't fade the ink.
 - **Nation colors:** the same overlay, given `LOOK_ATLAS`: pale colors leaning toward sepia, a stronger band along borders, and one ink for every border. War borders stay red.
-- **Labels and places:** IM Fell fonts (bundled, SIL Open Font License), no town dots. `atlasMarkers.ts` draws a castle flying the realm's color for capitals, a spire for cities and an ink picture on each resource.
+- **Labels and places:** IM Fell fonts (bundled, SIL Open Font License), no town dots. `atlasMarkers.ts` draws ink engravings, chosen by the user from three mock-ups: a castle for capitals (a battlemented keep and two towers behind a gated wall, with a pennant in the realm's color), a spire between two gabled houses for cities, a camp of two tents under a pennant for armies, and an ink picture on each resource. They are ink line on a paper fill with hatching on the east faces, like the mountains; only pennants carry realm color.
 - **Armies, alliances and effects:** the same layers, given the look: colors leaning toward sepia, ink outlines and lines, red-brown war borders and siege rings.
 - **Frame and title panel:** drawn with the labels each year. The panel takes the corner with the least land and carries the year and heatmap name, replacing `hud.ts`.
 
@@ -791,7 +791,7 @@ A layer toggle (**Armies**, key W, on by default) for banners and marches. Like 
 
 | What | Looks like |
 |---|---|
-| **Army** | A banner (shield shape) in the nation's color at the army's cell, with its size in men (*"12k"*). Banner size grows with the army (`ARMY_BANNER_*`). Routed armies don't show. |
+| **Army** | A marker in the nation's color at the army's cell, with its size in men (*"12k"*): a shield with the size on it on the Classic map, a camp of tents under a pennant with the size beneath on the parchment map (`MapLook.armyMarker`). Banner size grows with the army (`ARMY_BANNER_*`). Routed armies don't show. |
 | **March** | During playback the banner slides along this year's `trail`, so armies visibly walk instead of jumping once a year. A thin dashed line points to its target. |
 
 Hovering over an army (or next to it, since banners are wider than a cell) shows its nation, size, morale and target. Hovering over land also says who occupies it and how far a siege has come. Occupied land and sieges are in the Effects layer (§5.4g).
