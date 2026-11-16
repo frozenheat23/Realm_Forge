@@ -1,5 +1,5 @@
 // War goals (SPEC §4.13): what a war is fought for, and what the winner gets at peace.
-import { Faith, type CellId, type Nation, type Subjugation, type War, type WorldState } from "../core/types";
+import { Faith, RulerType, type CellId, type Nation, type Subjugation, type War, type WorldState } from "../core/types";
 import { blessing } from "../gen/faiths";
 import { clamp } from "../core/math";
 import { setOwner } from "./helpers";
@@ -28,6 +28,8 @@ export function claimedCells(state: WorldState, attacker: Nation, defender: Nati
  * as the attacker's strength lets it aim for: a much stronger nation wants far more.
  */
 export function conquestCells(state: WorldState, attacker: Nation, defender: Nation, prize: CellId): CellId[] {
+  // A Conqueror wants the realm itself: the throne is the whole goal, and the army marches for it.
+  if (attacker.ruler.great === RulerType.Conqueror && SIM.GREAT_CONQUEROR_THRONE > 0) return [defender.capital];
   const { cells } = state;
   const owner = state.state.owner;
   const ratio = fightingPower(state, attacker) / Math.max(fightingPower(state, defender), 1e-6);

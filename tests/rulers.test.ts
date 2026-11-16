@@ -190,6 +190,13 @@ describe("great rulers", () => {
     expect(fightingPower(state, led)).toBeCloseTo(fightingPower(state, plain) * SIM.GREAT_CONQUEROR_POWER);
   });
 
+  it("a Conqueror's realm is strained less by its size while they reign", () => {
+    const plain = makeNation(1, 0);
+    const led = makeNation(2, 0, { ruler: ruler(RulerType.Conqueror) });
+    const state = makeState(makeCells(row(2)), [1, 2], [plain, led]);
+    expect(adminCap(state, led)).toBeCloseTo(adminCap(state, plain) * SIM.GREAT_CONQUEROR_CAP);
+  });
+
   it("a Lawgiver rules more land", () => {
     const plain = makeNation(1, 0);
     const wise = makeNation(2, 0, { ruler: ruler(RulerType.Lawgiver) });

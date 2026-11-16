@@ -5,7 +5,7 @@ import "@fontsource/im-fell-english/400.css";
 import "@fontsource/im-fell-english/400-italic.css";
 import "@fontsource/im-fell-english-sc/400.css";
 import { createRng } from "./core/rng";
-import type { NationId, WorldState } from "./core/types";
+import type { NationId, SimEvent, WorldState } from "./core/types";
 
 import { drawAlliances } from "./render/alliances";
 import { drawArmies } from "./render/armies";
@@ -17,9 +17,12 @@ import { buildDisplayCells, buildViewCells, groupPixelsByCell, type ViewGrid } f
 import { createEffects } from "./render/effects";
 import { HEAT_KINDS, renderHeatmap, type HeatKind } from "./render/heatmap";
 import { drawHeadline, drawHeatmapName, drawYear } from "./render/hud";
+import { createGhosts, drawGhosts, shatterNews } from "./render/ghosts";
 import { drawLabels, planNameLabels } from "./render/labels";
+import { markScale, zoomOf } from "./render/marks";
+import { createSeams } from "./render/seams";
+import { createTitles, rankNews } from "./render/titles";
 import { ATLAS_FONTS, LOOK_ATLAS, LOOK_STANDARD } from "./render/palette";
-import { markScale } from "./render/marks";
 import { createNationOverlay, type NationOverlay, type OverlayTint } from "./render/overlay";
 import { drawResources } from "./render/resources";
 import { drawSettlements } from "./render/settlements";
@@ -38,9 +41,10 @@ import { cellAtPoint, cellUnderMouse, onKey, showCellOnHover, type CellFinder } 
 import { dispatchesFor, watchRealm } from "./ui/dispatches";
 import { createEventLog } from "./ui/eventLog";
 import { createRecorder, pickSnapshot, saveSnapshot } from "./ui/files";
-import { createHeadlines, headlineText } from "./ui/headlines";
+import { createHeadlines, headlineText, type ExtraNews } from "./ui/headlines";
 import { createRulerCard } from "./ui/rulerCard";
 import { createVersus, pickDuel } from "./ui/versus";
+import { createPeoplesWatch, peopleExtra } from "./ui/peoples";
 import { createWorldBand } from "./ui/worldBand";
 import { applyParams, createSettings, type Layers } from "./ui/settings";
 import { createPlayTab } from "./ui/play";
@@ -198,6 +202,10 @@ const cellPixels = groupPixelsByCell(displayCells, world.cells.length);
 let effects = createEffects(world, cellPixels, look);
 const landCells = world.cells.filter((c) => c.isLand).length;
 const headlines = createHeadlines(landCells);
+// Realm titles and split marks (SPEC §5.4r, §5.4s): worked out for the screen, never stored in the world.
+const titles = createTitles(landCells);
+const ghosts = createGhosts(world, landCells);
+const seams = createSeams(world, displayCells, cellPixels);
 let overlay = createNationOverlay(world, displayCells, cellPixels, look);
 // Shares the overlay's memory; rebuilt only when a new style replaces the overlay.
 let nationImage = new ImageData(new Uint8ClampedArray(overlay.pixels.buffer), world.width, world.height);
@@ -207,6 +215,7 @@ function redrawNations(): void {
   if (heat) heatCtx.putImageData(renderHeatmap(world, displayCells, state, heat), 0, 0);
   if (sharp) refreshSharp(sharp);
   if (layers.effects) effects.refresh(state);
+  seams.update(state);
 }
 
 // --- Zoom (M19) ---
@@ -335,6 +344,7 @@ function draw(): void {
   baseCtx.clearRect(0, 0, base.width, base.height);
   layer(view?.terrain, terrain);
   if (layers.nations) layer(view?.nation, nationLayer);
+  if (layers.nations && seams.any) layer(null, seams.canvas);
   if (heat) layer(view?.heat, heatLayer);
   if (chart) layer(view?.symbols, symbols);
   // Lines, markers and names are drawn through the camera, so they're sharp at any zoom.
@@ -347,7 +357,8 @@ function draw(): void {
   if (record) drawWarFocus(baseCtx, world, state, record);
   // In 3D the names stand up as signs instead of lying on the map.
   const showNames = layers.nations && layers.labels;
-  if (showNames) drawLabels(baseCtx, world, state, look, !show3d);
+  if (showNames) drawGhosts(baseCtx, ghosts.showing(state.year), state.year, look, markScale(zoomOf(baseCtx)));
+  if (showNames) drawLabels(baseCtx, world, state, look, !show3d, titles);
   if (show3d) relief?.setNames(showNames ? planNameLabels(baseCtx, world, state, look, 1) : [], look);
   if (chart) drawChartFrame(baseCtx, world);
   // The title panel and year stay put on screen, whatever the zoom.
@@ -389,7 +400,8 @@ function highlightNations(nations: NationId[]): void {
 }
 const eventLog = createEventLog(logFilters, logList, highlightNations);
 // The band below the map: the largest crowns, and a chronicle of great news. Clicking a line lights up its realms.
-const worldBand = createWorldBand(element("#band"), landCells, highlightNations);
+const peoplesWatch = createPeoplesWatch();
+const worldBand = createWorldBand(element("#band"), landCells, highlightNations, peoplesWatch);
 eventLog.add(state.events, state);
 
 // --- War Room (M16): the side panel's wars, and following one ---
@@ -484,13 +496,32 @@ const versus = createVersus(
   () => element("#settings").getBoundingClientRect().bottom,
 );
 
+/** This year's news that only the screen knows: realms that broke apart, and empires made or unmade. */
+function screenNews(events: SimEvent[]): ExtraNews[] {
+  const year = state.year;
+  const news: ExtraNews[] = [];
+  for (const shatter of ghosts.noteYear(state, events)) {
+    const text = `Year ${year}: ${shatterNews(shatter)}`;
+    news.push({ event: { year, type: "collapse", actors: [shatter.nation.id], text }, kind: "shatter", share: shatter.share });
+  }
+  for (const change of titles.noteYear(state)) {
+    const line = rankNews(change);
+    if (!line) continue;
+    const event: SimEvent = { year, type: "ruler", actors: [change.nation.id], text: `Year ${year}: ${line}` };
+    news.push({ event, kind: change.to === 2 ? "proclaimed" : "diminished", share: change.share });
+  }
+  // A people that lost its last realm, or rules again (SPEC §5.4t).
+  for (const change of peoplesWatch.noteYear(state, landCells)) news.push(peopleExtra(change, year));
+  return news;
+}
+
 function advanceYear(): void {
   const realmBefore = watchRealm(state);
   const events = tick(state, simRng);
   yearStart = performance.now();
   eventLog.add(events, state);
   effects.noteYear(state, events, performance.now());
-  const greatNews = headlines.noteYear(state, events, performance.now());
+  const greatNews = headlines.noteYear(state, events, performance.now(), screenNews(events));
   if (greatNews) worldBand.addNews(greatNews);
   watchFollowed();
   // Playing (M20): pause on what happened to your realm, and say what it was.

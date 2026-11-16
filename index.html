@@ -43,6 +43,15 @@
       .band-part h4 { margin: 2px 0 4px; font: 600 12px system-ui, sans-serif; color: #c9b26b; text-transform: uppercase; letter-spacing: 0.06em; }
       .band-standings { flex: 0 0 38%; max-width: 420px; }
       .band-chronicle { flex: 1; }
+      .band-peoples { flex: 0 0 196px; }
+      .people { display: flex; align-items: center; gap: 7px; cursor: pointer; white-space: nowrap; }
+      .people:hover { background: #1f2530; }
+      .people-name { flex: 0 0 82px; font-family: Georgia, serif; }
+      .people-note { color: #a9a395; font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+      .band-peoples .band-list { overflow-x: hidden; }
+      .people.gone { opacity: 0.45; }
+      .people.gone .people-name { text-decoration: line-through; }
+      @media (max-width: 720px) { .band-peoples { display: none; } }
       .band-list { overflow-y: auto; min-height: 0; }
       .standing { display: flex; align-items: center; gap: 7px; cursor: pointer; white-space: nowrap; }
       .standing:hover, .chronicle-line:hover { background: #1f2530; }

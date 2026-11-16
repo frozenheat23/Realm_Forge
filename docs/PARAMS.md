@@ -474,7 +474,7 @@ Measured after step 5, the finished milestone (same 5 seeds, vs step 4): ~113 wa
 | `CAPITAL_SCORE` | 20 | 0–60 | Score for holding the enemy capital | Taking the capital wins the war | Capitals don't matter |
 | `CONQUEST_MAX_PROVINCES` | 8 | 1–12 | Most provinces one conquest aims for. A war aims for one per whole time the attacker outmatches the defender | Strong nations swallow neighbors whole | Every war is over one province (1) |
 | `SUBJUGATE_RATIO` | 1 | 1–3 | How many times stronger an attacker must be to also march on the enemy capital. Holding it at peace makes the loser a vassal (docs/systems/vassalage.md) | Only crushing wars make vassals | Every war goes for the throne (1) |
-| `PEACE_EXTRA_CELLS` | 40 | 0–80 | Occupied non-goal cells a winner may also keep, if they touch its land | Wars grab more land | Wars only take the goal (0) |
+| `PEACE_EXTRA_CELLS` | 150 | 0–200 | Occupied non-goal cells a winner may also keep, if they touch its land | Wars grab more land | Wars only take the goal (0) |
 | `RAID_TRIBUTE` | 0.1 | 0–0.3 | Stability moved from loser to winner after a raid | Raids break nations | Raids only burn land |
 
 `PEACE_SCORE`, `WIN_SCORE`, `WEARINESS_PEACE`, `MAX_WAR_YEARS` and `TRUCE_YEARS` (War) still apply.
@@ -558,6 +558,9 @@ SPEC §4.15 and `docs/systems/rulers.md`. Race tables are in `gen/params.ts`; th
 | `GREAT_AREA` | 200 | 50–1000 | A realm this big is twice as likely to get one | Size matters less | Empires always have legends |
 | `GREAT_CONQUEROR_POWER` | 1.5 | 1–2 | × army power | Stronger conquerors, more rebellions (it also raises the strength ratio in war chance) | Barely noticed |
 | `GREAT_CONQUEROR_WAR` | 2 | 1–3 | × chance of starting wars | Constant war | Conquerors sit at home |
+| `GREAT_CONQUEROR_CAP` | 2 | 1–4 | × the land a Conqueror's realm can rule well while they reign; the strain returns at the death | Conquerors' realms hold together until the death | Size strains them like anyone (1) |
+| `GREAT_CONQUEROR_ANNEX` | 4 | 1–10 | × `ANNEX_CHANCE` for a Conqueror holding the enemy capital | Conquerors swallow realms | They take vassals like anyone (1) |
+| `GREAT_CONQUEROR_THRONE` | 1 | 0 or 1 | 1: a Conqueror's war of conquest has one goal, the enemy capital | n/a | 0: it picks provinces like anyone |
 | `GREAT_LAWGIVER_CAP` | 2 | 1–4 | × `adminCap` | Old realms hold more land | No help to big realms |
 | `GREAT_LAWGIVER_CALM` | 1.5 | 1–3 | × `UNREST_DECAY` on its land | Quiet realms | Unrest ignores them |
 | `GREAT_BUILDER_DEV` | 2 | 1–4 | × `DEV_GROWTH` | Cities spring up | Little effect |
@@ -583,7 +586,11 @@ SPEC §4.15 and `docs/systems/rulers.md`. Race tables are in `gen/params.ts`; th
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
 | `INDEPENDENCE_CHANCE` | 4 | 0–8 | × the AI vassal's chance to declare independence when its overlord's ruler is crowned. The chance is also × (1 − opinion) / 2 × min(1, its power / the overlord's) | Crowns break up at every succession | Vassals serve until their overlord falls (0) |
-| `ANNEX_CHANCE` | 0.25 | 0–1 | Chance the AI takes a whole realm whose capital it holds instead of making it a vassal, × the race's aggression² (Light Elves ~6%, Humans 25%, Orcs ~64%) | More conquest, fewer vassals | Every held capital makes a vassal |
+| `INDEPENDENCE_WEAK_CHANCE` | 0.3 | 0–2 | The same, for each year the overlord is weak in another way (lost a war lately, unstable, at war elsewhere). Empire cycle step 1 | More risings (0.8 gave no more revolts won on the tuning set, only more wars) | Vassals wait for a coronation (0) |
+| `HUMBLED_YEARS` | 5 | 0–20 | Years after losing a war of its own that an overlord counts as weak | Longer openings | Only the year of the defeat |
+| `WEAK_STABILITY` | 0.35 | 0–1 | An overlord with stability below this counts as weak | Vassals may rise almost any year | Only real crises count |
+| `RISING_HOLD_SCORE` | 30 | −30 to 30 | A rising with no clear winner frees the vassal if the war's score (positive = vassal ahead) is above minus this. 30 = free unless the overlord clearly won | | 0: free only if ahead. −30: only a clear win frees it (the old rule; revolts stay near 10%) |
+| `ANNEX_CHANCE` | 0.6 | 0–1 | Chance the AI takes a whole realm whose capital it holds instead of making it a vassal, × the race's aggression² (Light Elves 15%, Humans 60%, Orcs always) | More conquest, fewer vassals | Every held capital makes a vassal |
 | `VASSAL_DEMAND_RATIO` | 3 | 1.5–5 | How many times stronger (with vassals) a winner must be to demand submission when it doesn't hold the capital | Only crushing wins make vassals | Many more vassals; crowns grow fast |
 | `VASSAL_DEMAND_CHANCE` | 0.15 | 0–0.5 | Chance the AI then demands it, ÷ the race's aggression | Huge crowns (0.5: 40% crowns in ~80% of worlds) | Crowns stay ~30% (0) |
 
@@ -763,7 +770,7 @@ The banner of news at the bottom of the map (SPEC §5.4o). Timing and weights ar
 | `HEADLINE_FADE_SECONDS` | 0.6 | 0–2 | Length of the fade at the end | Softer exit | Cuts off |
 | `HEADLINE_MIN_SCORE` | 0.9 | 0–3 | News scoring less never shows | Only great events; more empty years | Small news fills quiet years |
 | `HEADLINE_SIZE_FLOOR` | 0.05 | 0–0.3 | Added to a realm's share of the land when scoring | Kind of news matters more than size | Only big realms make news |
-| `HEADLINE_WEIGHTS` | conquest and collapse 10, civil war 9, submission and independence won 8, reborn 7, rebellion, peace, independence war and a great ruler's death 6, great ruler rises, war and crisis 5, succession 4, faith and white peace 3, the rest 2, minor 0 | 0–10 each | How much each kind of news matters | That kind shows more often | Less often; 0 = never |
+| `HEADLINE_WEIGHTS` | a race's last realm falling 14, a realm breaking apart 12, a fallen race ruling again 9, conquest and collapse 10, an empire proclaimed 9, an empire diminished 8, civil war 9, submission and independence won 8, reborn 7, rebellion, peace, independence war and a great ruler's death 6, great ruler rises, war and crisis 5, succession 4, faith and white peace 3, the rest 2, minor 0 | 0–15 each | How much each kind of news matters | That kind shows more often | Less often; 0 = never |
 | `HEADLINE_FONT_SIZE` | 28 | 18–40 | Text size in map pixels (long lines shrink to fit) | | |
 | `HEADLINE_HEIGHT`, `HEADLINE_BOTTOM` | 52, 34 | | The strip's height and its gap from the bottom of the map | | |
 | `HEADLINE_MAX_WIDTH` | 0.8 | 0.4–0.95 | Most of the map's width the strip may take | Fewer lines shrink | More lines shrink |
@@ -771,6 +778,36 @@ The banner of news at the bottom of the map (SPEC §5.4o). Timing and weights ar
 | `HEADLINE_INK`, `HEADLINE_PAPER`, `HEADLINE_FONT_FAMILY` | | | Colors and typeface, matching the parchment title panel | | |
 
 A score example: a realm holding 30% of the land declaring war scores 5 × (0.05 + 0.30) = 1.75; a realm of 2% collapsing scores 10 × 0.07 = 0.7, below the minimum.
+
+### Realm titles
+
+Titles above realm names (SPEC §5.4r). In `src/render/palette.ts`; the words are `TITLE_WORDS` in `src/render/titles.ts`.
+
+| Parameter | Default | Range | What it does | Higher | Lower |
+|---|---|---|---|---|---|
+| `TITLE_EMPIRE_SHARE` | 0.2 | 0.1–0.4 | Share of the land (vassals included) that makes an empire | Empires are rare | Several empires at once |
+| `TITLE_KINGDOM_SHARE` | 0.02 | 0.005–0.08 | Share of the land that makes a kingdom | More duchies | Nearly everything is a kingdom |
+| `TITLE_FALL_YEARS` | 15 | 0–50 | Years a realm keeps its rank after shrinking below it | Titles outlive the land | Titles flicker at the line |
+| `TITLE_SIZE_SHARE`, `TITLE_MIN_SIZE` | 0.42, 8 | | The title line's height as a share of the name's, and its smallest size (pixels) | | |
+| `TITLE_MIN_NAME_SIZE` | 15 | 11–40 | Names smaller than this show no title line | Fewer titles on the map | Tiny, crowded titles |
+| `TITLE_COLOR` | brown ink | | Ink of the title line | | |
+
+### Split marks
+
+Red seams, founding years and ghost names (SPEC §5.4s). In `src/render/palette.ts`.
+
+| Parameter | Default | Range | What it does | Higher | Lower |
+|---|---|---|---|---|---|
+| `SEAM_YEARS` | 12 | 0–40 | Years a breakaway's border stays red (fading) | Splits stay marked longer | 0 = no seams |
+| `SEAM_ALPHA`, `SEAM_COLOR` | 0.9, red ink | | Strength and color of a fresh seam | | |
+| `FOUNDING_NOTE_YEARS` | 10 | 0–30 | Years a new realm shows "est. year" | | 0 = never |
+| `FOUNDING_NOTE_SHARE`, `FOUNDING_NOTE_MIN_SIZE` | 0.45, 9 | | The year's height as a share of the name's, and its smallest size | | |
+| `GHOST_MIN_SHARE` | 0.08 | 0.03–0.3 | Only a realm that held this share of the land leaves a ghost name | Only giants | Small realms leave ghosts too |
+| `GHOST_LOSS` | 0.3 | 0.1–0.8 | Share of its land it must lose to count as broken | Only great collapses | Any setback leaves a ghost |
+| `GHOST_WINDOW` | 15 | 3–40 | Years within which that loss must happen | Slow declines count | Only sudden breaks |
+| `GHOST_YEARS` | 30 | 5–100 | How long the ghost name stays, fading | | |
+| `GHOST_ALPHA` | 0.3 | 0.1–0.6 | How dark the ghost name starts | | |
+| `GHOST_SIZE`, `GHOST_MAX_SIZE`, `GHOST_LETTER_SPACING` | 1.5, 64, 0.5 | | The ghost's size beside a living name over the same land, its largest size, and the gap between letters | | |
 
 ### Versus screen
 

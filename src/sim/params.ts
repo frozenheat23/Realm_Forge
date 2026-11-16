@@ -235,14 +235,25 @@ export const SIM = {
   SUBJUGATE_RATIO: 1,
   /** Vassals (docs/systems/vassalage.md): × the AI's chance to declare independence when its overlord's ruler is crowned. */
   INDEPENDENCE_CHANCE: 4,
+  /** Empire cycle (docs/systems/empire-cycle.md): the same, for each year its overlord is weak (lost a war lately, unstable, or at war elsewhere). */
+  INDEPENDENCE_WEAK_CHANCE: 0.3,
+  /**
+   * How a rising ends when neither side clearly won: the vassal goes free if the war's score (positive = the vassal ahead)
+   * is above minus this. 30 (= WIN_SCORE): free unless the overlord clearly won. 0: free only if ahead. -30: free only by a clear win.
+   */
+  RISING_HOLD_SCORE: 30,
+  /** An overlord counts as weak for this many years after losing a war. */
+  HUMBLED_YEARS: 5,
+  /** An overlord with stability below this counts as weak. */
+  WEAK_STABILITY: 0.35,
   /** Chance the AI takes a whole realm whose capital it holds, rather than making it a vassal (× the race's aggression²). */
-  ANNEX_CHANCE: 0.25,
+  ANNEX_CHANCE: 0.6,
   /** How many times stronger (its crown against the loser's) a winner must be to demand submission without the capital. */
   VASSAL_DEMAND_RATIO: 3,
   /** Chance the AI then demands it (÷ the race's aggression: gentle races prefer vassals to land). */
   VASSAL_DEMAND_CHANCE: 0.15,
   /** Occupied non-goal cells a winner may also keep. */
-  PEACE_EXTRA_CELLS: 40,
+  PEACE_EXTRA_CELLS: 150,
   /** Tidy borders (SPEC §4.17): passes in which a peace straightens the line between the two realms. 0 = off. */
   BORDER_ROUNDS: 3,
   /** Biggest piece of cut-off land that joins the realm around it. 0 = off. */
@@ -316,6 +327,12 @@ export const SIM = {
   GREAT_AREA: 200,
   GREAT_CONQUEROR_POWER: 1.5,
   GREAT_CONQUEROR_WAR: 2,
+  /** × the land a Conqueror's realm can rule well: size strains it less while the Conqueror reigns, and the strain returns at the death. */
+  GREAT_CONQUEROR_CAP: 2,
+  /** × the chance a Conqueror holding the enemy capital swallows the whole realm instead of taking a vassal. */
+  GREAT_CONQUEROR_ANNEX: 4,
+  /** 1: a Conqueror's war of conquest has one goal, the enemy capital, so its army marches for the throne. 0: it picks provinces like anyone. */
+  GREAT_CONQUEROR_THRONE: 1,
   GREAT_LAWGIVER_CAP: 2,
   GREAT_LAWGIVER_CALM: 1.5,
   GREAT_BUILDER_DEV: 2,

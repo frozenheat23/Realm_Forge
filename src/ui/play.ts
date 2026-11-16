@@ -15,7 +15,7 @@ import { offeredFaith } from "../sim/faith";
 import { heirsOf, playerWarRefusals, WAR_GOALS } from "../sim/play";
 import { giveCommand } from "../sim/sandbox";
 import { suePeaceRefusal } from "../sim/war";
-import { independenceRefusal } from "../sim/independence";
+import { independenceRefusal, momentText, weakMoment } from "../sim/independence";
 import { overlordOf, vassalsOf } from "../sim/vassals";
 import { PLAY_LIST_MAX, PLAYER_MOBILIZE_CHOICES } from "./config";
 import { rivalOf } from "./debugInfo";
@@ -452,7 +452,7 @@ export function createPlayTab(box: HTMLElement, hooks: PlayHooks): PlayTab {
       rise.disabled = why !== null;
       rise.title = why ?? `Go to war with ${overlord.name} to be free; if you don't win, you stay its vassal`;
       rise.addEventListener("click", () => give({ kind: "declareIndependence" }, ordersNote));
-      freeRow.append(rise, el("span", "war-meta", why === null ? `${overlord.name} has a new ruler: now or not until the next` : `Not now: ${why}.`));
+      freeRow.append(rise, el("span", "war-meta", why === null ? `${momentText(overlord, weakMoment(state, overlord, me)!)}: a moment to rise` : `Not now: ${why}.`));
     }
 
     // A faith is offered while most of the realm holds it.

@@ -266,6 +266,9 @@ export interface Army {
   trail: CellId[];
 }
 
+/** Why an overlord is weak right now: the moments in which its vassals may rise (docs/systems/empire-cycle.md). */
+export type WeakMoment = "crowned" | "defeated" | "unstable" | "atWar";
+
 export interface Nation {
   id: NationId;
   name: string;
@@ -278,6 +281,8 @@ export interface Nation {
   parent?: NationId;
   /** The realm it serves as a vassal (docs/systems/vassalage.md); missing if independent. */
   overlord?: NationId;
+  /** The year it last lost a war (missing = never). Its vassals may rise for some years after (docs/systems/empire-cycle.md). */
+  humbled?: number;
   /** Its best living general between wars, who leads its next army (M18). */
   marshal?: General;
   /** The ruling race. Fixed for the nation's whole life. */

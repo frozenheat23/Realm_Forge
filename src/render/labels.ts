@@ -11,14 +11,23 @@ import {
   CROWN_GAP,
   CROWN_HEIGHT,
   CROWN_WIDTH,
+  FOUNDING_NOTE_MIN_SIZE,
+  FOUNDING_NOTE_SHARE,
+  FOUNDING_NOTE_YEARS,
   LABEL_MAX_SIZE,
   LABEL_MIN_AREA,
   LABEL_MIN_SIZE,
   LABEL_SIZE_PER_SQRT_AREA,
   LOOK_STANDARD,
   NAME_HALO_SHARE,
+  SEAM_COLOR,
+  TITLE_COLOR,
+  TITLE_MIN_NAME_SIZE,
+  TITLE_MIN_SIZE,
+  TITLE_SIZE_SHARE,
   type MapLook,
 } from "./palette";
+import { isVassal, titleWord, type Titles } from "./titles";
 
 /**
  * Where to put a nation's label: the average position of its cells. If that
@@ -112,11 +121,17 @@ export interface NameLabel {
   x: number;
   y: number;
   size: number;
+  /** A vassal's name is set in italics. */
+  italic?: boolean;
+  /** The smaller line above the name: "KINGDOM OF" (SPEC §5.4r). */
+  title?: { text: string; y: number; size: number };
+  /** The smaller line below a new realm's name: "est. 412" (SPEC §5.4s). */
+  note?: { text: string; y: number; size: number };
 }
 
 /** The canvas text settings for a name `size` pixels tall. Shared by the flat map and the 3D signs. */
-export function setNameFont(ctx: CanvasRenderingContext2D, size: number, look: MapLook): void {
-  ctx.font = `${look.labelWeight} ${size.toFixed(1)}px ${look.labelFont}`;
+export function setNameFont(ctx: CanvasRenderingContext2D, size: number, look: MapLook, italic = false): void {
+  ctx.font = `${italic ? "italic " : ""}${look.labelWeight} ${size.toFixed(1)}px ${look.labelFont}`;
   ctx.letterSpacing = `${(size * look.labelSpacing).toFixed(1)}px`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -126,8 +141,9 @@ export function setNameFont(ctx: CanvasRenderingContext2D, size: number, look: M
 /**
  * Works out which realm names to show and where, without drawing them. `ctx` is only
  * used to measure how wide each name is. `k` shrinks names when zoomed in (see marks.ts).
+ * With `titles`, names also get a title line above and new realms their founding year below.
  */
-export function planNameLabels(ctx: CanvasRenderingContext2D, world: GeneratedWorld, state: WorldState, look: MapLook, k: number): NameLabel[] {
+export function planNameLabels(ctx: CanvasRenderingContext2D, world: GeneratedWorld, state: WorldState, look: MapLook, k: number, titles?: Titles): NameLabel[] {
   const owned = cellsByOwner(state);
   // Biggest nations first, so when labels would overlap the bigger name wins.
   const nations = [...state.nations.values()]
@@ -135,6 +151,7 @@ export function planNameLabels(ctx: CanvasRenderingContext2D, world: GeneratedWo
     .sort((a, b) => (owned.get(b.id)?.length ?? 0) - (owned.get(a.id)?.length ?? 0) || a.id - b.id);
   const placed: Box[] = [];
   const labels: NameLabel[] = [];
+  const upper = (text: string) => (look.labelUpper ? text.toUpperCase() : text);
   ctx.save();
   for (const nation of nations) {
     const cells = owned.get(nation.id) ?? [];
@@ -142,20 +159,49 @@ export function planNameLabels(ctx: CanvasRenderingContext2D, world: GeneratedWo
     // Zoomed in, names grow more slowly than the map (in map units they shrink by `k`).
     const size = clamp(Math.sqrt(cells.length) * LABEL_SIZE_PER_SQRT_AREA, LABEL_MIN_SIZE, LABEL_MAX_SIZE) * k;
     const [x, y] = labelAnchor(world, cells, (c) => state.state.owner[c]!);
+    const label: NameLabel = { text: upper(nation.name), x, y, size };
     setNameFont(ctx, size, look);
-    const text = look.labelUpper ? nation.name.toUpperCase() : nation.name;
-    const halfW = ctx.measureText(text).width / 2;
-    const box: Box = { left: x - halfW, right: x + halfW, top: y - size / 2, bottom: y + size / 2 };
+    let halfW = ctx.measureText(label.text).width / 2;
+    let top = y - size / 2;
+    let bottom = y + size / 2;
+    if (titles) {
+      const vassal = isVassal(state, nation);
+      label.italic = vassal;
+      if (size >= TITLE_MIN_NAME_SIZE * k) {
+        const titleSize = Math.max(TITLE_MIN_SIZE * k, size * TITLE_SIZE_SHARE);
+        const text = upper(`${titleWord(nation, titles.rankOf(state, nation), vassal)} of`);
+        label.title = { text, y: top - titleSize * 0.6, size: titleSize };
+        top -= titleSize * 1.2;
+        setNameFont(ctx, titleSize, look);
+        halfW = Math.max(halfW, ctx.measureText(text).width / 2);
+      }
+      // Year 0's old kingdoms were not founded in living memory, so they carry no year.
+      if (nation.founded > 0 && state.year - nation.founded < FOUNDING_NOTE_YEARS) {
+        const noteSize = Math.max(FOUNDING_NOTE_MIN_SIZE * k, size * FOUNDING_NOTE_SHARE);
+        label.note = { text: `est. ${nation.founded}`, y: bottom + noteSize * 0.6, size: noteSize };
+        bottom += noteSize * 1.2;
+      }
+    }
+    const box: Box = { left: x - halfW, right: x + halfW, top, bottom };
     if (placed.some((other) => overlaps(box, other))) continue;
     placed.push(box);
-    labels.push({ text, x, y, size });
+    labels.push(label);
   }
   ctx.restore();
   return labels;
 }
 
-/** Draws every capital's marker, and the realm names too unless `names` is false (the 3D view shows names as standing signs). */
-export function drawLabels(ctx: CanvasRenderingContext2D, world: GeneratedWorld, state: WorldState, look: MapLook = LOOK_STANDARD, names = true): void {
+/** One line of a label: a light halo first (a thick outline), then the ink on top. */
+function inkLine(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, k: number, ink: string, halo: string): void {
+  ctx.lineWidth = Math.max(2.5 * k, size * NAME_HALO_SHARE);
+  ctx.strokeStyle = halo;
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = ink;
+  ctx.fillText(text, x, y);
+}
+
+/** Draws every capital's marker, and the realm names too unless `names` is false (the 3D view shows names as standing signs). `titles` adds title lines and founding years. */
+export function drawLabels(ctx: CanvasRenderingContext2D, world: GeneratedWorld, state: WorldState, look: MapLook = LOOK_STANDARD, names = true, titles?: Titles): void {
   ctx.save();
   for (const nation of state.nations.values()) {
     if (!nation.alive) continue;
@@ -168,14 +214,17 @@ export function drawLabels(ctx: CanvasRenderingContext2D, world: GeneratedWorld,
   }
   if (names) {
     const k = markScale(zoomOf(ctx));
-    for (const { text, x, y, size } of planNameLabels(ctx, world, state, look, k)) {
-      setNameFont(ctx, size, look);
-      // Halo first (a thick light outline), then the dark letters on top.
-      ctx.lineWidth = Math.max(2.5 * k, size * NAME_HALO_SHARE);
-      ctx.strokeStyle = look.labelHalo;
-      ctx.strokeText(text, x, y);
-      ctx.fillStyle = look.labelColor;
-      ctx.fillText(text, x, y);
+    for (const { text, x, y, size, italic, title, note } of planNameLabels(ctx, world, state, look, k, titles)) {
+      setNameFont(ctx, size, look, italic);
+      inkLine(ctx, text, x, y, size, k, look.labelColor, look.labelHalo);
+      if (title) {
+        setNameFont(ctx, title.size, look);
+        inkLine(ctx, title.text, x, title.y, title.size, k, TITLE_COLOR, look.labelHalo);
+      }
+      if (note) {
+        setNameFont(ctx, note.size, look, true);
+        inkLine(ctx, note.text, x, note.y, note.size, k, cssColor(SEAM_COLOR), look.labelHalo);
+      }
     }
   }
   ctx.restore();

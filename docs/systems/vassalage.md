@@ -17,6 +17,7 @@
    - Realms under one crown (the overlord and its vassals) never fight each other. Wars between them end quietly when one submits.
    - Armies of the same crown may march and resupply through each other's land, as allies' do.
 4. **Two ways out.**
+   - **(Changed 2026-11-16 by the empire cycle, step 1: a vassal may now rise in any of four moments of weakness, and a rising the overlord cannot put down succeeds. See [empire-cycle.md](empire-cycle.md), "As built". The text below is v1.)**
    - **A new ruler on the overlord's throne.** In the year an overlord's ruler is crowned, each of its vassals may declare independence. The AI's chance is `INDEPENDENCE_CHANCE × (1 − opinion) / 2 × min(1, vassal's power / overlord's power)`: likelier the more it dislikes its overlord and the stronger it is. The player decides by an order, in the same year only.
      - That starts a war of independence (goal `independence`, no goal land). Other vassals of the same crown stay out of it; the overlord's allies may join.
      - If the vassal wins, it is free. Otherwise (lost or white peace) it stays a vassal. No land changes hands either way.
@@ -72,7 +73,7 @@ A levy share for the overlord; asking for protection; breaking away after defeat
 
 The user asked for bigger empires, mostly through vassals, with conquest for the more aggressive races. Three rules were added, then tuned with `npm run report` on the tuning set and checked once on the validation set.
 
-1. **Annex or vassal.** Holding a beaten realm's capital, the winner's controller now chooses (`subjugate`): the AI takes the whole realm with chance `ANNEX_CHANCE × aggression²` (Light Elves ~6%, Dwarves ~12%, Humans 25%, Dark Elves ~49%, Orcs ~64%), and otherwise makes it a vassal.
+1. **Annex or vassal.** Holding a beaten realm's capital, the winner's controller now chooses (`subjugate`): the AI takes the whole realm with chance `ANNEX_CHANCE × aggression²` (since 2026-11-17 `ANNEX_CHANCE` is 0.6, so the figures that follow are from the older 0.25: Light Elves ~6%, Dwarves ~12%, Humans 25%, Dark Elves ~49%, Orcs ~64%), and otherwise makes it a vassal.
 2. **Demanding submission.** Without the capital, a winner whose crown (it and its vassals) is `VASSAL_DEMAND_RATIO` (3) times stronger may make the loser submit too, with chance `VASSAL_DEMAND_CHANCE` (0.15) ÷ aggression: gentle races prefer vassals to land. Only between independent realms; not after raids or in allies' wars. This also happens when the loser sues for peace.
 3. **Crowns weigh their vassals.** Deciding on war, a realm counts an overlord's or vassal's fighting power in full (they join by duty), not at the chance an ally joins.
 4. **Player:** two new policies, "Holding a beaten realm's capital" (make it a vassal / take the whole realm) and "Demand submission" (when `VASSAL_DEMAND_RATIO` times as strong / never). Older saves get the defaults.

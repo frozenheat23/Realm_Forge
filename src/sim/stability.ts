@@ -12,7 +12,9 @@ import { greatBonus } from "./rulers";
 export function adminCap(state: WorldState, nation: Nation): number {
   const age = state.year - nation.founded;
   const vigor = 1 + SIM.VIGOR_BONUS * Math.exp(-age / SIM.VIGOR_YEARS);
-  return SIM.ADMIN_CAP_BASE * traits(nation.race).cohesion * vigor * greatBonus(nation, RulerType.Lawgiver, SIM.GREAT_LAWGIVER_CAP);
+  // A Lawgiver's order and a Conqueror's glory both hold more land together, for as long as they reign.
+  const great = greatBonus(nation, RulerType.Lawgiver, SIM.GREAT_LAWGIVER_CAP) * greatBonus(nation, RulerType.Conqueror, SIM.GREAT_CONQUEROR_CAP);
+  return SIM.ADMIN_CAP_BASE * traits(nation.race).cohesion * vigor * great;
 }
 
 export function updateStability(state: WorldState): void {

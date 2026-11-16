@@ -312,6 +312,8 @@ export function concludeWar(state: WorldState, war: War, winner: Nation | null, 
     const capitalHeld = holdsCapital(state, winner, loser, sued);
     if (capitalHeld || war.joined === undefined) choice = subjugate(winner, loser, capitalHeld);
   }
+  // Losing a war of its own (not an ally's) is a moment of weakness its vassals may use.
+  if (winner && war.joined === undefined) loser.humbled = state.year;
   const taken = winner && !raided ? takeLand(state, war, winner, loser, sued, choice) : [];
   // Land changed hands, so the two realms tidy the line between them.
   if (taken.length > 0) settleBorder(state, attacker, defender);
@@ -346,8 +348,12 @@ export function concludeWar(state: WorldState, war: War, winner: Nation | null, 
 function concludeIndependence(state: WorldState, war: War, winner: Nation | null, how: WarOutcome["how"]): SimEvent {
   const vassal = state.nations.get(war.attacker)!;
   const overlord = state.nations.get(war.defender)!;
-  const free = winner === vassal;
-  if (free) setFree(vassal);
+  // An overlord must put a rising down to keep its vassal: how far it may fall short is SIM.RISING_HOLD_SCORE.
+  const free = winner === vassal || (winner === null && war.score > -SIM.RISING_HOLD_SCORE);
+  if (free) {
+    setFree(vassal);
+    overlord.humbled = state.year;
+  }
   else if (winner === overlord) payTribute(overlord, vassal);
   state.truces.push({ a: vassal.id, b: overlord.id, until: state.year + SIM.TRUCE_YEARS });
   const event = free ? goesFreeEvent(state.year, vassal, overlord, "won") : keptEvent(state.year, vassal, overlord);

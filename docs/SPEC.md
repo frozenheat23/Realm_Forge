@@ -851,7 +851,7 @@ A second way to look at the same map, switched with the **3D map** button, key V
 A banner at the bottom of the map tells the year's most important news in one line, so a watcher knows when a ruler dies, a war ends or a realm falls without reading the log. Switched with **Headlines** in Settings (on by default). It is drawn on the map, so it appears in recorded videos. Visual only: history is unchanged.
 
 - **Importance** (`src/ui/headlines.ts`): each event scores its kind's weight (`HEADLINE_WEIGHTS`) × (`HEADLINE_SIZE_FLOOR` + the biggest realm involved, as a share of all land). A realm is judged by this year's or last year's size, whichever is larger, so a realm that just fell still counts. Battles and other small news weigh 0 and never show.
-- **Kinds** are told apart by the event's type and wording (`headlineKind`): conquest, collapse, civil war, submission, independence, rebellion, a realm reborn, peace, war, great rulers, crises, faith and more.
+- **Kinds** are told apart by the event's type and wording (`headlineKind`); the screen adds news of its own through `ExtraNews` (a realm breaking apart, an empire made or unmade, a people losing its last realm: §5.4r, §5.4s, §5.4t): conquest, collapse, civil war, submission, independence, rebellion, a realm reborn, peace, war, great rulers, crises, faith and more.
 - **Successions.** The rules log only great rulers' deaths, so the banner writes its own line whenever a throne changes hands: *"King Aldric of Kethar dies after 28 years. King Berin is crowned."*, or that the old house ends. Being weighed by size, only larger realms' successions reach the banner.
 - **One at a time.** The year's top event shows if it scores at least `HEADLINE_MIN_SCORE`. A headline stays for `HEADLINE_SECONDS`; for its first `HEADLINE_HOLD_SECONDS` only bigger news replaces it, after that it gives way more and more easily. While paused it stays up.
 - **Look** (`drawHeadline` in `render/hud.ts`): a parchment strip with a seal in the color of the realm the news is about; long lines are set smaller to fit.
@@ -869,13 +869,35 @@ When a realm is conquered outright in war, its last ruler's card faces the conqu
 
 ### 5.4q The band below the map
 
-The space between the controls and the hints (`#band`, `src/ui/worldBand.ts`) shows two things, updated as history plays. Clicking any line lights up its realms on the map for a few seconds, like the log.
+The space between the controls and the hints (`#band`, `src/ui/worldBand.ts`) shows three things, updated as history plays. Clicking any line lights up its realms on the map for a few seconds, like the log.
 
 - **Greatest crowns:** the `STANDINGS_COUNT` largest crowns (a realm with its vassals), largest first (`standings()`). Each has a bar for its share of all land; the paler end of the bar is land held through vassals. Ties go to the older realm so the order doesn't flicker.
+- **Peoples:** each of the five races with the realms it rules and their share of the land (§5.4t). Hidden below 720 px.
 - **Chronicle:** each year's top news (the headline score of §5.4o) if it scores at least `CHRONICLE_MIN_SCORE`, newest first, at most `CHRONICLE_MAX` lines. It is stricter than the headline banner, so it keeps about one line per 8 years: a record to read back, where the banner is a passing notice.
 - **Size:** on wide screens the band takes only the height the map and controls leave over (it never makes the map smaller) up to 210 px, and shows nothing with less than `BAND_MIN_HEIGHT`. On narrow screens it is 170 px high.
 - Because the band now fills that space, the versus screen (§5.4p) appears over the map on most windows.
 - Page elements, so they don't appear in recorded videos. The chronicle starts empty when a save is loaded.
+
+### 5.4r Realm titles
+
+Each name on the map carries a title above it, so a glance tells an empire from a duchy and a vassal from a free realm. Titles are worked out for the screen each year (`src/render/titles.ts`) and never stored in the world: history and saves are unchanged.
+
+- **Rank** by share of the land: empire from `TITLE_EMPIRE_SHARE` (a crown's vassals count toward it), kingdom from `TITLE_KINGDOM_SHARE`, duchy below. A vassal is ranked by its own land.
+- **Words** follow the ruling race (`TITLE_WORDS`): Humans Duchy / Kingdom / Empire; Light Elves Grove / Court / High Court; Dark Elves House / Dominion / Imperium; Dwarves Hold / Kingdom / High Kingdom; Orcs Clan / Horde / Great Horde.
+- **Vassals** take their race's vassal word instead (March, Ward, Thrall-House, Sworn Hold, Tribute Clan) and their name is set in italics.
+- **No flicker.** A rank rises at once but falls only after `TITLE_FALL_YEARS` below it (`createTitles` remembers each realm's rank).
+- **News.** Becoming an empire, or ceasing to be one, is a headline (§5.4o, kinds `proclaimed` and `diminished`). Other rank changes make no news.
+- **On the map** (`planNameLabels` in `render/labels.ts`): the title line is `TITLE_SIZE_SHARE` of the name's height; names smaller than `TITLE_MIN_NAME_SIZE` show none.
+- **Not yet:** titles in the 3D view's signs, the ruler card and the log; titles from how a realm was born ("Free Cities of") or from its faith ("Theocracy of"), which would need a kind of government in the simulation.
+
+### 5.4s Split marks
+
+Three marks make a realm breaking apart easy to see. All are for the screen only.
+
+- **Fresh seams** (`src/render/seams.ts`): for `SEAM_YEARS` after a realm breaks away, its border with the realm it left, and with other realms that left the same one, is inked red and fades. Worked out from each realm's `parent` and `founded`, pixel by pixel, so the line follows the drawn border. Zoomed in, the seam is stretched from the whole-map picture and looks a little soft.
+- **Founding year:** a realm founded within `FOUNDING_NOTE_YEARS` carries "est. 412" in red under its name.
+- **Ghost names** (`src/render/ghosts.ts`): when a realm that held at least `GHOST_MIN_SHARE` of the land loses `GHOST_LOSS` of it within `GHOST_WINDOW` years, with at least one rebellion or collapse among the causes, its name stays across its old land, faint and wide, for `GHOST_YEARS`. Land lost only to conquest leaves no ghost. The same moment is a headline of kind `shatter`: *"Krakhar breaks apart; four realms rise from its lands."*
+- Ghosts are remembered by the screen, not the save: after Load, the ghosts of earlier breaks are gone (seams and founding years are not, as they come from the world).
 
 ### 5.5 Performance budget
 - At 1600×900 with ~10k cells: overlay redraw under 8 ms, sim tick under 10 ms, smooth at 50 years per second. Measured after M13: overlay 1.4 ms, effects 0.2 ms, tick ~4.6 ms in the browser, a whole new-year frame ~21 ms.
@@ -950,3 +972,13 @@ Latest campaign extension: [simple sieges, supply and repeatable tuning](systems
 - Hex cells as a style option? Placing cell centers on an offset grid with no jitter makes the Voronoi cells exact hexagons; `sim/` would not change.
 - Should holding another nation's claimed land also lower its opinion of you (§4.12)? Claims only raise war chance today.
 - Provinces and seas have no names yet. Name them (and show them on the map)?
+
+### 5.4t Peoples
+
+Which races still rule, so a world can be told as "the run where the Dark Elves fell". Worked out on the screen each year (`src/ui/peoples.ts`); nothing is stored, so history and saves are unchanged.
+
+- **The list** (`peoples()`): for each race, its living realms (vassals included) and the share of all land they hold, counted from the map. A race with no realm stays in the list, greyed and struck through, with the year it fell. Clicking a line lights up that race's realms.
+- **The news** (`createPeoplesWatch`): when a race's last realm falls, the headline names it ("Ithil falls, and with it the last realm of the Dark Elves."); when a fallen race rules again (rebels, or a realm reborn), "The Dark Elves rule again: … rises." A race that never ruled before is not a return (open starts). Weights `lastOfRace` and `raceReturns`, sized by the most land the race ever ruled.
+- **What it does not mean:** the race's people still live in their cells under foreign rulers (`state.race` only changes when land empties or is settled), which is how a fallen race can rise again.
+- **Measured** (24 validation worlds, 1,000 years, before conquerors were strengthened): a race loses its last realm about once per world (1.0), and 4.7 of the 5 races rule at year 1,000. Open starts lose more (2.3).
+- The watch starts fresh when a save is loaded, so "fell in" years before the load are not shown.

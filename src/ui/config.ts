@@ -51,6 +51,11 @@ export const HEADLINE_MIN_SCORE = 0.9;
 export const HEADLINE_SIZE_FLOOR = 0.05;
 /** How much each kind of news matters. Its score is this × (HEADLINE_SIZE_FLOOR + the biggest realm's share of the land). */
 export const HEADLINE_WEIGHTS = {
+  lastOfRace: 14,
+  raceReturns: 9,
+  shatter: 12,
+  proclaimed: 9,
+  diminished: 8,
   conquest: 10,
   collapse: 10,
   civilWar: 9,

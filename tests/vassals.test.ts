@@ -1,12 +1,13 @@
 // Vassalage v1 (docs/systems/vassalage.md): who serves whom, their duties, and the ways out.
 import { describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
-import { Race, type RaceId, type War } from "../src/core/types";
+import { Race, RulerType, type RaceId, type War } from "../src/core/types";
 import { AI, everyoneAI } from "../src/sim/ai/default";
 import type { Controller } from "../src/sim/ai/controller";
 import { defaultPolicies, PLAYER } from "../src/sim/ai/player";
 import { allianceRefusal } from "../src/sim/diplomacy";
-import { independence, independenceRefusal } from "../src/sim/independence";
+import { independence, independenceRefusal, weakMoment } from "../src/sim/independence";
+import { SIM } from "../src/sim/params";
 import { applyPlayerCommand } from "../src/sim/play";
 import { callAllies, concludeWar, declareWarRefusal, endWars, helpers, warLookups } from "../src/sim/war";
 import { becomeVassal, crownOf, sameCrown, vassalsOf } from "../src/sim/vassals";
@@ -87,13 +88,46 @@ describe("ways out", () => {
     expect(events[0]!.text).toContain("serves no one");
   });
 
-  it("only in the year the overlord's new ruler is crowned may a vassal declare independence", () => {
+  it("a vassal may declare independence only while its overlord is weak", () => {
     const state = crown();
     state.year = 5;
-    expect(independenceRefusal(state, state.nations.get(2))).toContain("new ruler");
-    state.nations.get(1)!.ruler.crowned = 5;
-    expect(independenceRefusal(state, state.nations.get(2))).toBeNull();
+    const overlord = state.nations.get(1)!;
+    const vassal = state.nations.get(2)!;
+    expect(independenceRefusal(state, vassal)).toContain("new ruler");
     expect(independenceRefusal(state, state.nations.get(3))).toContain("serves no overlord");
+
+    // Each of the four moments opens the door, and closes it again when it passes.
+    overlord.ruler.crowned = 5;
+    expect(weakMoment(state, overlord, vassal)).toBe("crowned");
+    overlord.ruler.crowned = 0;
+    overlord.humbled = 5 - SIM.HUMBLED_YEARS + 1;
+    expect(weakMoment(state, overlord, vassal)).toBe("defeated");
+    overlord.humbled = 5 - SIM.HUMBLED_YEARS;
+    expect(weakMoment(state, overlord, vassal)).toBeNull();
+    overlord.stability = SIM.WEAK_STABILITY - 0.01;
+    expect(weakMoment(state, overlord, vassal)).toBe("unstable");
+    overlord.stability = 1;
+    state.wars.push(war(1, 3));
+    expect(weakMoment(state, overlord, vassal)).toBe("atWar");
+    expect(independenceRefusal(state, vassal)).toBeNull();
+  });
+
+  it("a truce after a failed rising holds the vassal back", () => {
+    const state = crown();
+    state.year = 5;
+    state.nations.get(1)!.ruler.crowned = 5;
+    state.truces.push({ a: 1, b: 2, until: 9 });
+    expect(independenceRefusal(state, state.nations.get(2))).toContain("truce");
+  });
+
+  it("losing a war of its own humbles a realm", () => {
+    const state = crown();
+    state.year = 7;
+    const w = war(3, 1);
+    state.wars.push(w);
+    concludeWar(state, w, state.nations.get(3)!, "decisive", true);
+    expect(state.nations.get(1)!.humbled).toBe(7);
+    expect(state.nations.get(3)!.humbled).toBeUndefined();
   });
 
   it("declaring starts a war of independence; fellow vassals stay out", () => {
@@ -119,10 +153,12 @@ describe("ways out", () => {
     expect(events[0]!.text).toContain("too far");
   });
 
-  it("winning the war frees the vassal; anything else keeps it", () => {
-    for (const [winner, free] of [[2, true], [1, false], [null, false]] as const) {
+  it("a rising the overlord cannot put down frees the vassal; a crushed one keeps it", () => {
+    // [winner, the war's score (positive = the vassal ahead), free afterwards]
+    const cases = [[2, 40, true], [1, -40, false], [null, 0, true], [null, -SIM.RISING_HOLD_SCORE, false]] as const;
+    for (const [winner, score, free] of cases) {
       const state = crown();
-      const w = war(2, 1, { goal: "independence" });
+      const w = war(2, 1, { goal: "independence", score });
       state.wars.push(w);
       state.warRecords.push({ id: w.id, attacker: 2, defender: 1, goal: "independence", start: 0, allies: [], scores: [], battles: [], fallen: { attack: 0, defend: 0 }, moments: [] } as never);
       const event = concludeWar(state, w, winner === null ? null : state.nations.get(winner)!, "decisive", false)!;
@@ -184,6 +220,12 @@ describe("annex or vassal (what a winner makes of the loser)", () => {
       return Array.from({ length: 400 }, (_, i) => AI.subjugate(state, me, state.nations.get(2)!, true, createRng(`a${i}`))).filter((c) => c === "annex").length;
     };
     expect(annexes(Race.Orc)).toBeGreaterThan(annexes(Race.LightElf) * 3); // aggression 1.6 vs 0.5
+    // A Conqueror swallows the realm far more often than an ordinary ruler of the same race.
+    const elf = makeNation(1, 0, { race: Race.LightElf });
+    const count = () => Array.from({ length: 400 }, (_, i) => AI.subjugate(state, elf, state.nations.get(2)!, true, createRng(`c${i}`))).filter((c) => c === "annex").length;
+    const ordinary = count();
+    elf.ruler.great = RulerType.Conqueror;
+    expect(count()).toBeGreaterThan(ordinary * 2);
     // Equal strength: never a demand.
     expect(AI.subjugate(state, state.nations.get(1)!, state.nations.get(2)!, false, createRng("d"))).toBe("land");
     state.nations.get(1)!.reserve = 100;

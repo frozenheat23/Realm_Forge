@@ -79,6 +79,7 @@ function printSummary(report, before) {
   const ratios = {
     giantsBrokenShare: (rows) => total(rows, "giantsBroken") / total(rows, "giants"),
     successorsPerBreakup: (rows) => total(rows, "successorStates") / total(rows, "giantsBroken"),
+    conquerorRealmsHalvedShare: (rows) => total(rows, "conquerorRealmsHalved") / total(rows, "conquerorRealmsWatched"),
     vassalsRevoltedShare: (rows) => total(rows, "vassalsRevolted") / left(rows),
     vassalsChangedCrownShare: (rows) => total(rows, "vassalsChangedCrown") / left(rows),
     vassalsAbsorbedShare: (rows) => total(rows, "vassalsAbsorbed") / left(rows),

@@ -2,8 +2,10 @@
 // the great news so far. It fills whatever height the map and controls leave, and hides when
 // that is too little. Only reads the world.
 import type { NationId, WorldState } from "../core/types";
+import { RACE_COLORS } from "../render/palette";
 import { BAND_MIN_HEIGHT, CHRONICLE_MAX, STANDINGS_COUNT } from "./config";
 import type { News } from "./headlines";
+import { peoples, type PeoplesWatch } from "./peoples";
 
 /** One row of the standings: a crown (a realm with its vassals) and the land it holds. */
 export interface Standing {
@@ -55,15 +57,24 @@ function make(tag: string, className: string, text = ""): HTMLElement {
   return node;
 }
 
-/** `onPick` runs with a row's realms when a standing or a chronicle line is clicked. */
-export function createWorldBand(container: HTMLElement, land: number, onPick: (nations: NationId[]) => void): WorldBand {
+/** What the Peoples list says about a race: its realms and land, or since when it rules nowhere. */
+export function peopleNote(realms: number, share: number, fell: number | undefined): string {
+  if (realms === 0) return fell === undefined ? "no realm" : `fell in ${fell}`;
+  return `${realms} realm${realms === 1 ? "" : "s"} · ${Math.round(share * 100)}%`;
+}
+
+/** `onPick` runs with a row's realms when a standing, a people or a chronicle line is clicked. `watch` knows when a race fell. */
+export function createWorldBand(container: HTMLElement, land: number, onPick: (nations: NationId[]) => void, watch?: PeoplesWatch): WorldBand {
   const standingsBox = make("div", "band-part band-standings");
   const standingsList = make("div", "band-list");
   standingsBox.append(make("h4", "", "Greatest crowns"), standingsList);
   const chronicleBox = make("div", "band-part band-chronicle");
   const chronicleList = make("div", "band-list");
   chronicleBox.append(make("h4", "", "Chronicle"), chronicleList);
-  container.append(standingsBox, chronicleBox);
+  const peoplesBox = make("div", "band-part band-peoples");
+  const peoplesList = make("div", "band-list");
+  peoplesBox.append(make("h4", "", "Peoples"), peoplesList);
+  container.append(standingsBox, peoplesBox, chronicleBox);
 
   // The band takes the height left over below the map: with too little, it shows nothing.
   new ResizeObserver(() => container.classList.toggle("cramped", container.clientHeight < BAND_MIN_HEIGHT)).observe(container);
@@ -87,6 +98,18 @@ export function createWorldBand(container: HTMLElement, land: number, onPick: (n
           const note = row.vassals > 0 ? ` · ${row.vassals} vassal${row.vassals === 1 ? "" : "s"}` : "";
           line.append(swatch, make("span", "standing-name", row.name), bar, make("span", "standing-share", `${Math.round(row.share * 100)}%${note}`));
           line.addEventListener("click", () => onPick([row.id]));
+          return line;
+        }),
+      );
+      peoplesList.replaceChildren(
+        ...peoples(state, land).map((row) => {
+          // A race that rules nowhere stays in the list, greyed out.
+          const line = make("div", row.realms.length > 0 ? "people" : "people gone");
+          const swatch = make("span", "sw");
+          swatch.style.background = RACE_COLORS[row.race]!;
+          line.append(swatch, make("span", "people-name", row.name), make("span", "people-note", peopleNote(row.realms.length, row.share, watch?.fellIn(row.race))));
+          if (row.vassals > 0) line.title = `${row.vassals} of them serve an overlord`;
+          line.addEventListener("click", () => onPick(row.realms));
           return line;
         }),
       );

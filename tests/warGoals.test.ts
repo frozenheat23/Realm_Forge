@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createRng } from "../src/core/rng";
-import { NO_TARGET, type War, type WarGoal } from "../src/core/types";
+import { NO_TARGET, RulerType, type War, type WarGoal } from "../src/core/types";
 import { campaign } from "../src/sim/armies";
 import { SIM } from "../src/sim/params";
 import { endWars } from "../src/sim/war";
@@ -69,6 +69,19 @@ describe("how much a conquest aims for", () => {
     expect(provinces(3).conquest().goalCells).toEqual([5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
     SIM.RAID_CHANCE = raid;
     SIM.SUBJUGATE_RATIO = subjugate;
+  });
+
+  it("a Conqueror aims only for the enemy's throne", () => {
+    const raid = SIM.RAID_CHANCE;
+    SIM.RAID_CHANCE = 0;
+    const { state, conquest } = provinces(1);
+    state.nations.get(1)!.ruler.great = RulerType.Conqueror;
+    // Nation 2's capital is cell 19, at the far end of its land.
+    expect(conquest().goalCells).toEqual([19]);
+    SIM.GREAT_CONQUEROR_THRONE = 0;
+    expect(conquest().goalCells).toContain(5);
+    SIM.GREAT_CONQUEROR_THRONE = 1;
+    SIM.RAID_CHANCE = raid;
   });
 
   it("never aims past CONQUEST_MAX_PROVINCES", () => {

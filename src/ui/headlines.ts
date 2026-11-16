@@ -73,12 +73,20 @@ export interface News {
   actors: NationId[];
 }
 
+/** News the rules do not log, written by the screen: a realm breaking apart, a new empire (SPEC §5.4r, §5.4s). */
+export interface ExtraNews {
+  event: SimEvent;
+  kind: HeadlineKind;
+  /** The size of the realm it is about (share of the land, 0..1), if that is not its size today. */
+  share?: number;
+}
+
 export interface Headlines {
   /**
-   * Call after each simulated year, with its events and the time now (ms).
+   * Call after each simulated year, with its events and the time now (ms). `extra` is news to weigh alongside them.
    * Returns the year's top news if it is great enough for the chronicle (CHRONICLE_MIN_SCORE), else null.
    */
-  noteYear(state: WorldState, events: SimEvent[], now: number): News | null;
+  noteYear(state: WorldState, events: SimEvent[], now: number, extra?: ExtraNews[]): News | null;
   /** The headline to draw at time `now`, or null. While paused it stays up, so it can be read. */
   current(now: number, playing: boolean): Headline | null;
   /** A realm's share of the land (0..1): this year's or last year's, whichever is larger, so a realm that just fell still has a size. */
@@ -106,7 +114,7 @@ export function createHeadlines(land: number): Headlines {
   }
 
   return {
-    noteYear(state, events, now) {
+    noteYear(state, events, now, extra = []) {
       sharesBefore = sharesNow;
       sharesNow = new Map<NationId, number>();
       const shares = sharesNow;
@@ -118,15 +126,16 @@ export function createHeadlines(land: number): Headlines {
         rulers.set(n.id, n.ruler);
       }
       // Every throne that changed hands this year gets its own line; the log's own "dies after" lines would repeat them.
-      const news = events.filter((e) => !(e.type === "ruler" && e.text.includes("dies after"))).map((event) => ({ event, kind: headlineKind(event) }));
+      const news: ExtraNews[] = events.filter((e) => !(e.type === "ruler" && e.text.includes("dies after"))).map((event) => ({ event, kind: headlineKind(event) }));
+      news.push(...extra);
       for (const [id, ruler] of rulers) {
         const old = rulersBefore.get(id);
         if (!old || old === ruler || ruler.crowned !== state.year) continue;
         news.push({ event: successionNews(state.year, state.nations.get(id)!, old), kind: old.great !== undefined ? "greatDies" : "succession" });
       }
       let best: { event: SimEvent; score: number } | null = null;
-      for (const { event, kind } of news) {
-        const score = importance(kind, Math.max(0, ...event.actors.map(sizeOf)));
+      for (const { event, kind, share } of news) {
+        const score = importance(kind, Math.max(share ?? 0, ...event.actors.map(sizeOf)));
         if (!best || score > best.score) best = { event, score };
       }
       rulersBefore = rulers;

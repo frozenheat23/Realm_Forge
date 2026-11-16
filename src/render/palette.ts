@@ -511,3 +511,42 @@ export const HEADLINE_SEAL = 11;
 export const VERSUS_CARD_WIDTH = 132;
 /** Gap kept above and below the versus screen when it sits in the band below the map (page pixels). */
 export const VERSUS_GAP = 8;
+
+// --- Realm titles (SPEC §5.4r). See docs/PARAMS.md ("Realm titles"). ---
+/** A crown holding at least this share of the land (its vassals' land counts) is an empire. */
+export const TITLE_EMPIRE_SHARE = 0.2;
+/** A realm holding at least this share of the land is a kingdom; smaller ones are duchies. */
+export const TITLE_KINGDOM_SHARE = 0.02;
+/** A realm keeps its rank this many years after shrinking below it, so titles don't flicker. */
+export const TITLE_FALL_YEARS = 15;
+/** The title line above a name ("KINGDOM OF"): its letter height as a share of the name's, and its smallest size in pixels. */
+export const TITLE_SIZE_SHARE = 0.42;
+export const TITLE_MIN_SIZE = 8;
+/** Names smaller than this (pixels) get no title line: it would be too small to read. */
+export const TITLE_MIN_NAME_SIZE = 15;
+export const TITLE_COLOR = "#5a4f3e";
+
+// --- Split marks (SPEC §5.4s). See docs/PARAMS.md ("Split marks"). ---
+/** Red ink of a fresh border and of a new realm's founding year. */
+export const SEAM_COLOR: [number, number, number] = [162, 58, 42];
+/** A breakaway's borders with its old realm (and with its fellow breakaways) stay red this many years, fading. */
+export const SEAM_YEARS = 12;
+export const SEAM_ALPHA = 0.9;
+/** A new realm's label carries "est. 412" this many years. */
+export const FOUNDING_NOTE_YEARS = 10;
+/** The founding year's letter height as a share of the name's, and its smallest size in pixels. */
+export const FOUNDING_NOTE_SHARE = 0.45;
+export const FOUNDING_NOTE_MIN_SIZE = 9;
+/** Only a realm that held at least this share of the land leaves a ghost name when it breaks. */
+export const GHOST_MIN_SHARE = 0.08;
+/** It counts as broken when it has lost this share of its land... */
+export const GHOST_LOSS = 0.3;
+/** ...within this many years, with at least one rebellion or collapse among the causes. */
+export const GHOST_WINDOW = 15;
+/** How long the ghost name stays on the map (years), fading from GHOST_ALPHA to nothing. */
+export const GHOST_YEARS = 30;
+export const GHOST_ALPHA = 0.3;
+/** The ghost name is this much larger than a living realm's name over the same land, and more widely spaced. */
+export const GHOST_SIZE = 1.5;
+export const GHOST_MAX_SIZE = 64;
+export const GHOST_LETTER_SPACING = 0.5;

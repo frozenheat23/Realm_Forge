@@ -151,8 +151,10 @@ export function dispatchesFor(state: WorldState, events: SimEvent[], before: Rea
     // A new ruler not named by any event this year (an ordinary reign ending, or a great one's death).
     if (now.ruler !== before.ruler && !out.some((d) => d.kind === "ruler" && d.text.includes(me.ruler.name))) add(out.some((d) => d.kind === "ruler") ? "ruler" : "heir", `A new ruler takes the throne of ${me.name}: ${me.ruler.name} of ${me.ruler.dynasty}.`);
     const overlord = overlordOf(state, me.id);
-    if (overlord && overlord.ruler.crowned === state.year && !state.wars.some((w) => w.goal === "independence" && w.attacker === me.id)) {
-      add("vassal", `A new ruler takes the throne of ${overlord.name}, your overlord. You may declare independence under Orders, this year only.`);
+    if (overlord && !state.wars.some((w) => w.goal === "independence" && w.attacker === me.id)) {
+      // A coronation and a lost war are told in the year they happen; the slower weaknesses show on the Play tab.
+      if (overlord.ruler.crowned === state.year) add("vassal", `A new ruler takes the throne of ${overlord.name}, your overlord. You may declare independence under Orders.`);
+      else if (overlord.humbled === state.year) add("vassal", `${overlord.name}, your overlord, has lost a war. You may declare independence under Orders while it is weak.`);
     }
     if (now.faithOffered !== null && now.faithOffered !== before.faithOffered) {
       add("faith", `Most of your people now hold ${faithInfo(now.faithOffered).name}. You can adopt it under Orders.`);

@@ -195,18 +195,20 @@ export const AI: Controller = {
   subjugate(view, me, loser, capitalHeld, rng) {
     const aggression = traits(me.race).aggression;
     // Holding the capital: aggressive races are likelier to swallow the realm whole.
-    if (capitalHeld) return rng.chance(SIM.ANNEX_CHANCE * aggression ** 2) ? "annex" : "vassal";
+    if (capitalHeld) return rng.chance(SIM.ANNEX_CHANCE * aggression ** 2 * greatBonus(me, RulerType.Conqueror, SIM.GREAT_CONQUEROR_ANNEX)) ? "annex" : "vassal";
     // Otherwise a far stronger winner may demand submission; gentler races like vassals more than land.
     const ratio = crownPower(view, me) / Math.max(crownPower(view, loser), 1e-6);
     if (ratio < SIM.VASSAL_DEMAND_RATIO) return "land";
     return rng.chance(SIM.VASSAL_DEMAND_CHANCE / aggression) ? "vassal" : "land";
   },
 
-  declareIndependence(view, me, overlord, rng) {
+  declareIndependence(view, me, overlord, moment, rng) {
     // Likelier the more it dislikes its overlord, and the stronger it is next to it.
     const dislike = (1 - opinion(view, me.id, overlord.id)) / 2;
     const strength = Math.min(1, fightingPower(view, me) / Math.max(fightingPower(view, overlord), 1e-6));
-    return rng.chance(SIM.INDEPENDENCE_CHANCE * dislike * strength);
+    // A coronation comes once in a reign; the other moments can last for years, so each year's chance is smaller.
+    const chance = moment === "crowned" ? SIM.INDEPENDENCE_CHANCE : SIM.INDEPENDENCE_WEAK_CHANCE;
+    return rng.chance(chance * dislike * strength);
   },
 
   adoptFaith(_view, _me, _faith, rng) {

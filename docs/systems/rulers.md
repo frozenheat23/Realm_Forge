@@ -49,7 +49,7 @@ Because the chance is per ruler, reign length changes the feel, not the share of
 
 | Type | Effect |
 |---|---|
-| **Conqueror** | Army power × `GREAT_CONQUEROR_POWER`, war chance × `GREAT_CONQUEROR_WAR` |
+| **Conqueror** | Army power × `GREAT_CONQUEROR_POWER`, war chance × `GREAT_CONQUEROR_WAR`. Since 2026-11-17: its wars of conquest aim only for the enemy capital (`GREAT_CONQUEROR_THRONE`), it swallows a realm whose capital it holds far more often (× `GREAT_CONQUEROR_ANNEX`), and its realm can rule × `GREAT_CONQUEROR_CAP` as much land while it reigns |
 | **Lawgiver** | `adminCap` × `GREAT_LAWGIVER_CAP`, `UNREST_DECAY` × `GREAT_LAWGIVER_CALM` on its land |
 | **Builder** | `DEV_GROWTH` × `GREAT_BUILDER_DEV` |
 | **Prophet** | Spread of the nation's faith × `GREAT_PROPHET_SPREAD`, at home and across its borders |
@@ -158,3 +158,5 @@ Measured on 20 seeds never used for tuning, each 1,000 years, against the same s
 - **Conquerors don't make giants.** Even at power × 2 and war chance × 3, the peak hardly moved. A reign is short and real empires take centuries, so the great rulers add story more than they change how large empires get. Reaching 40–70% more often needs a different lever.
 - **Leave-one-out** (20 tuning seeds, each switched off in turn). The Conqueror matters most: without them rebellions fall 23%, wars 9%, and no world reached 50%. No type swings rebellions or peak empires by more than a quarter. Builder, Lawgiver, Prophet and Schemer differences are within noise in these overall numbers. Each one's own effect is shown by unit tests.
 - **The Prophet** doesn't show a measured rise in realm conversions: 6.2 a run with them, 6.8 without. Conversions rose after M13 for other reasons, most likely more nations changing hands.
+- **Conquerors, second pass (2026-11-17).** Measured on 6 tuning worlds: a Conqueror reigns about 23 years, starts about 2 wars and wins 1, and its realm ends the reign about as large as it began. Aiming its army at the throne made each war of conquest worth about 26 cells against 7.5 for an ordinary one, and a quarter of them take the whole realm (6% before). But there is under one such war per reign, so the world's overall numbers did not move. Tried and dropped because they changed nothing measurable: refusing peace until the capital falls, tiring of war half as fast, war chance × 4, army power × 2.5. Why a Conqueror starts so few wars is not understood yet.
+

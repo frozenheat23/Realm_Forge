@@ -2,7 +2,7 @@
 // the big picture — wars, empires and crowns, breakups, realms, vassals, races, speed.
 // Used by tests/worldReport.test.ts, which `npm run report` runs in parallel shards.
 import { createRng } from "../src/core/rng";
-import type { StartOptions, WorldState } from "../src/core/types";
+import { RulerType, type StartOptions, type WorldState } from "../src/core/types";
 import { PLAYABLE_RACES } from "../src/gen/races";
 import { createWorld } from "../src/sim/start";
 import { tick } from "../src/sim/tick";
@@ -18,6 +18,8 @@ export const BROKEN_SHARE = 0.125;
 
 /** A realm holding this share of a broken empire's old land counts as one of its successor states. */
 export const SUCCESSOR_SHARE = 0.05;
+/** A Conqueror's realm is watched this many years after the death, to see if it loses half its land. */
+export const CONQUEROR_AFTER = 50;
 
 /** How a vassal's service ended. */
 export type ServiceEnd = "revolt" | "overlordFell" | "absorbed" | "changedCrown" | "letGo";
@@ -115,6 +117,18 @@ export async function measureWorld(spec: WorldSpec): Promise<Record<string, numb
   // Vassals: when each began serving its current overlord; how long finished services lasted.
   const serving = new Map<number, { overlord: number; since: number }>();
   const served: number[] = [];
+  // Races: which rule a realm now, and how often one lost its last realm.
+  const ruling = () => new Set([...state.nations.values()].filter((n) => n.alive).map((n) => n.race));
+  let rulingBefore = ruling();
+  let racesFallen = 0;
+  // Conquerors: each reign going on now (the realm's size at the crowning), and each realm being watched after its Conqueror died.
+  const reigning = new Map<number, { ruler: unknown; area: number }>();
+  const mourning: { id: number; area: number; until: number }[] = [];
+  let conquerors = 0;
+  const conquerorGrowth: number[] = [];
+  let halved = 0;
+  let watched = 0;
+  let realmsConquered = 0;
 
   await runYears(YEARS, () => {
     const t = performance.now();
@@ -151,6 +165,32 @@ export async function measureWorld(spec: WorldSpec): Promise<Record<string, numb
       }
       if (now !== undefined && !serving.has(n.id)) serving.set(n.id, { overlord: now, since: state.year });
     }
+    for (const n of state.nations.values()) {
+      const reign = reigning.get(n.id);
+      if (reign && (!n.alive || n.ruler !== reign.ruler)) {
+        // The reign is over: how much did the realm grow, and what becomes of it now?
+        reigning.delete(n.id);
+        conquerorGrowth.push(n.alive ? n.area / Math.max(reign.area, 1) : 0);
+        if (n.alive) mourning.push({ id: n.id, area: n.area, until: state.year + CONQUEROR_AFTER });
+      }
+      if (n.alive && n.ruler.great === RulerType.Conqueror && !reigning.has(n.id)) {
+        reigning.set(n.id, { ruler: n.ruler, area: n.area });
+        conquerors++;
+      }
+    }
+    for (let i = mourning.length - 1; i >= 0; i--) {
+      const watch = mourning[i]!;
+      const n = state.nations.get(watch.id)!;
+      const broke = !n.alive || n.area < watch.area / 2;
+      if (!broke && state.year < watch.until) continue;
+      mourning.splice(i, 1);
+      watched++;
+      if (broke) halved++;
+    }
+    const rulingNow = ruling();
+    for (const race of rulingBefore) if (!rulingNow.has(race)) racesFallen++;
+    rulingBefore = rulingNow;
+    realmsConquered += events.filter((e) => e.type === "annexed").length;
     const realms = alive();
     if (realms > realmsPeak) realmsLowAfterPeak = realmsPeak = realms;
     realmsLowAfterPeak = Math.min(realmsLowAfterPeak, realms);
@@ -222,7 +262,15 @@ export async function measureWorld(spec: WorldSpec): Promise<Record<string, numb
     vassalsAbsorbed: ends.absorbed,
     vassalsChangedCrown: ends.changedCrown,
     vassalsLetGo: ends.letGo,
+    // Conquerors: how many reigned, how much their realms grew, and how many of those realms halved within CONQUEROR_AFTER years of the death
+    conquerorsPerCentury: conquerors / centuries,
+    conquerorGrowth: mean(conquerorGrowth),
+    conquerorRealmsHalved: halved,
+    conquerorRealmsWatched: watched,
     // Races
+    racesFallen,
+    racesRulingAt1000: rulingBefore.size,
+    realmsConqueredPerCentury: realmsConquered / (YEARS / 100),
     biggestRaceShare: Math.max(...PLAYABLE_RACES.map((r) => (raceCounts.get(r) ?? 0) / Math.max(settled, 1))),
     // Speed (wall time; several shards share the machine, so read it as a rough guide)
     tickMs: tickMs / YEARS,
