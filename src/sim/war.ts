@@ -14,7 +14,7 @@ import { SIM } from "./params";
 import { cellValue, effectiveCapacity, grainBonuses } from "./resources";
 import { occupationCounts, occupationScore, occupiedBy } from "./siege";
 import { crownPartners, overlordOf, sameCrown, setFree } from "./vassals";
-import { closeRecord, openRecord, recordScore } from "./warRecords";
+import { closeRecord, openRecord, recordOf, recordScore } from "./warRecords";
 import { claimedCells, claimYears, conquestCells, goalAchieved, goalsHeld, holdsCapital, payTribute, takeLand } from "./warGoals";
 
 // They used to live here; other files still import them from war.ts.
@@ -315,6 +315,11 @@ export function concludeWar(state: WorldState, war: War, winner: Nation | null, 
   // Losing a war of its own (not an ally's) is a moment of weakness its vassals may use.
   if (winner && war.joined === undefined) loser.humbled = state.year;
   const taken = winner && !raided ? takeLand(state, war, winner, loser, sued, choice) : [];
+  // Joined wars have no separate outcome, even when their peace swallows a whole realm.
+  if (war.joined !== undefined && taken.length > 0 && !loser.alive) {
+    const record = recordOf(state, war.joined);
+    if (record) (record.alliedAnnexations ??= []).push(taken.length);
+  }
   // Land changed hands, so the two realms tidy the line between them.
   if (taken.length > 0) settleBorder(state, attacker, defender);
   // A loser who sued and gave up no land pays in other ways.

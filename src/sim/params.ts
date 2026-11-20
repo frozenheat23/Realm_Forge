@@ -13,7 +13,7 @@ export const SIM = {
   // --- Stability ---
   STAB_RECOVERY: 0.01,
   ADMIN_CAP_BASE: 120,
-  OVEREXT_K: 0.00003,
+  OVEREXT_K: 0.000012,
   /** Extra land a brand-new nation can rule, as a multiple of its normal cap. */
   VIGOR_BONUS: 120,
   /** Years for that extra to fade to ~37%. */
@@ -83,6 +83,8 @@ export const SIM = {
   // --- Culture and faith (SPEC §4.14) ---
   /** Yearly chance a cell copies its ruler's culture from a neighbor (× assimilation × control). */
   CULTURE_RATE: 0.05,
+  /** Yearly chance the ruling people become the local majority on calm foreign core land, scaled by control. */
+  PEOPLE_SETTLEMENT_RATE: 0.02,
   /** Cells this restless or worse keep their culture. */
   ASSIMILATE_MAX_UNREST: 0.3,
   /** Yearly chance a cell copies a neighbor's faith (× reach × conversion). */

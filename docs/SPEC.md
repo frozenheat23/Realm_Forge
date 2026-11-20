@@ -353,7 +353,7 @@ If a nation's stability is below `REBEL_THRESHOLD`, each year it has a chance of
 - **Collapse:** a nation with `area < MIN_AREA`, or with no cells left, dissolves. Each of its cells is annexed by the strongest nation bordering *that cell* (judged on ownership before the collapse, so it doesn't chain), or becomes unowned if there's none. Logged as `annexed` (naming the nation that took the most cells) or `collapse`. Annexed cells keep their people, race, culture and faith; cells left unowned are emptied (all reset to 0).
 
 ### 4.8 Emergence
-If a connected unowned land region has at least `EMERGENCE_MIN_REGION` habitable cells, each year it has an `EMERGENCE_PROB` chance of spawning a new nation at its highest-capacity cell, claiming `EMERGENCE_CORE_SIZE` cells around it. The new nation's race is the race of the nearest race homeland (§4.10), and its cells are settled by that race.
+If a connected unowned land region has at least `EMERGENCE_MIN_REGION` habitable cells, each year it has an `EMERGENCE_PROB` chance of spawning a new nation at its highest-capacity cell, claiming `EMERGENCE_CORE_SIZE` cells around it. The new nation's race is the race of the nearest race homeland (§4.10), and its cells are settled by that race. A people can found its first realm here. Once it has had a realm, founding another requires a living realm or a cell where its people still live.
 
 ### 4.9 Events
 Emit a `SimEvent` for: nation founded, war declared (and allies joining, also type `war`), peace signed, rebellion, collapse, annexation, capital moved, alliance formed, alliance broken, city founded (§4.11), battle. Battles are named after a city within `BATTLE_NAME_RANGE` steps (*"Year 412: at the Battle of Arvenna, Velmora routs the host of Kethar (12,000 fell)."*), otherwise after the land (*"in the hills of Kethar"*). Each event gets a short readable sentence, e.g. *"Year 412: Velmora declares war on the Kethari Reach."*
@@ -385,11 +385,7 @@ Every cell's people belong to one race, and every nation is ruled by one race. E
 
 **Homelands (generation).** For each race, pick `RACE_HOMES_PER_RACE` land cells as homeland points, each chosen at random weighted by `capacity × affinity ^ RACE_HOME_FOCUS` for that race (seeded stream `races`), so races start in land that suits them. Stored as `raceHomes`. Starting nations (§3.8) and emerging nations (§4.8) take the race of the nearest homeland point.
 
-**Where races live.** A cell's race changes in only two ways:
-1. A nation claims an empty cell: it's settled by the nation's race (§4.4).
-2. A cell is left unowned: it's emptied and its race is reset to 0 (§4.1, §4.7).
-
-Conquest and annexation keep the people (and their race) in place. So a race's lands grow by settling and shrink by being emptied, and a conqueror's empire fills up with foreign subjects who weigh on its stability and lead its rebellions. Culture and faith (§4.14) change far more easily than race: only a race never changes.
+**Where races live.** Settlers bring their realm's race to newly claimed land. Abandoned cells empty. Conquest and annexation leave the residents in place at the peace, so foreign subjects can rise against a new ruler. Under generations of settled foreign rule, the local majority can change (§4.14). A people that loses its last realm can still return while it lives somewhere on the map (§4.8).
 
 ### 4.11 Land and cell detail
 
@@ -633,9 +629,9 @@ Like races and land detail, this adds no tick step: new values change numbers in
 | Nation | `faith` | The faith of its rulers. Can change (see Realm conversion) |
 | Nation | `fell?` | Year it died |
 
-Both tags are set wherever `race` is set: generation, expansion, emergence, and cleared when a cell is left empty (§4.1, §4.7). Conquest leaves them alone.
+Generation, expansion and emergence set both tags, and abandoned cells clear them (§4.1, §4.7). A peace treaty preserves local culture and faith.
 
-A cell only ever assimilates to a ruler of its own race, so **a culture always belongs to one race**.
+A culture belongs to one race. When settlers of another race become the majority, the cell adopts their race and culture together.
 
 #### Faiths
 
@@ -657,7 +653,9 @@ Nine, in the `FAITHS` table (`gen/params.ts`, next to `RACES`). **Reach** is how
 
 #### Spreading (`sim/culture.ts`, `sim/faith.ts`)
 
-Both use the **neighbor rule**, which grows solid blobs rather than speckle. Each year, each populated cell that could change looks at one random neighbor and copies its tag with a small chance.
+Same-race culture and religious conversion spread through neighbors. Each eligible cell samples one neighbor a year. Settlement under foreign rule follows local control.
+
+**Settlement after conquest.** Each populated foreign cell held for `CORE_YEARS` (50 by default), free of occupation and below `ASSIMILATE_MAX_UNREST`, has an annual `PEOPLE_SETTLEMENT_RATE × control` chance of taking its ruler's race and culture. The cell represents the local majority. Population size carries over. Local faith carries over if the new residents can practice it, otherwise settlers bring their nearest homeland's faith. The settlement roll uses its own stream. All five peoples follow the same rule.
 
 **Culture (assimilation).** A cell can only be assimilated if it has the ruler's race but not the ruler's culture, is core land (§4.11), has unrest below `ASSIMILATE_MAX_UNREST` and isn't occupied. It copies a neighbor of the ruler's culture with chance `CULTURE_RATE × assimilation × control`, where `assimilation` is a new race trait of the people living there.
 
@@ -979,6 +977,6 @@ Which races still rule, so a world can be told as "the run where the Dark Elves 
 
 - **The list** (`peoples()`): for each race, its living realms (vassals included) and the share of all land they hold, counted from the map. A race with no realm stays in the list, greyed and struck through, with the year it fell. Clicking a line lights up that race's realms.
 - **The news** (`createPeoplesWatch`): when a race's last realm falls, the headline names it ("Ithil falls, and with it the last realm of the Dark Elves."); when a fallen race rules again (rebels, or a realm reborn), "The Dark Elves rule again: … rises." A race that never ruled before is not a return (open starts). Weights `lastOfRace` and `raceReturns`, sized by the most land the race ever ruled.
-- **What it does not mean:** the race's people still live in their cells under foreign rulers (`state.race` only changes when land empties or is settled), which is how a fallen race can rise again.
+- **Surviving people:** a race that still lives under foreign rulers can rise again. Its last enclave may also fade under long foreign rule (§4.14).
 - **Measured** (24 validation worlds, 1,000 years, before conquerors were strengthened): a race loses its last realm about once per world (1.0), and 4.7 of the 5 races rule at year 1,000. Open starts lose more (2.3).
 - The watch starts fresh when a save is loaded, so "fell in" years before the load are not shown.

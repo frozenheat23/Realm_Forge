@@ -22,6 +22,11 @@ Saved numbers from measuring runs, so later changes can be compared on the same 
 | `crownsAt250/500/1000` | Independent crowns (a realm with its vassals counts once) |
 | `peakRealmShare`, `peakCrownShare` | Most land one realm, or one crown (a realm and its vassals), ever held |
 | `reached25`, `reached40`, `reached50` | Share of worlds where a crown reached 25% / 40% / 50% of the land |
+| `finalCrownShare`, `finalCrownOver60`, `finalCrownAtMost25` | Largest crown's share of all land after the final year's transfers. The two flags count worlds above 60% and at or below 25%, including vassals |
+| `largeRealmsConquered` | Realms taken whole in a single war settlement while holding at least 5% of all land. Includes allies' annexations. Partial transfers and realms dissolving below minimum size do not count |
+| `missingRulingRaceAtEnd`, `residentRacesAtEnd`, `largestResidentPeople` | Whether any of the five peoples lacks a realm, the number still represented on cells, and the people holding the most cells by residence (ties use race order). Each world's `ending` names its leading crown and which peoples still have realms |
+| `decidedConquests`, `exhaustedConquests`, `goalConquests`, `decisiveConquests`, `negotiatedConquests` | Main wars declared for conquest with a winner on either side, with counts by recorded peace reason. The total also includes wars that reached the time limit |
+| `partialConquestWins`, `partialConquestCells` | Decided conquests where the loser's realm survived the peace, and cells handed over in those treaties |
 | `giants`, `giantYears`, `giantsBroken` | Great empires per world (crowns that reached 25%); years they spent there; how many later fell below 12.5% |
 | `successorStates` | Counted in the year an empire breaks: realms outside its crown each holding 5% or more (`SUCCESSOR_SHARE`) of the land it held at its height |
 | `submissionsPerCentury`, `independenceWarsPerCentury`, `independenceWins` | Vassals made, wars of independence, and how many were won |
@@ -31,11 +36,15 @@ Saved numbers from measuring runs, so later changes can be compared on the same 
 | `biggestRaceShare` | The largest race's share of settled land at the end (over 50% = takeover) |
 | `tickMs` | Milliseconds per simulated year; rough, since shards share the machine |
 
-The summary ends with five **ratios**, worked out over all the worlds of a group together (so a world with no breakup doesn't count as zero): `giantsBrokenShare`, `successorsPerBreakup`, `vassalsRevoltedShare`, `vassalsChangedCrownShare`, `vassalsAbsorbedShare`. Compared with a file saved before a measure existed, that measure shows `NaN → value`.
+The summary pools the counts within each group of worlds before dividing. For example, `exhaustedConquestShare` divides exhausted conquest wins by all decided conquest wars. `cellsPerPartialConquest` divides cells transferred by the number of partial victories. The same approach measures giant breakups, successors, vassalage and the years after a Conqueror's death. Comparing with a file that predates a measure shows `NaN → value`.
 
 ## Saved files
 
-- `world-tuning-conquest.json`, `world-validation-conquest.json`: **the current baseline** (2026-11-17): Conquerors march for the throne, `PEACE_EXTRA_CELLS` 150, `ANNEX_CHANCE` 0.6.
+- `world-*-settlement-strain.json` is the November 20 iteration. The tuning run records the tested overextension override. Validation uses the same value as the new default.
+- `world-tuning-settlement.json` isolates settlement under long foreign rule with the original overextension cost.
+- `world-tuning-fatigue-trial.json` tests half the weariness from casualties under the November 17 rules. The experiment ended on the tuning set.
+- `world-*-endings-base.json` records the November 17 rules with the new ending measures. Across both sets all older simulation measures match the conquest reports seed for seed.
+- `world-tuning-conquest.json`, `world-validation-conquest.json`: the conquest pass (2026-11-17): Conquerors march for the throne, `PEACE_EXTRA_CELLS` 150, `ANNEX_CHANCE` 0.6.
 - `world-validation-peoples-base.json`: the rules of the one below, measured again with the race and Conqueror measures added.
 - `world-tuning-cycle1.json`, `world-validation-cycle1.json`: the one before (2026-11-16): empire cycle step 1 (vassals rise at moments of weakness).
 - `world-tuning-tidy7000.json`, `world-validation-tidy7000.json`: the one before (2026-11-15): 7,000 cells and tidy borders.

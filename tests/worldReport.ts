@@ -2,10 +2,11 @@
 // the big picture — wars, empires and crowns, breakups, realms, vassals, races, speed.
 // Used by tests/worldReport.test.ts, which `npm run report` runs in parallel shards.
 import { createRng } from "../src/core/rng";
-import { RulerType, type StartOptions, type WorldState } from "../src/core/types";
-import { PLAYABLE_RACES } from "../src/gen/races";
+import { RulerType, type StartOptions, type WarRecord, type WorldState } from "../src/core/types";
+import { PLAYABLE_RACES, traits } from "../src/gen/races";
 import { createWorld } from "../src/sim/start";
 import { tick } from "../src/sim/tick";
+import { standings } from "../src/ui/worldBand";
 import { runYears } from "./longRun";
 
 const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
@@ -77,6 +78,17 @@ function crownShares(state: WorldState, land: number): Map<number, number> {
     shares.set(overlord, (shares.get(overlord) ?? 0) + n.area / land);
   }
   return shares;
+}
+
+/** Count whole realms that still held at least 5% of all land when they were taken. */
+export function largeRealmsConquered(records: WarRecord[], land: number): number {
+  const minimum = land * 0.05;
+  let count = 0;
+  for (const { outcome, alliedAnnexations } of records) {
+    if (outcome?.wholeRealm && outcome.cells >= minimum) count++;
+    count += alliedAnnexations?.filter((cells) => cells >= minimum).length ?? 0;
+  }
+  return count;
 }
 
 /** The realms of one crown: the overlord and its living vassals. */
@@ -214,11 +226,20 @@ export async function measureWorld(spec: WorldSpec): Promise<Record<string, numb
     settled++;
   }
   const vassals = [...state.nations.values()].filter((n) => n.alive && n.overlord !== undefined);
+  const leader = standings(state, land, 1)[0];
+  // Restore an integer cell count before testing the exact 25% and 60% boundaries.
+  const finalCrown = Math.round((leader?.share ?? 0) * land) / land;
+  const largestPeople = PLAYABLE_RACES.reduce((a, b) => (raceCounts.get(b) ?? 0) > (raceCounts.get(a) ?? 0) ? b : a);
+  const missing = PLAYABLE_RACES.filter((race) => !rulingBefore.has(race)).map((race) => traits(race).plural);
+  const rulers = missing.length ? `the ${new Intl.ListFormat("en").format(missing)} held no realm` : "all five peoples still ruled realms";
+  const conquests = decided.filter((w) => w.goal === "conquer");
+  const partialWins = conquests.filter((w) => !w.outcome!.wholeRealm);
   const giantList = [...giants.values()];
 
   return {
     seed: spec.seed,
     kind: spec.kind,
+    ending: leader ? `In year ${state.year}, the crown of ${leader.name} held ${Math.round(finalCrown * 100)}% of the land and ${rulers}.` : `In year ${state.year}, no realm survived.`,
     // Wars
     warsPerCentury: state.warRecords.length / centuries,
     attackerWinShare: decided.filter((w) => w.outcome!.winner === w.attacker).length / Math.max(1, decided.length),
@@ -226,6 +247,14 @@ export async function measureWorld(spec: WorldSpec): Promise<Record<string, numb
     averageWarYears: mean(ended.map((w) => w.end! - w.start)),
     battlesPerWar: mean(ended.map((w) => w.battles.length)),
     cellsChangedPerCentury: sum(ended.map((w) => w.outcome?.cells ?? 0)) / centuries,
+    decidedConquests: conquests.length,
+    exhaustedConquests: conquests.filter((w) => w.outcome!.how === "exhausted").length,
+    goalConquests: conquests.filter((w) => w.outcome!.how === "goal").length,
+    decisiveConquests: conquests.filter((w) => w.outcome!.how === "decisive").length,
+    negotiatedConquests: conquests.filter((w) => w.outcome!.how === "terms").length,
+    partialConquestWins: partialWins.length,
+    partialConquestCells: sum(partialWins.map((w) => w.outcome!.cells)),
+    largeRealmsConquered: largeRealmsConquered(state.warRecords, land),
     // Breaking apart
     rebellionsPerCentury: events((_, type) => type === "rebellion") / centuries,
     civilWarsPerCentury: events((text) => text.includes("civil war tears")) / centuries,
@@ -241,6 +270,9 @@ export async function measureWorld(spec: WorldSpec): Promise<Record<string, numb
     crownsAt1000: crownsAt[1000] ?? 0,
     foundersAliveAt1000: founders.filter((id) => state.nations.get(id)!.alive).length,
     // Empires and crowns
+    finalCrownShare: finalCrown,
+    finalCrownOver60: Number(finalCrown > 0.6),
+    finalCrownAtMost25: Number(finalCrown <= GIANT_SHARE),
     peakRealmShare: peakRealm,
     peakCrownShare: peakCrown,
     reached25: peakCrown >= 0.25 ? 1 : 0,
@@ -269,8 +301,11 @@ export async function measureWorld(spec: WorldSpec): Promise<Record<string, numb
     conquerorRealmsWatched: watched,
     // Races
     racesFallen,
+    missingRulingRaceAtEnd: Number(rulingBefore.size < PLAYABLE_RACES.length),
     racesRulingAt1000: rulingBefore.size,
     realmsConqueredPerCentury: realmsConquered / (YEARS / 100),
+    residentRacesAtEnd: raceCounts.size,
+    largestResidentPeople: settled ? traits(largestPeople).plural : "None",
     biggestRaceShare: Math.max(...PLAYABLE_RACES.map((r) => (raceCounts.get(r) ?? 0) / Math.max(settled, 1))),
     // Speed (wall time; several shards share the machine, so read it as a rough guide)
     tickMs: tickMs / YEARS,

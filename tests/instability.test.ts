@@ -179,6 +179,23 @@ describe("emergence", () => {
     ]);
   });
 
+  it("a former homeland can found a realm while its people survive abroad, and stays empty after extinction", () => {
+    const size = SIM.EMERGENCE_MIN_REGION + 2;
+    const owners = Array<number>(size).fill(0);
+    owners[0] = 2;
+    const state = makeState(row(size), owners, [makeNation(1, 1, { alive: false }), makeNation(2, 0, { race: Race.Orc })]);
+    const before = SIM.EMERGENCE_PROB;
+    try {
+      SIM.EMERGENCE_PROB = 1;
+      expect(emergence(state, createRng("homeland"))).toHaveLength(0);
+      state.state.race[0] = Race.Human;
+      state.state.culture[0] = 1;
+      expect(emergence(state, createRng("homeland"))).toHaveLength(1);
+    } finally {
+      SIM.EMERGENCE_PROB = before;
+    }
+  });
+
   it("eventually founds a nation in a big empty region", () => {
     const size = SIM.EMERGENCE_MIN_REGION + 5;
     const state = makeState(row(size), Array(size).fill(0), []);

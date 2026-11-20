@@ -1,6 +1,7 @@
 // The small counting rules behind the world report's empire measures (tests/worldReport.ts).
 import { describe, expect, it } from "vitest";
-import { countSuccessors, serviceEnd } from "./worldReport";
+import type { WarRecord } from "../src/core/types";
+import { countSuccessors, largeRealmsConquered, serviceEnd } from "./worldReport";
 
 describe("countSuccessors", () => {
   // Ten cells the empire (realm 1, with vassal 2) held at its height; who owns each now.
@@ -30,5 +31,17 @@ describe("serviceEnd", () => {
     expect(serviceEnd(true, true, true, false)).toBe("changedCrown");
     expect(serviceEnd(true, true, false, true)).toBe("revolt");
     expect(serviceEnd(true, true, false, false)).toBe("letGo");
+  });
+});
+
+describe("world endings", () => {
+  it("counts whole annexations exactly at 5%, including allies, and excludes partial victories", () => {
+    const record: WarRecord = { id: 1, start: 1, attacker: 1, defender: 2, allies: [], goal: "conquer",
+      scores: [], battles: [], fallen: { attack: 0, defend: 0 }, moments: [],
+      outcome: { how: "goal", raid: false, winner: 1, cells: 5, wholeRealm: true, text: "" } };
+    expect(largeRealmsConquered([record], 100)).toBe(1);
+    record.outcome!.wholeRealm = false;
+    record.alliedAnnexations = [4, 5, 6];
+    expect(largeRealmsConquered([record], 100)).toBe(2);
   });
 });

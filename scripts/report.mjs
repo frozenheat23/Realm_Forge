@@ -77,6 +77,8 @@ function printSummary(report, before) {
   const total = (rows, key) => rows.reduce((a, r) => a + (r[key] ?? NaN), 0);
   const left = (rows) => total(rows, "vassalsRevolted") + total(rows, "vassalsFreedByFall") + total(rows, "vassalsAbsorbed") + total(rows, "vassalsChangedCrown") + total(rows, "vassalsLetGo");
   const ratios = {
+    exhaustedConquestShare: (rows) => total(rows, "exhaustedConquests") / total(rows, "decidedConquests"),
+    cellsPerPartialConquest: (rows) => total(rows, "partialConquestCells") / total(rows, "partialConquestWins"),
     giantsBrokenShare: (rows) => total(rows, "giantsBroken") / total(rows, "giants"),
     successorsPerBreakup: (rows) => total(rows, "successorStates") / total(rows, "giantsBroken"),
     conquerorRealmsHalvedShare: (rows) => total(rows, "conquerorRealmsHalved") / total(rows, "conquerorRealmsWatched"),

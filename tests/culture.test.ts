@@ -28,8 +28,11 @@ describe("assimilation", () => {
     expect(after(conquered(), 500)).toBe(1);
   });
 
-  it("never touches another race, so a culture stays inside one race", () => {
-    expect(after(conquered(Race.Orc), 500)).toBe(2);
+  it("keeps foreign residents and their culture after a fresh conquest", () => {
+    const state = conquered(Race.Orc);
+    state.state.ownedSince[2] = state.year;
+    expect(after(state, 500)).toBe(2);
+    expect(state.state.race[2]).toBe(Race.Orc);
   });
 
   it("leaves restless land alone", () => {
@@ -70,6 +73,42 @@ describe("assimilation", () => {
       }
     }
     expect(orcs).toBeGreaterThan(humans);
+  });
+});
+
+describe("settlement under long foreign rule", () => {
+  // Vary the year's dice as tick() does. With zero control even centuries cannot change the majority.
+  function settle(state: ReturnType<typeof conquered>, control = fullControl) {
+    for (let y = 0; y < 1000; y++) assimilate(state, control, createRng(`settlement-${y}`));
+  }
+
+  it("changes race and culture together and preserves population and a shared faith", () => {
+    const state = conquered(Race.Orc);
+    state.state.faith[2] = Faith.RedHunger;
+    const population = state.state.pop[2];
+    settle(state);
+    expect([state.state.race[2], state.state.culture[2]]).toEqual([Race.Human, 1]);
+    expect([state.state.pop[2], state.state.faith[2]]).toEqual([population, Faith.RedHunger]);
+  });
+
+  it("brings the settlers' homeland faith when the old faith is exclusive to another people", () => {
+    const state = conquered(Race.LightElf);
+    state.state.faith[2] = Faith.SilverChoir;
+    settle(state);
+    expect(state.state.race[2]).toBe(Race.Human);
+    expect(state.state.faith[2]).toBe(Faith.RadiantCovenant);
+  });
+
+  it("leaves an enclave in occupied, restless or uncontrolled land", () => {
+    const occupied = conquered(Race.Orc);
+    occupied.state.occupier[2] = 2;
+    const restless = conquered(Race.Orc);
+    restless.state.unrest[2] = SIM.ASSIMILATE_MAX_UNREST;
+    const distant = conquered(Race.Orc);
+    settle(occupied);
+    settle(restless);
+    settle(distant, new Float32Array(3));
+    for (const state of [occupied, restless, distant]) expect(state.state.race[2]).toBe(Race.Orc);
   });
 });
 

@@ -157,7 +157,7 @@ Example names per culture live in `src/gen/nameCorpus.ts` (all invented). Edit t
 |---|---|---|---|---|---|
 | `STAB_RECOVERY` | 0.01 | 0.002–0.03 | Stability regained per year | Empires recover; fewer breakups | Instability lingers |
 | `ADMIN_CAP_BASE` | 120 | 60–300 | Cells before overextension starts | Bigger stable empires | Many mid-sized nations |
-| `OVEREXT_K` | 0.00003 | 0.00001–0.001 | Stability lost per year per cell over the cap. A nation settles about `STAB_RECOVERY / OVEREXT_K` cells above its cap (at the old 0.002 any big nation hit stability 0 at once) | Big empires crack fast | Empires sprawl longer |
+| `OVEREXT_K` | 0.000012 | 0.00001–0.001 | Stability lost per year per cell over the cap. A nation settles about `STAB_RECOVERY / OVEREXT_K` cells above its cap (at the old 0.002 any big nation hit stability 0 at once) | Big empires crack fast | Empires sprawl longer |
 | `VIGOR_BONUS` | 120 | 0–200 | Extra land a brand-new nation can rule, as a multiple of its normal cap | Young conquerors hold huge realms | Age doesn't matter (0) |
 | `VIGOR_YEARS` | 250 | 80–400 | Years for that extra to fade to ~37% | Empires last longer | Empires crack sooner |
 | `WEARINESS_STAB_K` | 0.01 | 0–0.05 | Stability lost from war weariness | Long wars trigger rebellions | Wars don't destabilize |
@@ -508,6 +508,7 @@ SPEC §4.14. `FAITHS` and the race traits are in `gen/params.ts`; the rest are i
 | Parameter | Default | Range | What it controls | Up ↑ | Down ↓ |
 |---|---|---|---|---|---|
 | `CULTURE_RATE` | 0.05 | 0–0.2 | Yearly chance a cell copies the ruler's culture from a neighbor (× assimilation × control) | Empires absorb their kin in a few generations; fewer realms return | Old peoples last forever |
+| `PEOPLE_SETTLEMENT_RATE` | 0.02 | 0–0.1 | Annual chance, multiplied by control, that settlers become the majority on populated foreign land held for `CORE_YEARS`. Requires calm, unoccupied land | Fewer enclaves survive long foreign rule | At 0, foreign residents keep their race |
 | `ASSIMILATE_MAX_UNREST` | 0.3 | 0–1 | Cells more restless than this keep their culture | Even angry land assimilates | Only calm land does |
 | `FAITH_RATE` | 0.03 | 0–0.2 | Yearly chance a cell copies a neighbor's faith (× reach × conversion) | Faiths sweep the map | Faith maps barely move |
 | `FAITH_FOREIGN_SPREAD` | 0.6 | 0–1 | × that chance when the faith isn't the owner's | Faiths ignore borders | Faith borders match nation borders |

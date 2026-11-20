@@ -11,7 +11,7 @@ import { SIM } from "../src/sim/params";
 import { besiege } from "../src/sim/siege";
 import { fromSnapshot, toSnapshot } from "../src/sim/snapshot";
 import { tick } from "../src/sim/tick";
-import { endWars } from "../src/sim/war";
+import { concludeWar, endWars } from "../src/sim/war";
 import { makeNation, makeState, row } from "./tinyWorld";
 
 // [1][1][1][1][1] | [2][2][2][2][2] | [3][3]: nation 1 attacks 2, and 3 is 2's ally.
@@ -52,6 +52,16 @@ describe("war records", () => {
     expect(record.fallen.attack).toBeGreaterThan(0);
     expect(record.fallen.defend).toBeGreaterThan(0);
     expect(record.fallen.attack + record.fallen.defend).toBeCloseTo(record.battles[0]!.lost);
+  });
+
+  it("keeps the size of a whole realm taken in a quiet allied peace", () => {
+    const state = threeNations();
+    const war = state.wars[1]!;
+    state.state.occupier[0] = 3;
+    concludeWar(state, war, state.nations.get(3)!, "decisive", true, () => "annex");
+    expect(state.nations.get(1)!.alive).toBe(false);
+    expect(state.warRecords[0]!.alliedAnnexations).toEqual([5]);
+    expect(state.warRecords[0]!.outcome).toBeUndefined();
   });
 
   it("note a capital taken", () => {

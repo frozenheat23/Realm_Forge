@@ -438,6 +438,8 @@ export interface WarRecord {
   attacker: NationId;
   defender: NationId;
   allies: { nation: NationId; side: "attack" | "defend"; year: number }[];
+  /** Cells taken in each whole-realm annexation by a joined army, if any. */
+  alliedAnnexations?: number[];
   goal: WarGoal;
   start: number;
   /** Set when the war ends. */

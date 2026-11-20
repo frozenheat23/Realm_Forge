@@ -48,10 +48,11 @@ async function fingerprint(seed: string, years: number, width?: number, height?:
 // Re-recorded 2026-11-15: 7,000 cells instead of 10,000, and borders are tidied (SPEC §4.17).
 // Re-recorded 2026-11-16: vassals rise at moments of weakness. Re-recorded 2026-11-17: Conquerors
 // march for the throne, and winners keep more land (PEACE_EXTRA_CELLS 150, ANNEX_CHANCE 0.6).
+// Re-recorded 2026-11-20 for settlement under long foreign rule and lower overextension strain.
 const GOLDEN = {
-  full: "3a2752a8",
-  smallA: "53ea03e2",
-  smallB: "7b457578",
+  full: "6a09cdb9",
+  smallA: "4fbfc132",
+  smallB: "bcf843a7",
 };
 
 describe("golden history", () => {
